@@ -8,7 +8,7 @@ import { Note } from '../../note';
 
 @Component({
   selector: 'deenji-analog-welcome',
-  
+
   imports: [AsyncPipe, FormsModule, NgFor, DatePipe, NgIf],
   host: {
     class:
