@@ -1,0 +1,57 @@
+{
+  "name": "deenji",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@analogjs/platform:vite",
+      "defaultConfiguration": "production",
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "sourcemap": false,
+          "mode": "production"
+        }
+      },
+      "outputs": [
+        "{options.outputPath}",
+        "{workspaceRoot}/dist/deenji/.nitro",
+        "{workspaceRoot}/dist/deenji/ssr",
+        "{workspaceRoot}/dist/deenji/analog"
+      ],
+      "options": {
+        "main": "deenji/src/main.ts",
+        "configFile": "deenji/vite.config.ts",
+        "outputPath": "dist/deenji/client",
+        "tsConfig": "deenji/tsconfig.app.json"
+      }
+    },
+    "serve": {
+      "executor": "@analogjs/platform:vite-dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "deenji:build",
+        "port": 4200
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "deenji:build:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "deenji:build:production"
+        }
+      }
+    },
+    "test": {
+      "executor": "@analogjs/vitest-angular:test",
+      "outputs": [
+        "{projectRoot}/coverage"
+      ]
+    }
+  },
+  "tags": [],
+  "sourceRoot": "./deenji/src"
+}
