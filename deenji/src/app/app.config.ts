@@ -8,6 +8,7 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { provideFileRouter, requestContextInterceptor } from '@analogjs/router';
 
 import { provideTrpcClient } from '../trpc-client';
+import { provideAngularSvgIcon } from 'angular-svg-icon';
 
 
 export const appConfig: ApplicationConfig = {
@@ -21,6 +22,6 @@ export const appConfig: ApplicationConfig = {
     ),
 
     provideTrpcClient(),
-
+    provideAngularSvgIcon()
   ],
 };
