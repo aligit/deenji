@@ -196,7 +196,6 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
       </section>
     </main>
 
-
     <footer class="bg-secondary-800 text-white py-12">
       <div class="max-w-7xl mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
