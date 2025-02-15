@@ -8,8 +8,9 @@ import { TotoComponent } from './toto.component';
 
   imports: [AnalogWelcomeComponent, TotoComponent],
   template: `
+<p>Hello from home page</p>
 <!--     <deenji-analog-welcome/> -->
-    <toto/>
+ <!--   <toto/>-->
   `,
 })
 export default class HomeComponent {

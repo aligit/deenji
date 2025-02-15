@@ -12,75 +12,6 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
   host: {
     class: 'flex min-h-screen flex-col text-zinc-900',
   },
-  styles: [`
-    /* Header Styles */
-    .hero-section {
-      position: relative;
-      min-height: 300px;
-    }
-
-    .main-header {
-      position: relative;
-      z-index: 20;
-      background: transparent;
-    }
-
-    .main-header nav {
-      background: rgba(255, 255, 255, 0.95);
-      backdrop-filter: blur(8px);
-    }
-
-    /* Sticky Search Header */
-    .sticky-search-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 50;
-      background-color: #fff;
-      min-height: 4rem;
-      padding: 1rem 0;
-    }
-
-    .sticky-search-header.opacity-0 {
-      transition: opacity 0.3s ease, visibility 0s linear 0.3s;
-    }
-
-    .sticky-search-header.opacity-100 {
-      transition: opacity 0.3s ease;
-    }
-
-    /* Hero Section */
-    .hero-content {
-      position: relative;
-      z-index: 10;
-      padding-top: 120px;
-    }
-
-    .hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
-    }
-
-    /* Search Inputs */
-    .search-input {
-      width: 100%;
-      height: 56px;
-      padding: 0 16px;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      background-color: white;
-      font-size: 16px;
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-  `],
   template: `
   <header class="fixed top-6 left-0 right-0 bg-secondary-900 bg-opacity-90 z-50">
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -109,7 +40,7 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 
 
     <!-- Sticky Search Header (appears after scroll) -->
-    <div class="sticky-search-header fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300"
+    <div class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300 min-h-16 py-4"
          [class.opacity-0]="!showStickyHeader"
          [class.invisible]="!showStickyHeader"
          [class.opacity-100]="showStickyHeader">
@@ -137,10 +68,10 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 
     <main class="flex-1">
       <!-- Hero Section -->
-      <section class="hero-section relative min-h-[600px] pt-24">
+      <section class="relative min-h-[600px] pt-24">
         <!-- Background Image -->
         <div class="absolute inset-0 z-0">
-          <div class="hero-overlay absolute inset-0 bg-black bg-opacity-40"></div>
+          <div class="absolute inset-0 bg-gradient-to-r from-black/50 to-black/30"></div>
           <img
             src="https://napa.wpresidence.net/wp-content/uploads/2024/05/67629-webp-e1716972745651.webp"
             alt="Luxury Real Estate"
@@ -156,12 +87,12 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
           </h1>
 
           <!-- Search Bar -->
-          <div class="w-full max-w-2xl banner-search">
+          <div class="w-full max-w-2xl" id="banner-search">
             <div class="relative">
               <input
                 type="text"
                 placeholder="Enter an address, neighborhood, city, or ZIP code"
-                class="w-full h-14 pl-4 pr-12 text-secondary-800 bg-white rounded-md shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                class="w-full h-14 px-4 rounded-lg border border-gray-200 bg-white text-base transition-all duration-200 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10"
               />
               <button class="absolute right-4 top-1/2 -translate-y-1/2">
                 <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -265,7 +196,7 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
       </section>
     </main>
 
-    <!-- Footer -->
+
     <footer class="bg-secondary-800 text-white py-12">
       <div class="max-w-7xl mx-auto px-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
@@ -328,7 +259,7 @@ export class TotoComponent {
   @HostListener('window:scroll', ['$event'])
   onWindowScroll() {
     const scrollPosition = window.scrollY;
-    const bannerSearch = document.querySelector('.banner-search');
+    const bannerSearch = document.getElementById('banner-search');
 
     if (bannerSearch) {
       const bannerPosition = bannerSearch.getBoundingClientRect().top;
