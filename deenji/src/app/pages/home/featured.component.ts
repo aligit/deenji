@@ -6,7 +6,7 @@ import { AsyncPipe, DatePipe, NgFor, NgIf } from "@angular/common";
   imports: [AsyncPipe, NgFor, DatePipe, NgIf],
   template: `
     <section class="max-w-7xl mx-auto px-4 py-16">
-      <h2 class="text-3xl font-semibold mb-8">Featured Properties</h2>
+      <h2 class="text-3xl font-semibold mb-8">املاک داغ شده</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <!-- Property Card -->
         <div class="bg-white rounded-lg shadow-md overflow-hidden">
@@ -59,4 +59,4 @@ import { AsyncPipe, DatePipe, NgFor, NgIf } from "@angular/common";
     </section>
   `,
 })
-export class FeaturedComponent { }
+export class FeaturedComponent {}
