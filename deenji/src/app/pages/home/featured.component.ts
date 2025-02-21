@@ -1,9 +1,7 @@
 import { Component } from "@angular/core";
-import { AsyncPipe, DatePipe, NgFor, NgIf } from "@angular/common";
 
 @Component({
   selector: "app-featured",
-  imports: [AsyncPipe, NgFor, DatePipe, NgIf],
   template: `
     <section class="max-w-7xl mx-auto px-4 py-16">
       <h2 class="text-3xl font-semibold mb-8">املاک داغ شده</h2>

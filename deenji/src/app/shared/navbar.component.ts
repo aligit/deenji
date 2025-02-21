@@ -30,8 +30,10 @@ import { AngularSvgIconModule } from "angular-svg-icon";
           </div>
 
           <!-- Centralized Logo -->
-          <div class="absolute inset-x-0 flex justify-center items-center">
-            <a href="/" class="text-2xl font-semibold">
+          <div
+            class="absolute inset-x-0 flex justify-center items-center pointer-events-none"
+          >
+            <a href="/" class="text-2xl font-semibold pointer-events-auto">
               <svg-icon
                 src="/images/deenji.svg"
                 [svgStyle]="{ 'width.px': 90, fill: 'white' }"
