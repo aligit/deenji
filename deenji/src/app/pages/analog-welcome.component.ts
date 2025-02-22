@@ -1,353 +1,162 @@
-import { Component, HostListener } from '@angular/core';
-import { AsyncPipe, DatePipe, NgFor, NgIf } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { shareReplay, Subject, switchMap } from 'rxjs';
-import { waitFor } from '@analogjs/trpc';
-import { injectTrpcClient } from '../../trpc-client';
-import { AngularSvgIconModule } from 'angular-svg-icon';
+import { Component } from "@angular/core";
+import { AsyncPipe, DatePipe, NgFor, NgIf } from "@angular/common";
+import { FormsModule, NgForm } from "@angular/forms";
+import { shareReplay, Subject, switchMap, take } from "rxjs";
+import { waitFor } from "@analogjs/trpc";
+import { injectTrpcClient } from "../../trpc-client";
+import { Note } from "../../db";
 
 @Component({
-  selector: 'deenji-analog-welcome',
-  imports: [AsyncPipe, FormsModule, NgFor, DatePipe, NgIf, AngularSvgIconModule],
+  selector: "deenji-analog-welcome",
+
+  imports: [AsyncPipe, FormsModule, NgFor, DatePipe, NgIf],
   host: {
-    class: 'flex min-h-screen flex-col text-zinc-900',
+    class:
+      "flex min-h-screen flex-col text-zinc-900 bg-zinc-50 px-4 pt-8 pb-32",
   },
-  styles: [`
-    /* Header Styles */
-    .hero-section {
-      position: relative;
-      min-height: 300px;
-    }
-
-    .main-header {
-      position: relative;
-      z-index: 20;
-      background: transparent;
-    }
-
-    .main-header nav {
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(8px);
-    }
-
-    /* Sticky Search Header */
-    .sticky-search-header {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 50;
-      background-color: #fff;
-      min-height: 4rem;
-      padding: 1rem 0;
-    }
-
-    .sticky-search-header.opacity-0 {
-      transition: opacity 0.3s ease, visibility 0s linear 0.3s;
-    }
-
-    .sticky-search-header.opacity-100 {
-      transition: opacity 0.3s ease;
-    }
-
-    /* Hero Section */
-    .hero-content {
-      position: relative;
-      z-index: 10;
-      padding-top: 120px;
-    }
-
-    .hero-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(to right, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.3));
-    }
-
-    /* Search Inputs */
-    .search-input {
-      width: 100%;
-      height: 56px;
-      padding: 0 16px;
-      border-radius: 8px;
-      border: 1px solid #e5e7eb;
-      background-color: white;
-      font-size: 16px;
-      transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-      outline: none;
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-    }
-  `],
   template: `
-  <header class="fixed top-6 left-0 right-0 bg-black bg-opacity-40 z-50">
-      <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between items-center h-16">
-          <div class="flex items-center space-x-8">
-            <a href="/" class="text-2xl font-semibold">
-              <svg-icon src="/images/deenji.svg" [svgStyle]="{ 'width.px':90, 'fill':'white' }"></svg-icon>
-            </a>
-            <div class="hidden md:flex items-center space-x-6">
-              <a href="/buy" class="text-white hover:text-gray-200 text-sm">Buy</a>
-              <a href="/rent" class="text-white hover:text-gray-200 text-sm">Rent</a>
-              <a href="/sell" class="text-white hover:text-gray-200 text-sm">Sell</a>
-              <a href="/home-loans" class="text-white hover:text-gray-200 text-sm">Home Loans</a>
-              <a href="/agent-finder" class="text-white hover:text-gray-200 text-sm">Find an Agent</a>
-            </div>
-          </div>
-          <div class="hidden md:flex items-center space-x-6">
-            <a href="/manage-rentals" class="text-white hover:text-gray-200 text-sm">Manage Rentals</a>
-            <a href="/advertise" class="text-white hover:text-gray-200 text-sm">Advertise</a>
-            <a href="/help" class="text-white hover:text-gray-200 text-sm">Help</a>
-            <button class="text-white hover:text-gray-200 text-sm">Sign In</button>
-          </div>
-        </div>
-      </nav>
-    </header>
-
-
-    <!-- Sticky Search Header (appears after scroll) -->
-    <div class="sticky-search-header fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300"
-         [class.opacity-0]="!showStickyHeader"
-         [class.invisible]="!showStickyHeader"
-         [class.opacity-100]="showStickyHeader">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center">
-        <div class="flex items-center w-full max-w-3xl mx-auto">
-          <a href="/" class="mr-4">
-            <svg-icon src="/images/deenji.svg" [svgStyle]="{ 'width.px':90, 'fill':'black' }"></svg-icon>
-          </a>
-          <div class="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Enter an address, neighborhood, city, or ZIP code"
-              class="w-full h-11 pl-4 pr-10 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            <button class="absolute right-3 top-1/2 -translate-y-1/2">
-              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <main class="flex-1">
-      <!-- Hero Section -->
-      <section class="hero-section relative min-h-[600px] pt-24">
-        <!-- Background Image -->
-        <div class="absolute inset-0 z-0">
-          <div class="hero-overlay absolute inset-0 bg-black bg-opacity-40"></div>
+    <main class="flex-1 mx-auto">
+      <section class="space-y-6 pb-8 pt-6 md:pb-12 md:pt-10 lg:py-32">
+        <div class="flex max-w-[64rem] flex-col items-center gap-4 text-center">
           <img
-            src="https://napa.wpresidence.net/wp-content/uploads/2024/05/67629-webp-e1716972745651.webp"
-            alt="Luxury Real Estate"
-            class="w-full h-full object-cover"
+            class="h-12 w-12"
+            src="https://analogjs.org/img/logos/analog-logo.svg"
+            alt="AnalogJs logo. Two red triangles and a white analog wave in front"
           />
-        </div>
-
-        <!-- Hero Content -->
-        <div class="relative z-10 h-full flex flex-col items-center justify-center text-white px-4 py-10">
-          <h1 class="text-5xl md:text-6xl font-bold text-center mb-6 max-w-4xl">
-            Find it. Tour it.
-            <span class="block">Own it.</span>
+          <a
+            class="rounded-2xl bg-zinc-200 px-4 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            target="_blank"
+            href="https://twitter.com/analogjs"
+            >Follow along on Twitter</a
+          >
+          <h1
+            class="font-heading font-medium text-3xl sm:text-5xl md:text-6xl lg:text-7xl"
+          >
+            <span class="text-[#DD0031]">Analog.</span> The fullstack Angular
+            meta-framework
           </h1>
-
-          <!-- Search Bar -->
-          <div class="w-full max-w-2xl banner-search">
-            <div class="relative">
-              <input
-                type="text"
-                placeholder="Enter an address, neighborhood, city, or ZIP code"
-                class="w-full h-14 pl-4 pr-12 text-gray-800 bg-white rounded-md shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button class="absolute right-4 top-1/2 -translate-y-1/2">
-                <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+          <p
+            class="max-w-[42rem] leading-normal text-muted-foreground sm:text-xl sm:leading-8"
+          >
+            Analog is for building applications and websites with Angular.
+            <br />Powered by Vite.
+          </p>
+          <div class="space-x-4">
+            <a
+              class="inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background bg-zinc-950 text-zinc-50 hover:bg-zinc-950/90 h-11 px-8 rounded-md"
+              href="https://analogjs.org"
+              >Read the docs</a
+            ><a
+              target="_blank"
+              rel="noreferrer"
+              class="inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-zinc-100 hover:text-zinc-950 h-11 px-8 rounded-md"
+              href="https://github.com/analogjs/analog"
+              >Star on GitHub</a
+            >
+          </div>
+        </div>
+      </section>
+      <section id="trpc-demo" class="py-8 md:py-12 lg:py-24">
+        <div
+          class="mx-auto flex max-w-[58rem] flex-col items-center justify-center gap-4 text-center"
+        >
+          <h2 class="text-[#DD0031] font-medium text-3xl leading-[1.1]">
+            Leave a note
+          </h2>
+          <p class="max-w-[85%] leading-normal sm:text-lg sm:leading-7">
+            This is an example of how you can use tRPC to superpower your
+            client-server interaction.
+          </p>
+        </div>
+        <form
+          class="mt-8 pb-2 flex items-center"
+          #f="ngForm"
+          (ngSubmit)="addNote(f)"
+        >
+          <label class="sr-only" for="newNote"> Note </label>
+          <input
+            required
+            autocomplete="off"
+            name="newNote"
+            [(ngModel)]="newNote"
+            class="w-full inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:text-zinc-950 h-11 px-2 rounded-md"
+          />
+          <button
+            class="ml-2 inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background border border-input hover:bg-zinc-100 hover:text-zinc-950 h-11 px-8 rounded-md"
+          >
+            +
+          </button>
+        </form>
+        <div class="mt-4" *ngIf="notes$ | async as notes; else loading">
+          <div
+            class="note mb-4 p-4 font-normal border border-input rounded-md"
+            *ngFor="let note of notes; trackBy: noteTrackBy; let i = index"
+          >
+            <div class="flex items-center justify-between">
+              <p class="text-sm text-zinc-400">{{ note.createdAt | date }}</p>
+              <button
+                [attr.data-testid]="'removeNoteAtIndexBtn' + i"
+                class="inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background hover:bg-zinc-100 hover:text-zinc-950 h-6 w-6 rounded-md"
+                (click)="removeNote(note.id)"
+              >
+                x
               </button>
             </div>
+            <p class="mb-4">{{ note.note }}</p>
+          </div>
+
+          <div
+            class="no-notes text-center rounded-xl p-20"
+            *ngIf="notes.length === 0"
+          >
+            <h3 class="text-xl font-medium">No notes yet!</h3>
+            <p class="text-zinc-400">
+              Add a new one and see them appear here...
+            </p>
           </div>
         </div>
-      </section>
-
-      <!-- Featured Properties Section -->
-      <section class="max-w-7xl mx-auto px-4 py-16">
-        <h2 class="text-3xl font-semibold mb-8">Featured Properties</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <!-- Property Card -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="relative pb-[66%]">
-              <img
-                src="https://napa-residence.b-cdn.net/wp-content/uploads/2014/05/ranch10-1000x623-1-500x540.webp"
-                alt="Property"
-                class="absolute inset-0 w-full h-full object-cover"
-              />
-            </div>
-            <div class="p-4">
-              <h3 class="text-xl font-semibold mb-2">$1,250,000</h3>
-              <p class="text-gray-600 mb-2">4 bd | 3 ba | 2,500 sqft</p>
-              <p class="text-gray-800">123 Main Street, City, State</p>
-            </div>
-          </div>
-
-          <!-- Repeat Property Card 2 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="relative pb-[66%]">
-              <img
-                src="https://napa-residence.b-cdn.net/wp-content/uploads/2014/05/j-1-1-500x540.webp"
-                alt="Property"
-                class="absolute inset-0 w-full h-full object-cover"
-              />
-            </div>
-            <div class="p-4">
-              <h3 class="text-xl font-semibold mb-2">$899,000</h3>
-              <p class="text-gray-600 mb-2">3 bd | 2 ba | 1,800 sqft</p>
-              <p class="text-gray-800">456 Oak Avenue, City, State</p>
-            </div>
-          </div>
-
-          <!-- Repeat Property Card 3 -->
-          <div class="bg-white rounded-lg shadow-md overflow-hidden">
-            <div class="relative pb-[66%]">
-              <img
-                src="https://napa-residence.b-cdn.net/wp-content/uploads/2014/05/11.1-500x540.webp"
-                alt="Property"
-                class="absolute inset-0 w-full h-full object-cover"
-              />
-            </div>
-            <div class="p-4">
-              <h3 class="text-xl font-semibold mb-2">$1,450,000</h3>
-              <p class="text-gray-600 mb-2">5 bd | 4 ba | 3,200 sqft</p>
-              <p class="text-gray-800">789 Pine Street, City, State</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Recent Listings Section -->
-      <section class="py-16">
-        <div class="max-w-7xl mx-auto px-4">
-          <h2 class="text-3xl font-semibold mb-8">Recent Listings</h2>
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <!-- Listing Card -->
-            <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div class="relative pb-[75%]">
-                <img
-                  src="/assets/listing-1.jpg"
-                  alt="Listing"
-                  class="absolute inset-0 w-full h-full object-cover"
-                />
-              </div>
-              <div class="p-4">
-                <h3 class="text-lg font-semibold mb-1">$750,000</h3>
-                <p class="text-gray-600 text-sm mb-2">3 bd | 2 ba | 1,500 sqft</p>
-                <p class="text-gray-800 text-sm">321 Elm Street, City, State</p>
-              </div>
-            </div>
-
-            <!-- Repeat for more listing cards -->
-          </div>
-        </div>
-      </section>
-
-      <!-- Call to Action Section -->
-      <section class="bg-blue-600 text-white py-16">
-        <div class="max-w-7xl mx-auto px-4 text-center">
-          <h2 class="text-3xl font-bold mb-4">Ready to Find Your Dream Home?</h2>
-          <p class="text-xl mb-8">Connect with our expert agents today</p>
-          <button class="bg-white text-blue-600 px-8 py-3 rounded-md font-semibold hover:bg-blue-50 transition-colors">
-            Get Started
-          </button>
-        </div>
+        <ng-template #loading>
+          <p class="text-center mt-4">Loading...</p>
+        </ng-template>
       </section>
     </main>
-
-    <!-- Footer -->
-    <footer class="bg-gray-800 text-white py-12">
-      <div class="max-w-7xl mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-          <div>
-            <h3 class="text-lg font-semibold mb-4">About Us</h3>
-            <ul class="space-y-2">
-              <li><a href="#" class="text-gray-300 hover:text-white">Company</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">Careers</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">Contact</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Resources</h3>
-            <ul class="space-y-2">
-              <li><a href="#" class="text-gray-300 hover:text-white">Blog</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">Guides</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">FAQ</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Legal</h3>
-            <ul class="space-y-2">
-              <li><a href="#" class="text-gray-300 hover:text-white">Privacy Policy</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">Terms of Service</a></li>
-              <li><a href="#" class="text-gray-300 hover:text-white">Accessibility</a></li>
-            </ul>
-          </div>
-          <div>
-            <h3 class="text-lg font-semibold mb-4">Connect</h3>
-            <div class="flex space-x-4">
-              <a href="#" class="text-gray-300 hover:text-white">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </a>
-              <a href="#" class="text-gray-300 hover:text-white">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
-              </a>
-              <a href="#" class="text-gray-300 hover:text-white">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.894 8.221l-1.97 9.28c-.145.658-.537.818-1.084.508l-3-2.21-1.446 1.394c-.14.18-.357.223-.548.223l.188-2.85 5.18-4.68c.223-.198-.054-.314-.346-.116l-6.38 4.02-2.7-.84c-.58-.183-.593-.577.124-.855l10.55-4.07c.485-.176.915.11.832.832z"/>
-                </svg>
-              </a>
-            </div>
-          </div>
-        </div>
-        <div class="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-          <p>&copy; 2025 Real Estate Platform. All rights reserved.</p>
-        </div>
-      </div>
-    </footer>
-
   `,
 })
 export class AnalogWelcomeComponent {
   private _trpc = injectTrpcClient();
-
-  @HostListener('window:scroll', ['$event'])
-  onWindowScroll() {
-    const scrollPosition = window.scrollY;
-    const bannerSearch = document.querySelector('.banner-search');
-
-    if (bannerSearch) {
-      const bannerPosition = bannerSearch.getBoundingClientRect().top;
-      this.showStickyHeader = bannerPosition < 0;
-    }
-  }
   public triggerRefresh$ = new Subject<void>();
-  public showStickyHeader = false;
   public notes$ = this.triggerRefresh$.pipe(
     switchMap(() => this._trpc.note.list.query()),
-    shareReplay(1)
+    shareReplay(1),
   );
-  public newNote = '';
-
-
+  public newNote = "";
 
   constructor() {
     void waitFor(this.notes$);
     this.triggerRefresh$.next();
   }
 
+  public noteTrackBy = (index: number, note: Note) => {
+    return note.id;
+  };
+
+  public addNote(form: NgForm) {
+    if (!form.valid) {
+      form.form.markAllAsTouched();
+      return;
+    }
+    this._trpc.note.create
+      .mutate({ note: this.newNote })
+      .pipe(take(1))
+      .subscribe(() => this.triggerRefresh$.next());
+    this.newNote = "";
+    form.form.reset();
+  }
+
+  public removeNote(id: number) {
+    this._trpc.note.remove
+      .mutate({ id })
+      .pipe(take(1))
+      .subscribe(() => this.triggerRefresh$.next());
+  }
 }
