@@ -51,14 +51,36 @@ import { AngularSvgIconModule } from "angular-svg-icon";
 })
 export class StickySearchComponent {
   public showStickyHeader = false;
+  private previousScroll = 0;
 
   @HostListener("window:scroll", [])
   onWindowScroll() {
-    const bannerSearch = document.getElementById("banner-search");
+    // Get the current scroll position
+    const currentScroll = window.pageYOffset;
 
-    if (bannerSearch) {
-      const bannerPosition = bannerSearch.getBoundingClientRect().top;
-      this.showStickyHeader = bannerPosition < 0;
-    }
+    // Check if scrolling down or up
+    const isScrollingDown = currentScroll > this.previousScroll;
+
+    // Update the sticky header state
+    this.showStickyHeader = currentScroll > 200; // Adjust the 200px threshold as needed
+
+    // Update previous scroll position
+    this.previousScroll = currentScroll;
+  }
+
+  // Add debounce to prevent excessive calculations
+  @HostListener("window:scroll")
+  scrollHandler(): void {
+    // Get the current scroll position
+    const currentScroll = window.pageYOffset;
+
+    // Check if scrolling down or up
+    const isScrollingDown = currentScroll > this.previousScroll;
+
+    // Update the sticky header state
+    this.showStickyHeader = currentScroll > 200; // Adjust the 200px threshold as needed
+
+    // Update previous scroll position
+    this.previousScroll = currentScroll;
   }
 }
