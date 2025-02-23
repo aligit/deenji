@@ -8,7 +8,8 @@
       "defaultConfiguration": "production",
       "configurations": {
         "development": {
-          "mode": "development"
+          "mode": "development",
+          "sourcemap": true
         },
         "production": {
           "sourcemap": false,
@@ -47,9 +48,7 @@
     },
     "test": {
       "executor": "@analogjs/vitest-angular:test",
-      "outputs": [
-        "{projectRoot}/coverage"
-      ]
+      "outputs": ["{projectRoot}/coverage"]
     }
   },
   "tags": [],
