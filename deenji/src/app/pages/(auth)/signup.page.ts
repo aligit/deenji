@@ -1,10 +1,12 @@
 import { Component, inject } from "@angular/core";
 import { SupabaseService } from "../../core/services/supabase.service";
-import { FormBuilder, Validators } from "@angular/forms";
+import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from "@angular/forms";
 import { Router } from "@angular/router";
+import { CommonModule } from "@angular/common";
 
 @Component({
   standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   template: `
     <div class="container mx-auto p-4">
       <h1 class="text-2xl font-bold mb-4">Sign Up</h1>
@@ -69,11 +71,14 @@ export default class SignupComponent {
   signupForm = this.formBuilder.group({
     email: ["", [Validators.required, Validators.email]],
     password: ["", [Validators.required, Validators.minLength(6)]],
-    phone: [""], // Optional phone field
+    phone: [""],
   });
 
   async onSubmit(): Promise<void> {
-    if (this.signupForm.invalid) return;
+    if (this.signupForm.invalid) {
+      console.log(`signupForm is invalid`)
+      return;
+    }
 
     try {
       this.loading = true;

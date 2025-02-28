@@ -9,12 +9,20 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
   selector: "app-profile-list",
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
-  template: `<form
+  template: `
+<form
     [formGroup]="updateProfileForm"
     (ngSubmit)="updateProfile()"
     class="form-widget"
   >
+
     <div>
+<br />
+<br />
+<br />
+<br />
+<br />
+<br />
       <label for="email">Email</label>
       <input id="email" type="text" [value]="session.user.email" disabled />
     </div>
