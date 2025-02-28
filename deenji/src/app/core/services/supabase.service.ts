@@ -42,9 +42,27 @@ export class SupabaseService {
   ) {
     return this.supabase.auth.onAuthStateChange(callback);
   }
+  // Updated login with password
+  async signInWithPassword(email: string, password: string) {
+    const { data, error } = await this.supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  }
 
   signIn(email: string) {
     return this.supabase.auth.signInWithOtp({ email });
+  }
+
+  // Updated signup with email/password and optional phone
+  async signUp(email: string, password: string, phone?: string) {
+    const authData: any = { email, password };
+    if (phone) authData.phone = phone; // Add phone if provided
+    const { data, error } = await this.supabase.auth.signUp(authData);
+    if (error) throw error;
+    return data;
   }
 
   signOut() {
