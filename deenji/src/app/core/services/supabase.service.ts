@@ -31,12 +31,10 @@ export class SupabaseService {
     }
     this.supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Initialize session
     this.supabase.auth.getSession().then(({ data }) => {
       this.sessionSignal.set(data.session);
     });
 
-    // Update session on auth state changes
     this.supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event, session);
       this.sessionSignal.set(session);
@@ -55,17 +53,16 @@ export class SupabaseService {
       .single();
   }
 
-  authChanges(
-    callback: (event: AuthChangeEvent, session: Session | null) => void,
-  ) {
-    return this.supabase.auth.onAuthStateChange(callback);
+  async signIn(email: string) {
+    return this.supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: "http://localhost:4200/profile", // Match your app’s URL
+      },
+    });
   }
 
-  signIn(email: string) {
-    return this.supabase.auth.signInWithOtp({ email });
-  }
-
-  signOut() {
+  async signOut() {
     return this.supabase.auth.signOut();
   }
 
