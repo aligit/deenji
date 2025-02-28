@@ -1,4 +1,5 @@
-import { Injectable } from "@angular/core";
+// src/app/core/services/supabase.service.ts
+import { Injectable, signal } from "@angular/core";
 import {
   AuthChangeEvent,
   AuthSession,
@@ -7,26 +8,43 @@ import {
   SupabaseClient,
   User,
 } from "@supabase/supabase-js";
-import { Profile } from "../models/supabase.model";
+
+export interface Profile {
+  id?: string;
+  username: string;
+  website: string;
+  avatar_url: string;
+}
 
 @Injectable({
   providedIn: "root",
 })
 export class SupabaseService {
-  private readonly supabaseUrl = import.meta.env["VITE_supabaseUrl"];
-  private readonly supabaseKey = import.meta.env["VITE_supabaseKey"];
   private supabase: SupabaseClient;
-  _session: AuthSession | null = null;
+  private sessionSignal = signal<AuthSession | null>(null);
 
   constructor() {
-    this.supabase = createClient(this.supabaseUrl, this.supabaseKey);
+    const supabaseUrl = import.meta.env["VITE_supabaseUrl"];
+    const supabaseKey = import.meta.env["VITE_supabaseKey"];
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error("Supabase URL or Key missing in environment variables.");
+    }
+    this.supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Initialize session
+    this.supabase.auth.getSession().then(({ data }) => {
+      this.sessionSignal.set(data.session);
+    });
+
+    // Update session on auth state changes
+    this.supabase.auth.onAuthStateChange((event, session) => {
+      console.log("Auth state changed:", event, session);
+      this.sessionSignal.set(session);
+    });
   }
 
   get session() {
-    this.supabase.auth.getSession().then(({ data }) => {
-      this._session = data.session;
-    });
-    return this._session;
+    return this.sessionSignal.asReadonly();
   }
 
   profile(user: User) {
@@ -42,27 +60,9 @@ export class SupabaseService {
   ) {
     return this.supabase.auth.onAuthStateChange(callback);
   }
-  // Updated login with password
-  async signInWithPassword(email: string, password: string) {
-    const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
-  }
 
   signIn(email: string) {
     return this.supabase.auth.signInWithOtp({ email });
-  }
-
-  // Updated signup with email/password and optional phone
-  async signUp(email: string, password: string, phone?: string) {
-    const authData: any = { email, password };
-    if (phone) authData.phone = phone; // Add phone if provided
-    const { data, error } = await this.supabase.auth.signUp(authData);
-    if (error) throw error;
-    return data;
   }
 
   signOut() {
@@ -74,11 +74,10 @@ export class SupabaseService {
       ...profile,
       updated_at: new Date(),
     };
-
     return this.supabase.from("profiles").upsert(update);
   }
 
-  downLoadImage(path: string) {
+  downloadImage(path: string) {
     return this.supabase.storage.from("avatars").download(path);
   }
 
