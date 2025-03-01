@@ -1,4 +1,4 @@
-// src/app/pages/profile.page.ts
+// src/app/pages/profile.page.ts (unchanged from your correction)
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { Profile } from "../core/models/supabase.model";

@@ -7,6 +7,7 @@ import {
   Validators,
 } from "@angular/forms";
 import { SupabaseService } from "../../core/services/supabase.service";
+import { ActivatedRoute } from "@angular/router";
 
 @Component({
   standalone: true,
@@ -81,6 +82,7 @@ import { SupabaseService } from "../../core/services/supabase.service";
 export default class LoginPageComponent {
   private readonly supabase = inject(SupabaseService);
   private readonly formBuilder = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
 
   loading = false;
   errorMessage = "";
@@ -89,6 +91,14 @@ export default class LoginPageComponent {
   signInForm = this.formBuilder.group({
     email: ["", [Validators.required, Validators.email]],
   });
+
+  constructor() {
+    this.route.queryParams.subscribe((params) => {
+      if (params["error"]) {
+        this.errorMessage = params["error"];
+      }
+    });
+  }
 
   async onSubmit(): Promise<void> {
     try {
