@@ -2,9 +2,11 @@
 import { Component, inject } from "@angular/core";
 import { Router, ActivatedRoute } from "@angular/router";
 import { SupabaseService } from "../../core/services/supabase.service";
+import { CommonModule, NgIf } from "@angular/common";
 
 @Component({
   standalone: true,
+  imports: [CommonModule, NgIf],
   template: `
     <div class="container mx-auto p-4">
       <p>Verifying magic link...</p>
@@ -17,33 +19,43 @@ export default class AuthConfirmPageComponent {
   private readonly route = inject(ActivatedRoute);
 
   constructor() {
+    console.log(`suck my dick confirm`);
     this.handleMagicLink();
   }
 
   async handleMagicLink() {
-    // Get the token hash from the URL fragment
     this.route.fragment.subscribe(async (fragment) => {
       if (fragment) {
         const params = new URLSearchParams(fragment);
-        const tokenHash = params.get("access_token");
-        if (tokenHash) {
-          try {
-            await this.supabase.verifyMagicLinkToken(tokenHash);
-            // Redirect to profile page after successful verification
+        const accessToken = params.get("access_token");
+        const error = params.get("error_description");
+
+        if (error) {
+          console.error("Magic link error:", error);
+          this.router.navigate(["/login"], { queryParams: { error } });
+          return;
+        }
+
+        if (accessToken) {
+          // Token is already verified by Supabase server; session should be set
+          const session = this.supabase.session();
+          if (session) {
+            console.log("Session established:", session);
             this.router.navigate(["/profile"]);
-          } catch (error) {
-            console.error("Magic link verification failed:", error);
+          } else {
+            console.error("No session after magic link redirect");
             this.router.navigate(["/login"], {
-              queryParams: { error: "Invalid or expired link" },
+              queryParams: { error: "Session not established" },
             });
           }
         } else {
-          console.error("No access token found in magic link");
+          console.error("No access token in magic link");
           this.router.navigate(["/login"], {
             queryParams: { error: "Invalid link" },
           });
         }
       } else {
+        console.error("No fragment in URL");
         this.router.navigate(["/login"]);
       }
     });

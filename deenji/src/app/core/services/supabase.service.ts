@@ -54,21 +54,13 @@ export class SupabaseService {
   }
 
   async signIn(email: string) {
-    //TODO: replace using environment variable
+    // TODO: replace using environment variable
     return this.supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: "http://localhost:4200/auth/confirm", // Redirect to confirmation route
+        emailRedirectTo: "http://localhost:4200/confirm", // Ensure consistency with app URL
       },
     });
-  }
-
-  async verifyMagicLinkToken(tokenHash: string) {
-    const { error } = await this.supabase.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: "magiclink",
-    });
-    if (error) throw error;
   }
 
   async signOut() {

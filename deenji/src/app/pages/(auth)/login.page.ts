@@ -8,10 +8,11 @@ import {
 } from "@angular/forms";
 import { SupabaseService } from "../../core/services/supabase.service";
 import { ActivatedRoute } from "@angular/router";
+import { NgIf } from "@angular/common";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule, NgIf],
   template: `
     <div class="row flex-center flex">
       <div class="col-6 form-widget" aria-live="polite">
