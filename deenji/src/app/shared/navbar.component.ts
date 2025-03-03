@@ -1,12 +1,17 @@
-import { Component, inject } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { AngularSvgIconModule } from "angular-svg-icon";
-import { Router } from "@angular/router";
-
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AngularSvgIconModule } from 'angular-svg-icon';
+import { Router, RouterModule } from '@angular/router';
+import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 
 @Component({
-  selector: "app-navbar",
-  imports: [CommonModule, AngularSvgIconModule],
+  selector: 'app-navbar',
+  imports: [
+    CommonModule,
+    AngularSvgIconModule,
+    HlmButtonDirective,
+    RouterModule,
+  ],
   template: `
     <header
       class="fixed top-6 left-0 right-0 bg-secondary-900 bg-opacity-90 z-50"
@@ -52,7 +57,13 @@ import { Router } from "@angular/router";
               >
                 پشتیبانی
               </a>
-              <button hlmBtn class="class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">ورود / ثبت نام</button>
+              <button
+                [routerLink]="['/login']"
+                hlmBtn
+                class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+              >
+                ورود / ثبت نام
+              </button>
             </div>
           </div>
         </div>
