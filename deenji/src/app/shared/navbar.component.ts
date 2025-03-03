@@ -1,6 +1,8 @@
-import { Component } from "@angular/core";
+import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { AngularSvgIconModule } from "angular-svg-icon";
+import { Router } from "@angular/router";
+
 
 @Component({
   selector: "app-navbar",
@@ -50,11 +52,7 @@ import { AngularSvgIconModule } from "angular-svg-icon";
               >
                 پشتیبانی
               </a>
-              <button
-                class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
-              >
-                ورود / ثبت نام
-              </button>
+              <button hlmBtn class="class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">ورود / ثبت نام</button>
             </div>
           </div>
         </div>
@@ -62,4 +60,6 @@ import { AngularSvgIconModule } from "angular-svg-icon";
     </header>
   `,
 })
-export class NavbarComponent {}
+export class NavbarComponent {
+  private readonly router = inject(Router);
+}

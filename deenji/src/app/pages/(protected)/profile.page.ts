@@ -1,10 +1,16 @@
-// src/app/pages/profile.page.ts (unchanged from your correction)
+// src/app/pages/profile.page.ts
 import { Component, inject } from "@angular/core";
 import { CommonModule } from "@angular/common";
-import { Profile } from "../core/models/supabase.model";
-import { SupabaseService } from "../core/services/supabase.service";
+import { SupabaseService } from "../../core/services/supabase.service";
+import { authGuard } from "../../core/guards/auth.guard";
 import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
 import { Router } from "@angular/router";
+import { RouteMeta } from "@analogjs/router";
+
+// export const routeMeta: RouteMeta = {
+//   title: "حساب کاربری",
+//   canActivate: [authGuard],
+// };
 
 @Component({
   standalone: true,

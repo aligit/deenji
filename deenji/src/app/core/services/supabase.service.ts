@@ -63,6 +63,14 @@ export class SupabaseService {
     });
   }
 
+  async verifyOtp(email: string, token: string) {
+    return this.supabase.auth.verifyOtp({
+      email,
+      token,
+      type: "magiclink",
+    });
+  }
+
   async signOut() {
     return this.supabase.auth.signOut();
   }

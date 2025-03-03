@@ -1,120 +1,140 @@
 // src/app/pages/(auth)/login.page.ts
 import { Component, inject } from "@angular/core";
-import {
-  FormBuilder,
-  FormsModule,
-  ReactiveFormsModule,
-  Validators,
-} from "@angular/forms";
+import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
 import { SupabaseService } from "../../core/services/supabase.service";
-import { ActivatedRoute } from "@angular/router";
+import { Router } from "@angular/router";
 import { NgIf } from "@angular/common";
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, NgIf],
+  imports: [ReactiveFormsModule, NgIf],
   template: `
-    <div class="row flex-center flex">
-      <div class="col-6 form-widget" aria-live="polite">
-        <h1 class="header">Supabase + Angular</h1>
-        <p class="description">Sign in via magic link with your email below</p>
-        <form
-          [formGroup]="signInForm"
-          (ngSubmit)="onSubmit()"
-          class="form-widget"
+    <div class="container mx-auto p-4 max-w-md">
+      <h1 class="text-2xl font-bold mb-4">Sign In</h1>
+
+      <form
+        *ngIf="!showOtpInput"
+        [formGroup]="emailForm"
+        (ngSubmit)="onEmailSubmit()"
+        class="space-y-4"
+      >
+        <div>
+          <label for="email" class="block mb-1">Email</label>
+          <input
+            id="email"
+            formControlName="email"
+            type="email"
+            placeholder="Your email"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+          [disabled]="loading || emailForm.invalid"
         >
-          <div>
-            <label for="email">Email</label>
-            <input
-              id="email"
-              formControlName="email"
-              class="inputField"
-              type="email"
-              placeholder="Your email"
-            />
-          </div>
-          <div>
-            <button type="submit" class="button block" [disabled]="loading">
-              {{ loading ? "Loading" : "Send magic link" }}
-            </button>
-          </div>
-        </form>
-        <p *ngIf="errorMessage" class="text-red-500 mt-2">{{ errorMessage }}</p>
-        <p *ngIf="successMessage" class="text-green-500 mt-2">
-          {{ successMessage }}
-        </p>
-      </div>
+          {{ loading ? "Sending..." : "Send Magic Link" }}
+        </button>
+      </form>
+
+      <form
+        *ngIf="showOtpInput"
+        [formGroup]="otpForm"
+        (ngSubmit)="onOtpSubmit()"
+        class="space-y-4"
+      >
+        <p class="text-green-600">Check your email for the code</p>
+        <div>
+          <label for="otp" class="block mb-1">Enter Code</label>
+          <input
+            id="otp"
+            formControlName="otp"
+            type="text"
+            placeholder="6-digit code"
+            class="w-full p-2 border rounded"
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+          [disabled]="loading || otpForm.invalid"
+        >
+          {{ loading ? "Verifying..." : "Verify Code" }}
+        </button>
+        <button
+          type="button"
+          (click)="resetToEmail()"
+          class="w-full p-2 text-blue-500"
+        >
+          Back to Email
+        </button>
+      </form>
+
+      <p *ngIf="errorMessage" class="text-red-500 mt-2">{{ errorMessage }}</p>
     </div>
   `,
-  styles: [
-    `
-      .header {
-        font-size: 2rem;
-        font-weight: bold;
-      }
-      .description {
-        margin: 1rem 0;
-      }
-      .form-widget {
-        max-width: 400px;
-      }
-      .inputField {
-        width: 100%;
-        padding: 0.5rem;
-        margin: 0.5rem 0;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-      }
-      .button {
-        width: 100%;
-        padding: 0.75rem;
-        background-color: #007bff;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-      .button:disabled {
-        background-color: #cccccc;
-      }
-    `,
-  ],
 })
 export default class LoginPageComponent {
   private readonly supabase = inject(SupabaseService);
   private readonly formBuilder = inject(FormBuilder);
-  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
 
   loading = false;
   errorMessage = "";
-  successMessage = "";
+  showOtpInput = false;
+  submittedEmail = "";
 
-  signInForm = this.formBuilder.group({
+  emailForm = this.formBuilder.group({
     email: ["", [Validators.required, Validators.email]],
   });
 
-  constructor() {
-    this.route.queryParams.subscribe((params) => {
-      if (params["error"]) {
-        this.errorMessage = params["error"];
-      }
-    });
-  }
+  otpForm = this.formBuilder.group({
+    otp: [
+      "",
+      [Validators.required, Validators.minLength(6), Validators.maxLength(6)],
+    ],
+  });
 
-  async onSubmit(): Promise<void> {
+  async onEmailSubmit(): Promise<void> {
+    if (this.emailForm.invalid) return;
+
     try {
       this.loading = true;
-      const email = this.signInForm.value.email as string;
+      this.errorMessage = "";
+      const email = this.emailForm.value.email as string;
       const { error } = await this.supabase.signIn(email);
       if (error) throw error;
-      this.successMessage = "Check your email for the login link!";
+      this.submittedEmail = email;
+      this.showOtpInput = true;
     } catch (error) {
-      if (error instanceof Error) {
-        this.errorMessage = error.message;
-      }
+      this.errorMessage =
+        error instanceof Error ? error.message : "An error occurred";
     } finally {
-      this.signInForm.reset();
       this.loading = false;
     }
+  }
+
+  async onOtpSubmit(): Promise<void> {
+    if (this.otpForm.invalid) return;
+
+    try {
+      this.loading = true;
+      this.errorMessage = "";
+      const otp = this.otpForm.value.otp as string;
+      const { error } = await this.supabase.verifyOtp(this.submittedEmail, otp);
+      if (error) throw error;
+      this.router.navigate(["/profile"]);
+    } catch (error) {
+      this.errorMessage =
+        error instanceof Error ? error.message : "Invalid code";
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  resetToEmail() {
+    this.showOtpInput = false;
+    this.errorMessage = "";
+    this.otpForm.reset();
   }
 }
