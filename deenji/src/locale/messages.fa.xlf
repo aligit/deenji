@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="en-US" target-language="fa" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="aboutUs" datatype="html">
+        <source> About Us </source>
+        <target>درباره ما</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">12,14</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="company" datatype="html">
+        <source>Company</source>
+        <target>شرکت</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">21</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="careers" datatype="html">
+        <source>Careers</source>
+        <target>مشاغل</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">29</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="contact" datatype="html">
+        <source>Contact</source>
+        <target>تماس</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">37</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="resources" datatype="html">
+        <source> Resources </source>
+        <target>منابع</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">43,45</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="blog" datatype="html">
+        <source>Blog</source>
+        <target>وبلاگ</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="guides" datatype="html">
+        <source>Guides</source>
+        <target>راهنمایی‌ها</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">60</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="faq" datatype="html">
+        <source>FAQ</source>
+        <target>سوالات متداول</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal" datatype="html">
+        <source>Legal</source>
+        <target>قانونی</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">74</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="privacyPolicy" datatype="html">
+        <source>Privacy Policy</source>
+        <target>سیاست حریم خصوصی</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">81</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="termsOfService" datatype="html">
+        <source>Terms of Service</source>
+        <target>شرایط خدمات</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="accessibility" datatype="html">
+        <source>Accessibility</source>
+        <target>دسترسی‌پذیری</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">97</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="connect" datatype="html">
+        <source>Connect</source>
+        <target>پیوند</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">103</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="facebookTitle" datatype="html">
+        <source>Facebook</source>
+        <target>فیسبوک</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="twitterTitle" datatype="html">
+        <source>Twitter</source>
+        <target>توییتر</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">121</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="telegramTitle" datatype="html">
+        <source>Telegram</source>
+        <target>تلگرام</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">133</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="copyright" datatype="html">
+        <source> © 2024 Real Estate Platform. All rights reserved. </source>
+        <target>© ۱۴۰۴ پلتفرم املاک و مستغلات. تمامی حقوق محفوظ است.</target>
+        <context-group purpose="location">
+          <context context-type="sourcefile">deenji/src/app/shared/footer.component.ts</context>
+          <context context-type="linenumber">147,149</context>
+        </context-group>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>

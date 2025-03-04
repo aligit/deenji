@@ -1,11 +1,10 @@
-import { Component } from "@angular/core";
-import { AnalogWelcomeComponent } from "../analog-welcome.component";
-import { CommonModule } from "@angular/common";
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: "app-properties-list",
+  selector: 'app-properties-list',
   standalone: true,
-  imports: [AnalogWelcomeComponent, CommonModule],
-  template: `<deenji-analog-welcome />`,
+  imports: [CommonModule],
+  template: `<div><p>hello world</p></div>`,
 })
-export default class PropertiesListComponent { }
+export default class PropertiesListComponent {}
