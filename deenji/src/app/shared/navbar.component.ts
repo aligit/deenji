@@ -1,11 +1,15 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AngularSvgIconModule } from 'angular-svg-icon';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, NavigationEnd } from '@angular/router';
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import { filter } from 'rxjs/operators';
+import { Subscription } from 'rxjs';
+import { SupabaseService } from '../core/services/supabase.service';
 
 @Component({
   selector: 'app-navbar',
+  standalone: true,
   imports: [
     CommonModule,
     AngularSvgIconModule,
@@ -13,9 +17,7 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
     RouterModule,
   ],
   template: `
-    <header
-      class="fixed top-6 left-0 right-0 bg-secondary-900 bg-opacity-90 z-50"
-    >
+    <header class="bg-secondary-900 bg-opacity-90 z-50">
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative flex items-center h-16">
           <!-- Right: Buy/Sell links -->
@@ -40,7 +42,10 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
           <div
             class="absolute inset-x-0 flex justify-center items-center pointer-events-none"
           >
-            <a href="/" class="text-2xl font-semibold pointer-events-auto">
+            <a
+              [routerLink]="['/']"
+              class="text-2xl font-semibold pointer-events-auto"
+            >
               <svg-icon
                 src="/images/deenji.svg"
                 [svgStyle]="{ 'width.px': 90, fill: 'white' }"
@@ -57,13 +62,23 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
               >
                 پشتیبانی
               </a>
+              <!-- Show login button only when not logged in -->
               <button
+                *ngIf="!session()"
                 [routerLink]="['/login']"
                 hlmBtn
                 class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
               >
                 ورود / ثبت نام
               </button>
+              <!-- Show profile link when logged in -->
+              <a
+                *ngIf="session()"
+                [routerLink]="['/profile']"
+                class="text-primary-100 hover:text-primary-300 text-sm font-medium"
+              >
+                حساب کاربری
+              </a>
             </div>
           </div>
         </div>
@@ -71,6 +86,37 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
     </header>
   `,
 })
-export class NavbarComponent {
+export class NavbarComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
+  private readonly supabase = inject(SupabaseService);
+
+  public isHomePage = false;
+  private routerSubscription: Subscription | null = null;
+
+  // Get session status from Supabase service
+  session = this.supabase.session;
+
+  ngOnInit() {
+    // Check initial route
+    this.checkIfHomePage(this.router.url);
+
+    // Subscribe to route changes
+    this.routerSubscription = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        this.checkIfHomePage(event.urlAfterRedirects);
+      });
+  }
+
+  ngOnDestroy() {
+    // Clean up subscription
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
+  private checkIfHomePage(url: string): void {
+    // For AnalogJS routing
+    this.isHomePage = url === '/' || url === '/home';
+  }
 }

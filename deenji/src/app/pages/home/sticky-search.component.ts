@@ -1,22 +1,25 @@
-import { Component, HostListener } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { AngularSvgIconModule } from "angular-svg-icon";
+import { Component, HostListener, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AngularSvgIconModule } from 'angular-svg-icon';
+import { Router, RouterModule } from '@angular/router';
 
 @Component({
-  selector: "app-sticky-search",
-  imports: [CommonModule, AngularSvgIconModule],
+  selector: 'app-sticky-search',
+  standalone: true,
+  imports: [CommonModule, AngularSvgIconModule, RouterModule],
   template: `
     <div
-      class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 transition-all duration-300 min-h-16 py-4"
-      [class.opacity-0]="!showStickyHeader"
-      [class.invisible]="!showStickyHeader"
-      [class.opacity-100]="showStickyHeader"
+      class="fixed top-0 left-0 right-0 bg-white shadow-md z-50 min-h-16 py-4 transition-all duration-300"
+      [ngClass]="{
+        'opacity-0 invisible -translate-y-full': !showStickyHeader,
+        'opacity-100 visible translate-y-0': showStickyHeader
+      }"
     >
       <div
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center"
       >
         <div class="flex items-center w-full max-w-3xl mx-auto">
-          <a href="/" class="mr-4">
+          <a [routerLink]="['/']" class="mr-4">
             <svg-icon
               src="/images/deenji.svg"
               [svgStyle]="{ 'width.px': 90, fill: 'black' }"
@@ -48,39 +51,39 @@ import { AngularSvgIconModule } from "angular-svg-icon";
       </div>
     </div>
   `,
+  host: {
+    class: 'block h-0', // Using host binding for Tailwind classes
+  },
 })
-export class StickySearchComponent {
+export class StickySearchComponent implements OnInit {
   public showStickyHeader = false;
   private previousScroll = 0;
+  private scrollThreshold = 200; // Adjust as needed
+  private scrollTimer: any = null;
 
-  @HostListener("window:scroll", [])
-  onWindowScroll() {
-    // Get the current scroll position
-    const currentScroll = window.pageYOffset;
-
-    // Check if scrolling down or up
-    const isScrollingDown = currentScroll > this.previousScroll;
-
-    // Update the sticky header state
-    this.showStickyHeader = currentScroll > 200; // Adjust the 200px threshold as needed
-
-    // Update previous scroll position
-    this.previousScroll = currentScroll;
+  ngOnInit(): void {
+    // Check initial scroll position
+    this.checkScrollPosition();
   }
 
-  // Add debounce to prevent excessive calculations
-  @HostListener("window:scroll")
-  scrollHandler(): void {
-    // Get the current scroll position
+  @HostListener('window:scroll')
+  onScroll(): void {
+    // Use requestAnimationFrame for better performance
+    if (!this.scrollTimer) {
+      this.scrollTimer = requestAnimationFrame(() => {
+        this.checkScrollPosition();
+        this.scrollTimer = null;
+      });
+    }
+  }
+
+  private checkScrollPosition(): void {
     const currentScroll = window.pageYOffset;
 
-    // Check if scrolling down or up
-    const isScrollingDown = currentScroll > this.previousScroll;
+    // Show sticky header when scrolled beyond threshold
+    this.showStickyHeader = currentScroll > this.scrollThreshold;
 
-    // Update the sticky header state
-    this.showStickyHeader = currentScroll > 200; // Adjust the 200px threshold as needed
-
-    // Update previous scroll position
+    // Store current scroll position for next comparison
     this.previousScroll = currentScroll;
   }
 }
