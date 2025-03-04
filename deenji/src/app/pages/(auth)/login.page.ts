@@ -1,16 +1,18 @@
 // src/app/pages/(auth)/login.page.ts
-import { Component, inject } from "@angular/core";
-import { FormBuilder, ReactiveFormsModule, Validators } from "@angular/forms";
-import { SupabaseService } from "../../core/services/supabase.service";
-import { Router } from "@angular/router";
-import { NgIf } from "@angular/common";
+import { Component, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { SupabaseService } from '../../core/services/supabase.service';
+import { Router } from '@angular/router';
+import { NgIf } from '@angular/common';
 
 @Component({
   standalone: true,
   imports: [ReactiveFormsModule, NgIf],
   template: `
     <div class="container mx-auto p-4 max-w-md">
-      <h1 class="text-2xl font-bold mb-4">Sign In</h1>
+      <h1 class="text-2xl font-bold mb-4">
+        برای ورود / ثبت نام ایمیل خود را وارد کنید
+      </h1>
 
       <form
         *ngIf="!showOtpInput"
@@ -33,7 +35,7 @@ import { NgIf } from "@angular/common";
           class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
           [disabled]="loading || emailForm.invalid"
         >
-          {{ loading ? "Sending..." : "Send Magic Link" }}
+          {{ loading ? 'Sending...' : 'Send Magic Link' }}
         </button>
       </form>
 
@@ -59,7 +61,7 @@ import { NgIf } from "@angular/common";
           class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
           [disabled]="loading || otpForm.invalid"
         >
-          {{ loading ? "Verifying..." : "Verify Code" }}
+          {{ loading ? 'Verifying...' : 'Verify Code' }}
         </button>
         <button
           type="button"
@@ -80,17 +82,17 @@ export default class LoginPageComponent {
   private readonly router = inject(Router);
 
   loading = false;
-  errorMessage = "";
+  errorMessage = '';
   showOtpInput = false;
-  submittedEmail = "";
+  submittedEmail = '';
 
   emailForm = this.formBuilder.group({
-    email: ["", [Validators.required, Validators.email]],
+    email: ['', [Validators.required, Validators.email]],
   });
 
   otpForm = this.formBuilder.group({
     otp: [
-      "",
+      '',
       [Validators.required, Validators.minLength(6), Validators.maxLength(6)],
     ],
   });
@@ -100,7 +102,7 @@ export default class LoginPageComponent {
 
     try {
       this.loading = true;
-      this.errorMessage = "";
+      this.errorMessage = '';
       const email = this.emailForm.value.email as string;
       const { error } = await this.supabase.signIn(email);
       if (error) throw error;
@@ -108,7 +110,7 @@ export default class LoginPageComponent {
       this.showOtpInput = true;
     } catch (error) {
       this.errorMessage =
-        error instanceof Error ? error.message : "An error occurred";
+        error instanceof Error ? error.message : 'An error occurred';
     } finally {
       this.loading = false;
     }
@@ -119,14 +121,14 @@ export default class LoginPageComponent {
 
     try {
       this.loading = true;
-      this.errorMessage = "";
+      this.errorMessage = '';
       const otp = this.otpForm.value.otp as string;
       const { error } = await this.supabase.verifyOtp(this.submittedEmail, otp);
       if (error) throw error;
-      this.router.navigate(["/profile"]);
+      this.router.navigate(['/profile']);
     } catch (error) {
       this.errorMessage =
-        error instanceof Error ? error.message : "Invalid code";
+        error instanceof Error ? error.message : 'Invalid code';
     } finally {
       this.loading = false;
     }
@@ -134,7 +136,7 @@ export default class LoginPageComponent {
 
   resetToEmail() {
     this.showOtpInput = false;
-    this.errorMessage = "";
+    this.errorMessage = '';
     this.otpForm.reset();
   }
 }
