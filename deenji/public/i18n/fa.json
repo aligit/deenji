@@ -18,5 +18,21 @@
   "copyright": "© ۱۴۰۴ پلتفرم املاک و مستغلات. تمامی حقوق محفوظ است.",
   "readyToFindDreamHome": "آماده هستید تا خانه رویایی خود را پیدا کنید؟",
   "contactAgentsToday": "امروز با عوامل متخصص ما در ارتباط باشید",
-  "getStartedButton": "شروع کنید"
+  "getStartedButton": "شروع کنید",
+  "signInSignup": "برای ورود / ثبت نام ایمیل خود را وارد کنید",
+  "emailLabel": "ایمیل",
+  "yourEmailPlaceholder": "ایمیل شما",
+  "invalidEmailMessage": "لطفا یک ایمیل معتبر وارد کنید",
+  "sendVerificationCode": "ارسال کد تایید",
+  "checkEmailForCode": "ایمیل خود را برای دریافت کد بررسی کنید",
+  "oneTimePasswordSent": "رمز یکبار مصرف به",
+  "resendCode": "ارسال مجدد کد",
+  "verificationCodeLabel": "کد تایید",
+  "invalidCodeMessage": "کد باید 6 رقمی باشد",
+  "returnToEmailPage": "بازگشت به صفحه ایمیل",
+  "sendingInProgress": "در حال ارسال...",
+  "verifyingInProgress": "در حال تایید...",
+  "codeSentSuccess": "کد تایید به ایمیل شما ارسال شد",
+  "loginSuccess": "ورود موفقیت آمیز بود",
+  "enterYourInfo": "لطفاً اطلاعات خود را وارد کنید"
 }

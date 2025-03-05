@@ -2,77 +2,133 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
-import { Router } from '@angular/router';
-import { NgIf } from '@angular/common';
+import { Router, ActivatedRoute } from '@angular/router';
+import { CommonModule, NgIf } from '@angular/common';
+import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
 
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, NgIf],
+  imports: [ReactiveFormsModule, NgIf, CommonModule, TranslocoModule],
   template: `
     <div class="container mx-auto p-4 max-w-md">
-      <h1 class="text-2xl font-bold mb-4">
-        برای ورود / ثبت نام ایمیل خود را وارد کنید
-      </h1>
+      <ng-container *transloco="let t">
+        <h1 class="text-2xl font-bold mb-4">
+          {{ t('signInSignup') }}
+        </h1>
 
-      <form
-        *ngIf="!showOtpInput"
-        [formGroup]="emailForm"
-        (ngSubmit)="onEmailSubmit()"
-        class="space-y-4"
-      >
-        <div>
-          <label for="email" class="block mb-1">Email</label>
-          <input
-            id="email"
-            formControlName="email"
-            type="email"
-            placeholder="Your email"
-            class="w-full p-2 border rounded"
-          />
+        <!-- Error message display -->
+        <div
+          *ngIf="errorMessage"
+          class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"
+        >
+          {{ errorMessage }}
         </div>
-        <button
-          type="submit"
-          class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
-          [disabled]="loading || emailForm.invalid"
-        >
-          {{ loading ? 'Sending...' : 'Send Magic Link' }}
-        </button>
-      </form>
 
-      <form
-        *ngIf="showOtpInput"
-        [formGroup]="otpForm"
-        (ngSubmit)="onOtpSubmit()"
-        class="space-y-4"
-      >
-        <p class="text-green-600">Check your email for the code</p>
-        <div>
-          <label for="otp" class="block mb-1">Enter Code</label>
-          <input
-            id="otp"
-            formControlName="otp"
-            type="text"
-            placeholder="6-digit code"
-            class="w-full p-2 border rounded"
-          />
+        <!-- Success message display -->
+        <div
+          *ngIf="successMessage"
+          class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"
+        >
+          {{ successMessage }}
         </div>
-        <button
-          type="submit"
-          class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
-          [disabled]="loading || otpForm.invalid"
-        >
-          {{ loading ? 'Verifying...' : 'Verify Code' }}
-        </button>
-        <button
-          type="button"
-          (click)="resetToEmail()"
-          class="w-full p-2 text-blue-500"
-        >
-          Back to Email
-        </button>
-      </form>
 
-      <p *ngIf="errorMessage" class="text-red-500 mt-2">{{ errorMessage }}</p>
+        <!-- Email form -->
+        <form
+          *ngIf="!showOtpInput"
+          [formGroup]="emailForm"
+          (ngSubmit)="onEmailSubmit()"
+          class="space-y-4"
+        >
+          <div>
+            <label for="email" class="block mb-1">{{ t('emailLabel') }}</label>
+            <input
+              id="email"
+              formControlName="email"
+              type="email"
+              placeholder="{{ t('yourEmailPlaceholder') }}"
+              class="w-full p-2 border rounded text-right"
+              dir="ltr"
+            />
+            <div
+              *ngIf="
+                emailForm.get('email')?.invalid &&
+                emailForm.get('email')?.touched
+              "
+              class="text-red-500 mt-1 text-sm"
+            >
+              {{ t('invalidEmailMessage') }}
+            </div>
+          </div>
+          <button
+            type="submit"
+            class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+            [disabled]="loading || emailForm.invalid"
+          >
+            {{ loading ? t('sendingInProgress') : t('sendVerificationCode') }}
+          </button>
+        </form>
+
+        <!-- OTP form -->
+        <form
+          *ngIf="showOtpInput"
+          [formGroup]="otpForm"
+          (ngSubmit)="onOtpSubmit()"
+          class="space-y-4"
+        >
+          <p class="text-green-600">{{ t('checkEmailForCode') }}</p>
+          <p class="text-gray-600">
+            {{ t('oneTimePasswordSent') }} {{ submittedEmail }}
+          </p>
+          <div>
+            <label for="otp" class="block mb-1">{{
+              t('verificationCodeLabel')
+            }}</label>
+            <input
+              id="otp"
+              formControlName="otp"
+              type="text"
+              placeholder="6-digit code"
+              class="w-full p-2 border rounded text-center"
+              dir="ltr"
+              autocomplete="one-time-code"
+            />
+            <div
+              *ngIf="otpForm.get('otp')?.invalid && otpForm.get('otp')?.touched"
+              class="text-red-500 mt-1 text-sm"
+            >
+              {{ t('invalidCodeMessage') }}
+            </div>
+          </div>
+          <button
+            type="submit"
+            class="w-full p-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+            [disabled]="loading || otpForm.invalid"
+          >
+            {{
+              loading ? t('verifyingInProgress') : t('verificationCodeLabel')
+            }}
+          </button>
+          <button
+            type="button"
+            (click)="resetToEmail()"
+            class="w-full p-2 text-blue-500"
+          >
+            {{ t('returnToEmailPage') }}
+          </button>
+          <button
+            type="button"
+            (click)="resendOTP()"
+            class="w-full p-2 text-gray-500"
+            [disabled]="loading || resendCooldown > 0"
+          >
+            {{
+              resendCooldown > 0
+                ? t('resendCode') + ' (' + resendCooldown + 's)'
+                : t('resendCode')
+            }}
+          </button>
+        </form>
+      </ng-container>
     </div>
   `,
 })
@@ -80,11 +136,16 @@ export default class LoginPageComponent {
   private readonly supabase = inject(SupabaseService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private translateService = inject(TranslocoService);
 
   loading = false;
   errorMessage = '';
+  successMessage = '';
   showOtpInput = false;
   submittedEmail = '';
+  resendCooldown = 0;
+  private resendTimer: any;
 
   emailForm = this.formBuilder.group({
     email: ['', [Validators.required, Validators.email]],
@@ -97,6 +158,15 @@ export default class LoginPageComponent {
     ],
   });
 
+  constructor() {
+    // Check if there's an error from URL params (e.g., redirected from confirm page)
+    this.route.queryParams.subscribe((params) => {
+      if (params['error']) {
+        this.errorMessage = params['error'];
+      }
+    });
+  }
+
   async onEmailSubmit(): Promise<void> {
     if (this.emailForm.invalid) return;
 
@@ -104,13 +174,21 @@ export default class LoginPageComponent {
       this.loading = true;
       this.errorMessage = '';
       const email = this.emailForm.value.email as string;
+
       const { error } = await this.supabase.signIn(email);
+
       if (error) throw error;
+
       this.submittedEmail = email;
       this.showOtpInput = true;
+      this.successMessage = this.getTranslation('codeSentSuccess');
+      this.startResendCooldown();
     } catch (error) {
+      console.error('Error sending magic link:', error);
       this.errorMessage =
-        error instanceof Error ? error.message : 'An error occurred';
+        error instanceof Error
+          ? error.message
+          : 'Error sending email. Please try again.';
     } finally {
       this.loading = false;
     }
@@ -123,12 +201,21 @@ export default class LoginPageComponent {
       this.loading = true;
       this.errorMessage = '';
       const otp = this.otpForm.value.otp as string;
+
       const { error } = await this.supabase.verifyOtp(this.submittedEmail, otp);
+
       if (error) throw error;
-      this.router.navigate(['/profile']);
+
+      this.successMessage = this.getTranslation('loginSuccess');
+
+      // Navigate to profile after successful login
+      setTimeout(() => {
+        this.router.navigate(['/profile']);
+      }, 500);
     } catch (error) {
+      console.error('Error verifying OTP:', error);
       this.errorMessage =
-        error instanceof Error ? error.message : 'Invalid code';
+        error instanceof Error ? error.message : 'Invalid code entered.';
     } finally {
       this.loading = false;
     }
@@ -137,6 +224,60 @@ export default class LoginPageComponent {
   resetToEmail() {
     this.showOtpInput = false;
     this.errorMessage = '';
+    this.successMessage = '';
     this.otpForm.reset();
+    this.clearResendTimer();
+  }
+
+  async resendOTP() {
+    if (this.resendCooldown > 0 || this.loading) return;
+
+    try {
+      this.loading = true;
+      this.errorMessage = '';
+
+      const { error } = await this.supabase.signIn(this.submittedEmail);
+
+      if (error) throw error;
+
+      this.successMessage = this.getTranslation('codeSentSuccess');
+      this.startResendCooldown();
+    } catch (error) {
+      console.error('Error resending OTP:', error);
+      this.errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Error resending code. Please try again.';
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private startResendCooldown(seconds = 60) {
+    this.clearResendTimer();
+    this.resendCooldown = seconds;
+
+    this.resendTimer = setInterval(() => {
+      this.resendCooldown--;
+      if (this.resendCooldown <= 0) {
+        this.clearResendTimer();
+      }
+    }, 1000);
+  }
+
+  private clearResendTimer() {
+    if (this.resendTimer) {
+      clearInterval(this.resendTimer);
+      this.resendTimer = null;
+    }
+    this.resendCooldown = 0;
+  }
+
+  ngOnDestroy() {
+    this.clearResendTimer();
+  }
+
+  private getTranslation(key: string): string {
+    return this.translateService.translate(key);
   }
 }
