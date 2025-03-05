@@ -1,63 +1,127 @@
-// src/app/pages/auth/confirm.page.ts
-import { Component, inject } from "@angular/core";
-import { Router, ActivatedRoute } from "@angular/router";
-import { SupabaseService } from "../../core/services/supabase.service";
-import { CommonModule, NgIf } from "@angular/common";
+// src/app/pages/(auth)/confirm.page.ts
+import { Component, inject, OnInit } from '@angular/core';
+import { Router, ActivatedRoute } from '@angular/router';
+import { SupabaseService } from '../../core/services/supabase.service';
+import { CommonModule } from '@angular/common';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, NgIf],
+  imports: [CommonModule],
   template: `
-    <div class="container mx-auto p-4">
-      <p>Verifying magic link...</p>
+    <div class="container mx-auto p-8 max-w-md">
+      <div class="bg-white p-6 rounded-lg shadow-md text-center">
+        <div *ngIf="loading">
+          <div class="mb-4">
+            <svg
+              class="animate-spin h-10 w-10 text-blue-500 mx-auto"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                class="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                stroke-width="4"
+              ></circle>
+              <path
+                class="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          </div>
+          <p class="text-lg">در حال تأیید لینک ورود...</p>
+        </div>
+
+        <div *ngIf="error" class="text-red-600">
+          <p class="text-lg font-bold mb-4">خطا در تأیید!</p>
+          <p>{{ error }}</p>
+          <div class="mt-6">
+            <button
+              (click)="navigateToLogin()"
+              class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            >
+              بازگشت به صفحه ورود
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="success" class="text-green-600">
+          <p class="text-lg font-bold mb-4">تأیید موفقیت‌آمیز!</p>
+          <p>شما با موفقیت وارد شدید. در حال انتقال به صفحه پروفایل...</p>
+        </div>
+      </div>
     </div>
   `,
 })
-export default class AuthConfirmPageComponent {
+export default class AuthConfirmPageComponent implements OnInit {
   private readonly supabase = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
 
-  constructor() {
-    console.log(`suck my dick confirm`);
+  loading = true;
+  error = '';
+  success = false;
+
+  ngOnInit() {
     this.handleMagicLink();
   }
 
   async handleMagicLink() {
+    // Process URL fragment (for hash-based redirects from Supabase)
     this.route.fragment.subscribe(async (fragment) => {
       if (fragment) {
-        const params = new URLSearchParams(fragment);
-        const accessToken = params.get("access_token");
-        const error = params.get("error_description");
+        try {
+          const params = new URLSearchParams(fragment);
+          const accessToken = params.get('access_token');
+          const errorDescription = params.get('error_description');
 
-        if (error) {
-          console.error("Magic link error:", error);
-          this.router.navigate(["/login"], { queryParams: { error } });
-          return;
-        }
-
-        if (accessToken) {
-          // Token is already verified by Supabase server; session should be set
-          const session = this.supabase.session();
-          if (session) {
-            console.log("Session established:", session);
-            this.router.navigate(["/profile"]);
-          } else {
-            console.error("No session after magic link redirect");
-            this.router.navigate(["/login"], {
-              queryParams: { error: "Session not established" },
-            });
+          if (errorDescription) {
+            throw new Error(errorDescription);
           }
-        } else {
-          console.error("No access token in magic link");
-          this.router.navigate(["/login"], {
-            queryParams: { error: "Invalid link" },
-          });
+
+          if (!accessToken) {
+            throw new Error('No access token found in URL');
+          }
+
+          // Wait for auth state to update
+          setTimeout(() => {
+            const session = this.supabase.session();
+            if (session) {
+              this.success = true;
+              this.loading = false;
+
+              // Navigate to profile after a short delay to show success message
+              setTimeout(() => {
+                this.router.navigate(['/profile']);
+              }, 1500);
+            } else {
+              throw new Error('Session not established');
+            }
+          }, 1000); // Give Supabase client time to process the token
+        } catch (error) {
+          this.loading = false;
+          this.error =
+            error instanceof Error ? error.message : 'Unknown error occurred';
+          console.error('Magic link error:', this.error);
         }
       } else {
-        console.error("No fragment in URL");
-        this.router.navigate(["/login"]);
+        // No fragment found, check query parameters
+        this.route.queryParams.subscribe((params) => {
+          if (Object.keys(params).length === 0) {
+            // No query params either, redirect to login
+            this.navigateToLogin();
+          }
+        });
       }
     });
+  }
+
+  navigateToLogin(error?: string) {
+    const queryParams = error ? { error } : {};
+    this.router.navigate(['/login'], { queryParams });
   }
 }

@@ -1,13 +1,11 @@
 // src/app/core/services/supabase.service.ts
-import { Injectable, signal } from "@angular/core";
+import { Injectable, signal } from '@angular/core';
 import {
-  AuthChangeEvent,
   AuthSession,
   createClient,
-  Session,
   SupabaseClient,
   User,
-} from "@supabase/supabase-js";
+} from '@supabase/supabase-js';
 
 export interface Profile {
   id?: string;
@@ -17,17 +15,17 @@ export interface Profile {
 }
 
 @Injectable({
-  providedIn: "root",
+  providedIn: 'root',
 })
 export class SupabaseService {
   private supabase: SupabaseClient;
   private sessionSignal = signal<AuthSession | null>(null);
 
   constructor() {
-    const supabaseUrl = import.meta.env["VITE_supabaseUrl"];
-    const supabaseKey = import.meta.env["VITE_supabaseKey"];
+    const supabaseUrl = import.meta.env['VITE_supabaseUrl'];
+    const supabaseKey = import.meta.env['VITE_supabaseKey'];
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase URL or Key missing in environment variables.");
+      throw new Error('Supabase URL or Key missing in environment variables.');
     }
     this.supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -36,7 +34,7 @@ export class SupabaseService {
     });
 
     this.supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session);
+      console.log('Auth state changed:', event, session);
       this.sessionSignal.set(session);
     });
   }
@@ -47,18 +45,23 @@ export class SupabaseService {
 
   profile(user: User) {
     return this.supabase
-      .from("profiles")
+      .from('profiles')
       .select(`username, website, avatar_url`)
-      .eq("id", user.id)
+      .eq('id', user.id)
       .single();
   }
 
   async signIn(email: string) {
-    // TODO: replace using environment variable
+    // Get the base URL for redirection - must be dynamically determined
+    const baseUrl = window.location.origin;
+
     return this.supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: "http://localhost:4200/confirm", // Ensure consistency with app URL
+        // Use dynamic origin instead of hardcoded localhost
+        emailRedirectTo: `${baseUrl}/confirm`,
+        // Explicitly prefer OTP verification method over magic link
+        shouldCreateUser: true,
       },
     });
   }
@@ -67,7 +70,7 @@ export class SupabaseService {
     return this.supabase.auth.verifyOtp({
       email,
       token,
-      type: "magiclink",
+      type: 'email',
     });
   }
 
@@ -80,14 +83,14 @@ export class SupabaseService {
       ...profile,
       updated_at: new Date(),
     };
-    return this.supabase.from("profiles").upsert(update);
+    return this.supabase.from('profiles').upsert(update);
   }
 
   downloadImage(path: string) {
-    return this.supabase.storage.from("avatars").download(path);
+    return this.supabase.storage.from('avatars').download(path);
   }
 
   uploadAvatar(filePath: string, file: File) {
-    return this.supabase.storage.from("avatars").upload(filePath, file);
+    return this.supabase.storage.from('avatars').upload(filePath, file);
   }
 }

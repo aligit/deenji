@@ -1,5 +1,5 @@
 // src/app/pages/(auth)/login.page.ts
-import { Component, inject } from '@angular/core';
+import { Component, inject, NgZone, OnDestroy } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -132,12 +132,13 @@ import { TranslocoModule, TranslocoService } from '@jsverse/transloco';
     </div>
   `,
 })
-export default class LoginPageComponent {
+export default class LoginPageComponent implements OnDestroy {
   private readonly supabase = inject(SupabaseService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private translateService = inject(TranslocoService);
+  private readonly translateService = inject(TranslocoService);
+  private readonly ngZone = inject(NgZone);
 
   loading = false;
   errorMessage = '';
@@ -165,6 +166,14 @@ export default class LoginPageComponent {
         this.errorMessage = params['error'];
       }
     });
+
+    // Debug logging to check environment variables
+    if (
+      !import.meta.env['VITE_supabaseUrl'] ||
+      !import.meta.env['VITE_supabaseKey']
+    ) {
+      console.error('Missing Supabase environment variables');
+    }
   }
 
   async onEmailSubmit(): Promise<void> {
@@ -173,24 +182,38 @@ export default class LoginPageComponent {
     try {
       this.loading = true;
       this.errorMessage = '';
+      this.successMessage = '';
+
       const email = this.emailForm.value.email as string;
+      console.log('Attempting to sign in with email:', email);
 
-      const { error } = await this.supabase.signIn(email);
+      const response = await this.supabase.signIn(email);
 
-      if (error) throw error;
+      if (response.error) {
+        throw response.error;
+      }
 
-      this.submittedEmail = email;
-      this.showOtpInput = true;
-      this.successMessage = this.getTranslation('codeSentSuccess');
-      this.startResendCooldown();
+      console.log('Sign in successful, response:', response);
+
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.submittedEmail = email;
+        this.showOtpInput = true;
+        this.successMessage = this.getTranslation('codeSentSuccess');
+        this.loading = false; // Explicitly set loading to false
+        this.startResendCooldown();
+      });
     } catch (error) {
-      console.error('Error sending magic link:', error);
-      this.errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Error sending email. Please try again.';
-    } finally {
-      this.loading = false;
+      console.error('Error during sign in:', error);
+
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.loading = false;
+        this.errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error sending email. Please try again.';
+      });
     }
   }
 
@@ -200,28 +223,42 @@ export default class LoginPageComponent {
     try {
       this.loading = true;
       this.errorMessage = '';
+      this.successMessage = '';
+
       const otp = this.otpForm.value.otp as string;
+      console.log('Attempting to verify OTP for email:', this.submittedEmail);
 
-      const { error } = await this.supabase.verifyOtp(this.submittedEmail, otp);
+      const response = await this.supabase.verifyOtp(this.submittedEmail, otp);
 
-      if (error) throw error;
+      if (response.error) {
+        throw response.error;
+      }
 
-      this.successMessage = this.getTranslation('loginSuccess');
+      console.log('OTP verification successful, response:', response);
 
-      // Navigate to profile after successful login
-      setTimeout(() => {
-        this.router.navigate(['/profile']);
-      }, 500);
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.successMessage = this.getTranslation('loginSuccess');
+        this.loading = false;
+
+        // Navigate to profile after successful login
+        setTimeout(() => {
+          this.router.navigate(['/profile']);
+        }, 500);
+      });
     } catch (error) {
       console.error('Error verifying OTP:', error);
-      this.errorMessage =
-        error instanceof Error ? error.message : 'Invalid code entered.';
-    } finally {
-      this.loading = false;
+
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.loading = false;
+        this.errorMessage =
+          error instanceof Error ? error.message : 'Invalid code entered.';
+      });
     }
   }
 
-  resetToEmail() {
+  resetToEmail(): void {
     this.showOtpInput = false;
     this.errorMessage = '';
     this.successMessage = '';
@@ -229,43 +266,59 @@ export default class LoginPageComponent {
     this.clearResendTimer();
   }
 
-  async resendOTP() {
+  async resendOTP(): Promise<void> {
     if (this.resendCooldown > 0 || this.loading) return;
 
     try {
       this.loading = true;
       this.errorMessage = '';
+      this.successMessage = '';
 
-      const { error } = await this.supabase.signIn(this.submittedEmail);
+      console.log('Resending OTP to email:', this.submittedEmail);
 
-      if (error) throw error;
+      const response = await this.supabase.signIn(this.submittedEmail);
 
-      this.successMessage = this.getTranslation('codeSentSuccess');
-      this.startResendCooldown();
+      if (response.error) {
+        throw response.error;
+      }
+
+      console.log('OTP resend successful, response:', response);
+
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.successMessage = this.getTranslation('codeSentSuccess');
+        this.loading = false;
+        this.startResendCooldown();
+      });
     } catch (error) {
       console.error('Error resending OTP:', error);
-      this.errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Error resending code. Please try again.';
-    } finally {
-      this.loading = false;
+
+      // Ensure we're updating the UI in the Angular zone
+      this.ngZone.run(() => {
+        this.loading = false;
+        this.errorMessage =
+          error instanceof Error
+            ? error.message
+            : 'Error resending code. Please try again.';
+      });
     }
   }
 
-  private startResendCooldown(seconds = 60) {
+  private startResendCooldown(seconds = 60): void {
     this.clearResendTimer();
     this.resendCooldown = seconds;
 
     this.resendTimer = setInterval(() => {
-      this.resendCooldown--;
-      if (this.resendCooldown <= 0) {
-        this.clearResendTimer();
-      }
+      this.ngZone.run(() => {
+        this.resendCooldown--;
+        if (this.resendCooldown <= 0) {
+          this.clearResendTimer();
+        }
+      });
     }, 1000);
   }
 
-  private clearResendTimer() {
+  private clearResendTimer(): void {
     if (this.resendTimer) {
       clearInterval(this.resendTimer);
       this.resendTimer = null;
@@ -273,11 +326,11 @@ export default class LoginPageComponent {
     this.resendCooldown = 0;
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     this.clearResendTimer();
   }
 
   private getTranslation(key: string): string {
-    return this.translateService.translate(key);
+    return this.translateService.translate(key) || key;
   }
 }
