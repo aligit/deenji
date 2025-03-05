@@ -1,4 +1,8 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  provideZoneChangeDetection,
+  isDevMode,
+} from '@angular/core';
 import {
   provideHttpClient,
   withFetch,
@@ -9,7 +13,8 @@ import { provideFileRouter, requestContextInterceptor } from '@analogjs/router';
 
 import { provideTrpcClient } from '../trpc-client';
 import { provideAngularSvgIcon } from 'angular-svg-icon';
-
+import { TranslocoHttpLoader } from './transloco-loader';
+import { provideTransloco } from '@jsverse/transloco';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -22,6 +27,17 @@ export const appConfig: ApplicationConfig = {
     ),
 
     provideTrpcClient(),
-    provideAngularSvgIcon()
+    provideAngularSvgIcon(),
+    provideHttpClient(),
+    provideTransloco({
+      config: {
+        availableLangs: ['fa'],
+        defaultLang: 'fa',
+        // Remove this option if your application doesn't support changing language in runtime.
+        reRenderOnLangChange: true,
+        prodMode: !isDevMode(),
+      },
+      loader: TranslocoHttpLoader,
+    }),
   ],
 };
