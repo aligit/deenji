@@ -56,12 +56,6 @@ import { SupabaseService } from '../core/services/supabase.service';
           <!-- Right group: Help and Sign In -->
           <div class="flex flex-1 justify-end items-center">
             <div class="hidden md:flex items-center space-x-6">
-              <a
-                href="/help"
-                class="text-primary-100 hover:text-primary-300 text-sm"
-              >
-                پشتیبانی
-              </a>
               <!-- Show login button only when not logged in -->
               <button
                 *ngIf="!session()"
