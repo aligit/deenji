@@ -6,13 +6,7 @@ import {
   SupabaseClient,
   User,
 } from '@supabase/supabase-js';
-
-export interface Profile {
-  id?: string;
-  username: string;
-  website: string;
-  avatar_url: string;
-}
+import { Profile } from '../models/supabase.model';
 
 @Injectable({
   providedIn: 'root',

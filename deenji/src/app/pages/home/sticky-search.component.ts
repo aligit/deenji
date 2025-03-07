@@ -1,7 +1,13 @@
-import { Component, HostListener, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import {
+  Component,
+  HostListener,
+  inject,
+  OnInit,
+  PLATFORM_ID,
+} from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { AngularSvgIconModule } from 'angular-svg-icon';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-sticky-search',
@@ -57,18 +63,20 @@ import { Router, RouterModule } from '@angular/router';
 })
 export class StickySearchComponent implements OnInit {
   public showStickyHeader = false;
-  private previousScroll = 0;
   private scrollThreshold = 200; // Adjust as needed
   private scrollTimer: any = null;
+  private platformId = inject(PLATFORM_ID);
 
   ngOnInit(): void {
-    // Check initial scroll position
-    this.checkScrollPosition();
+    if (isPlatformBrowser(this.platformId)) {
+      this.checkScrollPosition();
+    }
   }
 
   @HostListener('window:scroll')
   onScroll(): void {
-    // Use requestAnimationFrame for better performance
+    if (!isPlatformBrowser(this.platformId)) return;
+
     if (!this.scrollTimer) {
       this.scrollTimer = requestAnimationFrame(() => {
         this.checkScrollPosition();
@@ -78,12 +86,9 @@ export class StickySearchComponent implements OnInit {
   }
 
   private checkScrollPosition(): void {
-    const currentScroll = window.pageYOffset;
+    if (!isPlatformBrowser(this.platformId)) return;
 
-    // Show sticky header when scrolled beyond threshold
+    const currentScroll = window.scrollY;
     this.showStickyHeader = currentScroll > this.scrollThreshold;
-
-    // Store current scroll position for next comparison
-    this.previousScroll = currentScroll;
   }
 }

@@ -1,6 +1,5 @@
 // src/app/pages/(home).page.ts
 import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { FeaturedComponent } from './home/featured.component';
 import { StickySearchComponent } from './home/sticky-search.component';
 import { CallActionComponent } from './home/call-action.component';
@@ -16,7 +15,6 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
 @Component({
   standalone: true,
   imports: [
-    RouterOutlet,
     CommonModule,
     AngularSvgIconModule,
     FeaturedComponent,
