@@ -6,10 +6,10 @@ import { authGuard } from '../../core/guards/auth.guard';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { RouteMeta } from '@analogjs/router';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
-// Define route meta for AnalogJS
 export const routeMeta: RouteMeta = {
-  title: 'حساب کاربری',
+  title: 'حساب کاربری', // "User Account" in Persian
   canActivate: [authGuard],
 };
 
@@ -18,7 +18,7 @@ export const routeMeta: RouteMeta = {
   imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   template: `
     <div class="container mx-auto px-4 py-12 min-h-[calc(100vh-16rem)]">
-      <div *ngIf="session(); else noSession">
+      <div *ngIf="session; else noSession">
         <h1 class="text-2xl font-bold mb-8 text-center">حساب کاربری</h1>
         <form
           [formGroup]="updateProfileForm"
@@ -34,7 +34,7 @@ export const routeMeta: RouteMeta = {
             <input
               id="email"
               type="text"
-              [value]="session()!.user.email"
+              [value]="session ? session.user.email : ''"
               disabled
               class="w-full p-2 mb-2 border border-gray-300 rounded"
             />
@@ -105,7 +105,7 @@ export default class ProfilePageComponent {
   private readonly router = inject(Router);
 
   loading = false;
-  session = this.supabase.session;
+  session: Session | null = null;
 
   updateProfileForm = this.formBuilder.group({
     username: [''],
@@ -114,43 +114,36 @@ export default class ProfilePageComponent {
   });
 
   constructor() {
-    this.loadProfile();
+    this.loadSession();
+  }
+
+  async loadSession() {
+    const { data } = await this.supabase.getSession();
+    this.session = data.session;
+
+    this.supabase.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', event, session);
+        this.session = session;
+        if (session) this.loadProfile();
+      }
+    );
+
+    if (this.session) this.loadProfile();
   }
 
   async loadProfile() {
-    const session = this.session();
-    if (!session) return;
-
-    try {
-      this.loading = true;
-      const { user } = session;
-      const {
-        data: profile,
-        error,
-        status,
-      } = await this.supabase.profile(user);
-      if (error && status !== 406) throw error;
-      if (profile) {
-        this.updateProfileForm.patchValue({
-          username: profile.username,
-          website: profile.website,
-          avatar_url: profile.avatar_url,
-        });
-      }
-    } catch (error) {
-      if (error instanceof Error) alert(error.message);
-    } finally {
-      this.loading = false;
-    }
+    if (!this.session) return;
+    console.log('Profile loading for user:', this.session.user.id);
+    // Add additional profile loading logic here if needed, e.g., fetching from a profiles table
   }
 
   async updateProfile(): Promise<void> {
-    const session = this.session();
-    if (!session) return;
+    if (!this.session) return;
 
     try {
       this.loading = true;
-      const { user } = session;
+      const { user } = this.session;
       const { username, website, avatar_url } = this.updateProfileForm.value;
       const { error } = await this.supabase.updateProfile({
         id: user.id,
@@ -159,6 +152,7 @@ export default class ProfilePageComponent {
         avatar_url: avatar_url || '',
       });
       if (error) throw error;
+      alert('Profile updated successfully!');
     } catch (error) {
       if (error instanceof Error) alert(error.message);
     } finally {

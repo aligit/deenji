@@ -1,16 +1,16 @@
-import { Component, inject, Input } from "@angular/core";
-import { CommonModule } from "@angular/common";
-import { Profile } from "../../core/models/supabase.model";
-import { AuthSession } from "@supabase/supabase-js";
-import { SupabaseService } from "../../core/services/supabase.service";
-import { FormBuilder, FormsModule, ReactiveFormsModule } from "@angular/forms";
-import { Router } from "@angular/router";
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { SupabaseService } from '../../core/services/supabase.service';
+import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router'; // Added RouterModule for routerLink
+import { Session, AuthChangeEvent } from '@supabase/supabase-js';
 
 @Component({
-  selector: "app-profile-list",
+  selector: 'app-profile-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
-  template: ` <div *ngIf="session(); else noSession">
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule], // Added RouterModule
+  template: `
+    <div *ngIf="session; else noSession">
       <form
         [formGroup]="updateProfileForm"
         (ngSubmit)="updateProfile()"
@@ -21,7 +21,7 @@ import { Router } from "@angular/router";
           <input
             id="email"
             type="text"
-            [value]="session()!.user.email"
+            [value]="session ? session.user.email : ''"
             disabled
             class="inputField"
           />
@@ -50,7 +50,7 @@ import { Router } from "@angular/router";
             class="button primary block"
             [disabled]="loading"
           >
-            {{ loading ? "Loading ..." : "Update" }}
+            {{ loading ? 'Loading ...' : 'Update' }}
           </button>
         </div>
         <div>
@@ -61,7 +61,8 @@ import { Router } from "@angular/router";
     <ng-template #noSession>
       <p>Please sign in.</p>
       <a routerLink="/login">Log in</a>
-    </ng-template>`,
+    </ng-template>
+  `,
   styles: [
     `
       .form-widget {
@@ -100,25 +101,37 @@ export default class ProfileListComponent {
   private readonly router = inject(Router);
 
   loading = false;
-  session = this.supabase.session;
+  session: Session | null = null;
 
   updateProfileForm = this.formBuilder.group({
-    username: [""],
-    website: [""],
-    avatar_url: [""],
+    username: [''],
+    website: [''],
+    avatar_url: [''],
   });
 
   constructor() {
-    this.loadProfile();
+    this.loadSession(); // Changed from loadProfile to loadSession
+  }
+
+  async loadSession() {
+    const { data } = await this.supabase.getSession();
+    this.session = data.session;
+    this.supabase.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', event, session);
+        this.session = session;
+        if (session) this.loadProfile();
+      }
+    );
+    if (this.session) this.loadProfile();
   }
 
   async loadProfile() {
-    const session = this.session();
-    if (!session) return;
+    if (!this.session) return;
 
     try {
       this.loading = true;
-      const { user } = session;
+      const { user } = this.session;
       const {
         data: profile,
         error,
@@ -140,18 +153,17 @@ export default class ProfileListComponent {
   }
 
   async updateProfile(): Promise<void> {
-    const session = this.session();
-    if (!session) return;
+    if (!this.session) return;
 
     try {
       this.loading = true;
-      const { user } = session;
+      const { user } = this.session;
       const { username, website, avatar_url } = this.updateProfileForm.value;
       const { error } = await this.supabase.updateProfile({
         id: user.id,
-        username: username || "",
-        website: website || "",
-        avatar_url: avatar_url || "",
+        username: username || '',
+        website: website || '',
+        avatar_url: avatar_url || '',
       });
       if (error) throw error;
     } catch (error) {
@@ -163,6 +175,6 @@ export default class ProfileListComponent {
 
   async signOut() {
     await this.supabase.signOut();
-    this.router.navigate(["/login"]);
+    this.router.navigate(['/login']);
   }
 }

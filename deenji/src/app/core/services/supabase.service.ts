@@ -1,10 +1,10 @@
-// src/app/core/services/supabase.service.ts
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import {
-  AuthSession,
+  Session,
   createClient,
   SupabaseClient,
   User,
+  AuthChangeEvent,
 } from '@supabase/supabase-js';
 import { Profile } from '../models/supabase.model';
 
@@ -13,28 +13,27 @@ import { Profile } from '../models/supabase.model';
 })
 export class SupabaseService {
   private supabase: SupabaseClient;
-  private sessionSignal = signal<AuthSession | null>(null);
+  private _session: Session | null = null;
 
   constructor() {
     const supabaseUrl = import.meta.env['VITE_supabaseUrl'];
     const supabaseKey = import.meta.env['VITE_supabaseKey'];
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase URL or Key missing in environment variables.');
-    }
     this.supabase = createClient(supabaseUrl, supabaseKey);
+    this.loadSession(); // Load session on initialization
+  }
 
-    this.supabase.auth.getSession().then(({ data }) => {
-      this.sessionSignal.set(data.session);
-    });
-
+  private async loadSession() {
+    const { data } = await this.supabase.auth.getSession();
+    this._session = data.session;
+    // Set up listener for auth state changes
     this.supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session);
-      this.sessionSignal.set(session);
+      this._session = session;
     });
   }
 
-  get session() {
-    return this.sessionSignal.asReadonly();
+  get session(): Session | null {
+    return this._session;
   }
 
   profile(user: User) {
@@ -46,26 +45,18 @@ export class SupabaseService {
   }
 
   async signIn(email: string) {
-    // Get the base URL for redirection - must be dynamically determined
     const baseUrl = window.location.origin;
-
     return this.supabase.auth.signInWithOtp({
       email,
       options: {
-        // Use dynamic origin instead of hardcoded localhost
         emailRedirectTo: `${baseUrl}/confirm`,
-        // Explicitly prefer OTP verification method over magic link
         shouldCreateUser: true,
       },
     });
   }
 
   async verifyOtp(email: string, token: string) {
-    return this.supabase.auth.verifyOtp({
-      email,
-      token,
-      type: 'email',
-    });
+    return this.supabase.auth.verifyOtp({ email, token, type: 'email' });
   }
 
   async signOut() {
@@ -73,10 +64,7 @@ export class SupabaseService {
   }
 
   updateProfile(profile: Profile) {
-    const update = {
-      ...profile,
-      updated_at: new Date(),
-    };
+    const update = { ...profile, updated_at: new Date() };
     return this.supabase.from('profiles').upsert(update);
   }
 
@@ -86,5 +74,17 @@ export class SupabaseService {
 
   uploadAvatar(filePath: string, file: File) {
     return this.supabase.storage.from('avatars').upload(filePath, file);
+  }
+
+  // Expose getSession method
+  async getSession(): Promise<{ data: { session: Session | null } }> {
+    return this.supabase.auth.getSession();
+  }
+
+  // Expose onAuthStateChange method
+  onAuthStateChange(
+    callback: (event: AuthChangeEvent, session: Session | null) => void
+  ) {
+    return this.supabase.auth.onAuthStateChange(callback);
   }
 }

@@ -6,6 +6,7 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { SupabaseService } from '../core/services/supabase.service';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 @Component({
   selector: 'app-navbar',
@@ -20,7 +21,6 @@ import { SupabaseService } from '../core/services/supabase.service';
     <header class="bg-secondary-900 bg-opacity-90 z-50">
       <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="relative flex items-center h-16">
-          <!-- Right: Buy/Sell links -->
           <div class="flex flex-1 items-center">
             <div class="hidden md:flex items-center space-x-6">
               <a
@@ -37,8 +37,6 @@ import { SupabaseService } from '../core/services/supabase.service';
               </a>
             </div>
           </div>
-
-          <!-- Centralized Logo -->
           <div
             class="absolute inset-x-0 flex justify-center items-center pointer-events-none"
           >
@@ -52,22 +50,18 @@ import { SupabaseService } from '../core/services/supabase.service';
               ></svg-icon>
             </a>
           </div>
-
-          <!-- Right group: Help and Sign In -->
           <div class="flex flex-1 justify-end items-center">
             <div class="hidden md:flex items-center space-x-6">
-              <!-- Show login button only when not logged in -->
               <button
-                *ngIf="!session()"
+                *ngIf="!session"
                 [routerLink]="['/login']"
                 hlmBtn
                 class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
               >
                 ورود / ثبت نام
               </button>
-              <!-- Show profile link when logged in -->
               <a
-                *ngIf="session()"
+                *ngIf="session"
                 [routerLink]="['/profile']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium"
               >
@@ -86,15 +80,25 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   public isHomePage = false;
   private routerSubscription: Subscription | null = null;
+  session: Session | null = null;
 
-  // Get session status from Supabase service
-  session = this.supabase.session;
+  constructor() {
+    this.loadSession();
+  }
+
+  async loadSession() {
+    const { data } = await this.supabase.getSession();
+    this.session = data.session;
+    this.supabase.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', event, session);
+        this.session = session;
+      }
+    );
+  }
 
   ngOnInit() {
-    // Check initial route
     this.checkIfHomePage(this.router.url);
-
-    // Subscribe to route changes
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {
@@ -103,14 +107,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    // Clean up subscription
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }
   }
 
   private checkIfHomePage(url: string): void {
-    // For AnalogJS routing
     this.isHomePage = url === '/' || url === '/home';
   }
 }
