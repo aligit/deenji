@@ -3,6 +3,7 @@ import { Component, inject, OnInit } from '@angular/core';
 import { Router, ActivatedRoute } from '@angular/router';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { CommonModule } from '@angular/common';
+import { Session } from '@supabase/supabase-js';
 
 @Component({
   standalone: true,
@@ -61,6 +62,7 @@ export default class AuthConfirmPageComponent implements OnInit {
   private readonly supabase = inject(SupabaseService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  session: Session | null = null;
 
   loading = true;
   error = '';
@@ -71,7 +73,6 @@ export default class AuthConfirmPageComponent implements OnInit {
   }
 
   async handleMagicLink() {
-    // Process URL fragment (for hash-based redirects from Supabase)
     this.route.fragment.subscribe(async (fragment) => {
       if (fragment) {
         try {
@@ -87,32 +88,26 @@ export default class AuthConfirmPageComponent implements OnInit {
             throw new Error('No access token found in URL');
           }
 
-          // Wait for auth state to update
-          setTimeout(() => {
-            const session = this.supabase.session();
-            if (session) {
-              this.success = true;
-              this.loading = false;
-
-              // Navigate to profile after a short delay to show success message
-              setTimeout(() => {
-                this.router.navigate(['/profile']);
-              }, 1500);
-            } else {
-              throw new Error('Session not established');
-            }
-          }, 1000); // Give Supabase client time to process the token
+          // Directly check session asynchronously
+          const { data } = await this.supabase.getSession();
+          if (data.session) {
+            this.success = true;
+            this.loading = false;
+            // Short delay to show success message before redirect
+            setTimeout(() => {
+              this.router.navigate(['/profile']);
+            }, 1500);
+          } else {
+            throw new Error('Session not established');
+          }
         } catch (error) {
           this.loading = false;
-          this.error =
-            error instanceof Error ? error.message : 'Unknown error occurred';
+          this.error = error instanceof Error ? error.message : 'Unknown error';
           console.error('Magic link error:', this.error);
         }
       } else {
-        // No fragment found, check query parameters
         this.route.queryParams.subscribe((params) => {
           if (Object.keys(params).length === 0) {
-            // No query params either, redirect to login
             this.navigateToLogin();
           }
         });
