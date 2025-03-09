@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
@@ -24,13 +24,13 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
           <div class="flex flex-1 items-center">
             <div class="hidden md:flex items-center space-x-6">
               <a
-                href="/buy"
+                [routerLink]="['/buy']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium rtl:ml-6 ltr:mr-6"
               >
                 خرید
               </a>
               <a
-                href="/sell"
+                [routerLink]="['/sell']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium"
               >
                 فروش
@@ -53,7 +53,7 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
           <div class="flex flex-1 justify-end items-center">
             <div class="hidden md:flex items-center space-x-6">
               <button
-                *ngIf="!session"
+                *ngIf="!sessionSignal()"
                 [routerLink]="['/login']"
                 hlmBtn
                 class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
@@ -61,7 +61,7 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
                 ورود / ثبت نام
               </button>
               <a
-                *ngIf="session"
+                *ngIf="sessionSignal()"
                 [routerLink]="['/profile']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium"
               >
@@ -74,25 +74,28 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
     </header>
   `,
 })
-export class NavbarComponent implements OnInit, OnDestroy {
+export class NavbarComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly supabase = inject(SupabaseService);
 
-  public isHomePage = false;
+  public isHomePage = signal(false);
+  public sessionSignal = signal<Session | null>(null);
   private routerSubscription: Subscription | null = null;
-  session: Session | null = null;
 
   constructor() {
     this.loadSession();
   }
 
   async loadSession() {
+    // Get initial session
     const { data } = await this.supabase.getSession();
-    this.session = data.session;
+    this.sessionSignal.set(data.session);
+
+    // Set up auth state change listener
     this.supabase.onAuthStateChange(
       (event: AuthChangeEvent, session: Session | null) => {
         console.log('Auth state changed:', event, session);
-        this.session = session;
+        this.sessionSignal.set(session);
       }
     );
   }
@@ -101,18 +104,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.checkIfHomePage(this.router.url);
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe((event: NavigationEnd) => {
+      .subscribe((event: any) => {
         this.checkIfHomePage(event.urlAfterRedirects);
       });
   }
 
-  ngOnDestroy() {
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
-  }
-
   private checkIfHomePage(url: string): void {
-    this.isHomePage = url === '/' || url === '/home';
+    this.isHomePage.set(url === '/' || url === '/home');
   }
 }
