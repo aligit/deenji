@@ -1,6 +1,6 @@
 // src/app/pages/(protected)/profile.page.ts
-import { Component, inject } from '@angular/core';
-import { CommonModule, NgIf } from '@angular/common';
+import { Component, inject, OnInit, NgZone } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { SupabaseService } from '../../core/services/supabase.service';
 import { authGuard } from '../../core/guards/auth.guard';
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -98,10 +98,11 @@ export const routeMeta: RouteMeta = {
     </div>
   `,
 })
-export default class ProfilePageComponent {
+export default class ProfilePageComponent implements OnInit {
   private readonly supabase = inject(SupabaseService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
 
   loading = false;
   session: Session | null = null;
@@ -112,29 +113,66 @@ export default class ProfilePageComponent {
     avatar_url: [''],
   });
 
-  constructor() {
-    this.loadSession();
+  async ngOnInit() {
+    await this.loadSession();
   }
 
   async loadSession() {
-    const { data } = await this.supabase.getSession();
-    this.session = data.session;
-
-    this.supabase.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        console.log('Auth state changed:', event, session);
-        this.session = session;
-        if (session) this.loadProfile();
+    try {
+      // First try to get session from the service's cache
+      if (this.supabase.session) {
+        this.session = this.supabase.session;
+        if (this.session) this.loadProfile();
+        return;
       }
-    );
 
-    if (this.session) this.loadProfile();
+      // If not available, fetch fresh from Supabase
+      const { data } = await this.supabase.getSession();
+
+      // Use NgZone to ensure Angular detects the change
+      this.ngZone.run(() => {
+        this.session = data.session;
+        if (this.session) this.loadProfile();
+      });
+
+      // Set up auth state change listener
+      this.supabase.onAuthStateChange(
+        (event: AuthChangeEvent, session: Session | null) => {
+          console.log('Auth state changed:', event, session);
+
+          // Use NgZone to ensure Angular detects the change
+          this.ngZone.run(() => {
+            this.session = session;
+            if (session) this.loadProfile();
+          });
+        }
+      );
+    } catch (error) {
+      console.error('Error loading session:', error);
+    }
   }
 
   async loadProfile() {
     if (!this.session) return;
     console.log('Profile loading for user:', this.session.user.id);
     // Add additional profile loading logic here if needed, e.g., fetching from a profiles table
+
+    // For example, you might want to load the user's profile data
+    try {
+      const { data, error } = await this.supabase.profile(this.session.user);
+      if (error) throw error;
+
+      if (data) {
+        // Update form with profile data
+        this.updateProfileForm.patchValue({
+          username: data.username || '',
+          website: data.website || '',
+          avatar_url: data.avatar_url || '',
+        });
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
   }
 
   async updateProfile(): Promise<void> {

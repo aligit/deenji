@@ -63,6 +63,22 @@ export class SupabaseService {
     return this.supabase.auth.signOut();
   }
 
+  // Add this new method to set the session from tokens
+  async setSession(accessToken: string, refreshToken: string) {
+    const { data, error } = await this.supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      console.error('Error setting session:', error);
+      throw error;
+    }
+
+    this._session = data.session;
+    return { data, error };
+  }
+
   updateProfile(profile: Profile) {
     const update = { ...profile, updated_at: new Date() };
     return this.supabase.from('profiles').upsert(update);

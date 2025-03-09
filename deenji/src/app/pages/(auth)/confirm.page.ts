@@ -78,6 +78,7 @@ export default class AuthConfirmPageComponent implements OnInit {
         try {
           const params = new URLSearchParams(fragment);
           const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
           const errorDescription = params.get('error_description');
 
           if (errorDescription) {
@@ -88,17 +89,27 @@ export default class AuthConfirmPageComponent implements OnInit {
             throw new Error('No access token found in URL');
           }
 
-          // Directly check session asynchronously
-          const { data } = await this.supabase.getSession();
-          if (data.session) {
-            this.success = true;
-            this.loading = false;
-            // Short delay to show success message before redirect
-            setTimeout(() => {
-              this.router.navigate(['/profile']);
-            }, 1500);
+          // Set the session manually using the tokens from the URL
+          if (accessToken && refreshToken) {
+            // Set the auth session in Supabase with the tokens from the URL
+            await this.supabase.setSession(accessToken, refreshToken);
+
+            // Verify the session is properly set
+            const { data } = await this.supabase.getSession();
+
+            if (data.session) {
+              this.success = true;
+              this.loading = false;
+
+              // Wait for the session to be fully propagated
+              setTimeout(() => {
+                this.router.navigate(['/profile']);
+              }, 1500);
+            } else {
+              throw new Error('Session not established');
+            }
           } else {
-            throw new Error('Session not established');
+            throw new Error('Required tokens not found in URL');
           }
         } catch (error) {
           this.loading = false;
