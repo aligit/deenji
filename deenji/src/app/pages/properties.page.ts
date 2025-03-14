@@ -1,9 +1,17 @@
-import { Component } from "@angular/core";
-import { RouterOutlet } from "@angular/router";
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: "app-properties",
-  imports: [RouterOutlet],
-  template: ` <router-outlet></router-outlet> `,
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="container mx-auto py-8">
+      <h1 class="text-3xl font-bold mb-6">Available Properties</h1>
+      <!-- Your properties list content here -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <p>Properties will be displayed here</p>
+      </div>
+    </div>
+  `,
 })
-export class PropertiesComponent { }
+export default class PropertiesListComponent { }
