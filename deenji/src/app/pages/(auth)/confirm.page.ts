@@ -103,7 +103,7 @@ export default class AuthConfirmPageComponent implements OnInit {
 
               // Wait for the session to be fully propagated
               setTimeout(() => {
-                this.router.navigate(['/profile']);
+                this.router.navigate(['/account']);
               }, 1500);
             } else {
               throw new Error('Session not established');
