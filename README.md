@@ -1,95 +1,94 @@
-# Deenji
+# Deenji Real Estate Platform
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+Deenji is a modern real estate platform built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Features
 
-Run `npx nx graph` to visually explore what got created. Now, let's get you up to speed!
+- 🏠 Property listing and browsing
+- 👤 User accounts with profiles and preferences
+- 🔒 Secure authentication via magic links
+- 🌐 Multilingual support (Persian/Farsi by default)
+- 📱 Responsive design for all devices
+- 🔍 Advanced property search
 
-## Run tasks
+## Tech Stack
 
-To run tasks with Nx use:
+- **Frontend**: AnalogJS (Angular), TailwindCSS, Spartan UI
+- **Backend**: Supabase, tRPC, Drizzle ORM
+- **Database**: PostgreSQL (via Supabase)
 
-```sh
-npx nx <target> <project-name>
+## Prerequisites
+
+- Node.js 16+
+- Bun package manager
+- Supabase CLI
+
+## Getting Started
+
+### 1. Start Supabase locally
+
+Before starting the application, you need to run a local Supabase instance. This provides authentication, database, and storage services.
+
+```bash
+# Start Supabase while excluding unnecessary services
+bunx supabase start -x edge-runtime,vector,logflare
 ```
 
-For example:
+### 2. Environment Setup
 
-```sh
-npx nx build myproject
+Create a `.env` file in the root directory with the following variables:
+
+```
+VITE_supabaseUrl=http://localhost:54321
+VITE_supabaseKey=your-supabase-anon-key
 ```
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+You can find your anon key in the Supabase dashboard or in the terminal output after starting Supabase.
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+### 3. Start the Development Server
 
-## Add new projects
+The project uses Nx for monorepo management. To start the development server:
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
-
-To install a new plugin you can use the `nx add` command. Here's an example of adding the React plugin:
-```sh
-npx nx add @nx/react
+```bash
+# Start the development server
+bunx nx s deenji
 ```
 
-Use the plugin's generator to create new projects. For example, to create a new React app or library:
+The application will be available at `http://localhost:4200`.
 
-```sh
-# Generate an app
-npx nx g @nx/react:app demo
+## Project Structure
 
-# Generate a library
-npx nx g @nx/react:lib some-lib
+- `/src/app` - Angular application code
+  - `/core` - Core services, guards, and models
+  - `/pages` - Page components following the AnalogJS file-based routing
+  - `/shared` - Shared components like navbar and footer
+- `/src/server` - Server-side code
+  - `/routes` - API routes and endpoints
+  - `/trpc` - tRPC router definitions
+
+## Authentication Flow
+
+Deenji uses Supabase's passwordless authentication with magic links:
+
+1. User enters their email address
+2. User receives a one-time password (OTP) via email
+3. User verifies identity by entering the OTP
+4. System creates user profile if it doesn't exist
+
+## Database Migrations
+
+To apply database migrations:
+
+```bash
+bunx supabase migration up
 ```
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+## Building for Production
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Set up CI!
-
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
+```bash
+bunx nx build deenji
 ```
 
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
+## License
 
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+[MIT](LICENSE)
