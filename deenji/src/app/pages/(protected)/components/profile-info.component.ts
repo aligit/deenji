@@ -150,7 +150,7 @@ export class ProfileInfoComponent {
   constructor() {
     this.profileForm = this.formBuilder.group({
       username: ['', [Validators.required]],
-      phone: ['', [Validators.required, Validators.pattern(/^[0-9+\-\s()]*$/)]],
+      phone: ['', [Validators.required, Validators.pattern(/^09\d{9}$/)]],
       website: [''],
     });
   }
@@ -181,11 +181,12 @@ export class ProfileInfoComponent {
       const { user } = this.session;
       const { username, website, phone } = this.profileForm.value;
 
-      // Save profile data to Supabase
-      const { error } = await this.supabase.updateProfile({
+      // Save profile data to Supabase with the enhanced profile
+      const { error } = await this.supabase.updateFullProfile({
         id: user.id,
         username: username || '',
         website: website || '',
+        phone: phone || '',
         avatar_url: '',
       });
 
@@ -195,7 +196,7 @@ export class ProfileInfoComponent {
       setTimeout(() => (this.showSuccess = false), 3000);
 
       // Emit event to parent component
-      this.profileUpdated.emit({ username, website });
+      this.profileUpdated.emit({ username, website, phone });
     } catch (error) {
       console.error('Error updating profile:', error);
     } finally {

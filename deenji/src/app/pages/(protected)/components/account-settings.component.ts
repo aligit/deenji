@@ -1,5 +1,5 @@
 // src/app/pages/(protected)/components/account-settings.component.ts
-import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -8,6 +8,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Session } from '@supabase/supabase-js';
+import { SupabaseService } from '../../../core/services/supabase.service';
 
 @Component({
   selector: 'app-account-settings',
@@ -122,6 +123,7 @@ export class AccountSettingsComponent {
   @Output() signOutRequested = new EventEmitter<void>();
 
   private formBuilder = inject(FormBuilder);
+  private readonly supabase = inject(SupabaseService);
 
   languageForm: FormGroup;
   showSuccess = false;
@@ -132,15 +134,27 @@ export class AccountSettingsComponent {
     });
   }
 
-  saveLanguage() {
+  async saveLanguage() {
     if (this.languageForm.invalid) return;
 
-    // Would implement language change logic
-    // this.translocoService.setActiveLang(this.languageForm.value.language);
+    try {
+      const { language } = this.languageForm.value;
 
-    this.showSuccess = true;
-    setTimeout(() => (this.showSuccess = false), 3000);
-    this.languageForm.markAsPristine();
+      if (!this.session?.user.id) return;
+
+      const { error } = await this.supabase.updateUserSettings({
+        id: this.session.user.id,
+        language,
+      });
+
+      if (error) throw error;
+
+      this.showSuccess = true;
+      setTimeout(() => (this.showSuccess = false), 3000);
+      this.languageForm.markAsPristine();
+    } catch (error) {
+      console.error('Error updating language settings:', error);
+    }
   }
 
   confirmDeleteAccount() {
