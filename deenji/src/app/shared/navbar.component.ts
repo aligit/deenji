@@ -62,7 +62,7 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
               </button>
               <a
                 *ngIf="sessionSignal()"
-                [routerLink]="['/profile']"
+                [routerLink]="['/account']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium"
               >
                 حساب کاربری

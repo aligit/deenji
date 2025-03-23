@@ -1,3 +1,4 @@
+// src/app/core/services/supabase.service.ts
 import { Injectable } from '@angular/core';
 import {
   Session,
@@ -7,6 +8,7 @@ import {
   AuthChangeEvent,
 } from '@supabase/supabase-js';
 import { Profile } from '../models/supabase.model';
+import { UserSettings } from '../../../db';
 
 @Injectable({
   providedIn: 'root',
@@ -102,5 +104,45 @@ export class SupabaseService {
     callback: (event: AuthChangeEvent, session: Session | null) => void
   ) {
     return this.supabase.auth.onAuthStateChange(callback);
+  }
+
+  async getUserSettings(userId: string) {
+    return this.supabase
+      .from('user_settings')
+      .select('*')
+      .eq('id', userId)
+      .single();
+  }
+
+  // Update user settings
+  async updateUserSettings(settings: Partial<UserSettings>) {
+    const { id, ...settingsData } = settings;
+    const updateData = {
+      ...settingsData,
+      updated_at: new Date(),
+    };
+
+    return this.supabase.from('user_settings').update(updateData).eq('id', id);
+  }
+
+  // Enhanced profile method to include new fields
+  async getFullProfile(user: User) {
+    return this.supabase
+      .from('profiles')
+      .select(
+        'username, full_name, website, avatar_url, phone, user_type, email_verified'
+      )
+      .eq('id', user.id)
+      .single();
+  }
+
+  // Enhanced update profile method
+  async updateFullProfile(profile: Partial<Profile>) {
+    const update = {
+      ...profile,
+      updated_at: new Date(),
+    };
+
+    return this.supabase.from('profiles').upsert(update);
   }
 }
