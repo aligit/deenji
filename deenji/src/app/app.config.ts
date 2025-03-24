@@ -1,3 +1,4 @@
+// src/app/app.config.ts
 import {
   ApplicationConfig,
   provideZoneChangeDetection,
@@ -26,7 +27,9 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([requestContextInterceptor])
     ),
 
+    // Use tRPC client
     provideTrpcClient(),
+
     provideAngularSvgIcon(),
     provideHttpClient(),
     provideTransloco({

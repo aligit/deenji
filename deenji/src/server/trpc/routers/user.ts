@@ -1,8 +1,12 @@
 // src/server/trpc/routers/user.ts
 import { z } from 'zod';
-import { publicProcedure, router } from '../trpc';
+import {
+  publicProcedure,
+  protectedProcedure,
+  userProcedure,
+  router,
+} from '../trpc';
 import { TRPCError } from '@trpc/server';
-import { createClient } from '@supabase/supabase-js';
 
 // Define types for profile and user settings based on DB schema
 const profileSchema = z.object({
@@ -28,16 +32,11 @@ const userSettingsSchema = z.object({
 });
 
 export const userRouter = router({
-  // Get user profile
-  getProfile: publicProcedure
+  // Get user profile - protected, but uses userProcedure to ensure users can only access their own data
+  getProfile: userProcedure
     .input(z.object({ userId: z.string().uuid() }))
     .query(async ({ input, ctx }) => {
-      const supabase = createClient(
-        import.meta.env['VITE_supabaseUrl'] || '',
-        import.meta.env['VITE_supabaseKey'] || ''
-      );
-
-      const { data, error } = await supabase
+      const { data, error } = await ctx.supabase
         .from('profiles')
         .select(
           'username, website, avatar_url, phone, user_type, email_verified'
@@ -56,28 +55,20 @@ export const userRouter = router({
       return data;
     }),
 
-  // Update user profile
-  updateProfile: publicProcedure
+  // Update user profile - protected with userProcedure
+  updateProfile: userProcedure
     .input(profileSchema)
-    .mutation(async ({ input }) => {
-      if (!input.id) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'User ID is required',
-        });
-      }
-
-      const supabase = createClient(
-        import.meta.env['VITE_supabaseUrl'] || '',
-        import.meta.env['VITE_supabaseKey'] || ''
-      );
+    .mutation(async ({ input, ctx }) => {
+      // Force the ID to be the authenticated user's ID to prevent updating other profiles
+      const userId = ctx.user.id;
 
       const updateData = {
+        id: userId, // Ensure we're updating the correct profile
         ...input,
         updated_at: new Date(),
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await ctx.supabase
         .from('profiles')
         .upsert(updateData)
         .select()
@@ -94,16 +85,11 @@ export const userRouter = router({
       return data;
     }),
 
-  // Get user settings
-  getSettings: publicProcedure
+  // Get user settings - protected with userProcedure
+  getSettings: userProcedure
     .input(z.object({ userId: z.string().uuid() }))
-    .query(async ({ input }) => {
-      const supabase = createClient(
-        import.meta.env['VITE_supabaseUrl'] || '',
-        import.meta.env['VITE_supabaseKey'] || ''
-      );
-
-      const { data, error } = await supabase
+    .query(async ({ input, ctx }) => {
+      const { data, error } = await ctx.supabase
         .from('user_settings')
         .select('*')
         .eq('id', input.userId)
@@ -120,14 +106,19 @@ export const userRouter = router({
       return data;
     }),
 
-  // Update user settings
-  updateSettings: publicProcedure
+  // Update user settings - protected with userProcedure
+  updateSettings: userProcedure
     .input(userSettingsSchema)
-    .mutation(async ({ input }) => {
-      const supabase = createClient(
-        import.meta.env['VITE_supabaseUrl'] || '',
-        import.meta.env['VITE_supabaseKey'] || ''
-      );
+    .mutation(async ({ input, ctx }) => {
+      // Force the ID to be the authenticated user's ID
+      const userId = ctx.user.id;
+
+      if (input.id !== userId) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'You can only update your own settings',
+        });
+      }
 
       const { id, ...settingsData } = input;
 
@@ -136,7 +127,7 @@ export const userRouter = router({
         updated_at: new Date(),
       };
 
-      const { data, error } = await supabase
+      const { data, error } = await ctx.supabase
         .from('user_settings')
         .update(updateData)
         .eq('id', id)
@@ -153,4 +144,12 @@ export const userRouter = router({
 
       return data;
     }),
+
+  // Public endpoint to check if user is authenticated
+  getAuthStatus: publicProcedure.query(({ ctx }) => {
+    return {
+      isAuthenticated: !!ctx.user,
+      userId: ctx.user?.id,
+    };
+  }),
 });

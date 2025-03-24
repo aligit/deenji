@@ -75,6 +75,70 @@ Deenji uses Supabase's passwordless authentication with magic links:
 3. User verifies identity by entering the OTP
 4. System creates user profile if it doesn't exist
 
+### Authentication and Authorization with Supabase and tRPC
+
+#### Overview
+
+Our application uses Supabase for authentication and tRPC for type-safe API communication. The authentication flow works by:
+
+1. Users authenticate with Supabase (via email OTP)
+2. The Supabase session provides an auth token
+3. Our Angular app passes this token to tRPC requests
+4. The tRPC backend verifies this token with Supabase
+5. Middleware enforces appropriate access controls
+
+#### Security Levels
+
+We have three levels of authorization in our tRPC endpoints:
+
+- **publicProcedure**: Available to anyone, authenticated or not
+- **protectedProcedure**: Only available to authenticated users
+- **userProcedure**: Only allows users to access their own data
+
+#### Adding New Secure Routes
+
+When adding new endpoints to tRPC:
+
+1. Choose the appropriate security level for your endpoint:
+
+```typescript
+// Public endpoint (anyone can access)
+myPublicEndpoint: publicProcedure
+  .query(() => { ... })
+
+// Protected endpoint (authenticated users only)
+myProtectedEndpoint: protectedProcedure
+  .query(() => { ... })
+
+// User-specific endpoint (users can only access their own data)
+myUserEndpoint: userProcedure
+  .input(z.object({ userId: z.string().uuid() }))
+  .query(({ input, ctx }) => {
+    // ctx.user is guaranteed to be available and authenticated
+    // input.userId is guaranteed to match ctx.user.id
+    ...
+  })
+```
+
+2. For user-specific endpoints, use the userProcedure and include userId in the input
+
+3. Always access the authenticated user through ctx.user, never trust client-provided data
+
+4. Use the TRPCError with appropriate error codes:
+
+```typescript
+throw new TRPCError({
+  code: 'UNAUTHORIZED', // For authentication failures
+  message: 'You must be logged in to access this resource',
+});
+
+// Or
+throw new TRPCError({
+  code: 'FORBIDDEN', // For authorization failures
+  message: 'You can only access your own data',
+});
+```
+
 ## Database Migrations
 
 To apply database migrations:
