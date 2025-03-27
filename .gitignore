@@ -44,3 +44,5 @@ Thumbs.db
 bun.lockb
 
 .angular
+migrations/.env.development
+migrations/.env.production
