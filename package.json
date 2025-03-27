@@ -3,7 +3,16 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "migrate": "bun run migrations/src/main.ts"
+    "supabase:start": "cd $HOME/work-public/deenji-supabase && bunx supabase start -x edge-runtime,vector,logflare",
+    "supabase:stop": "cd $HOME/work-public/deenji-supabase && bunx supabase stop  --all",
+    "supabase:status": "cd $HOME/work-public/deenji-supabase && bunx supabase status",
+    "es:start": "docker compose -f elasticsearch-compose.yml up -d",
+    "es:stop": "docker compose -f elasticsearch-compose.yml down",
+    "es:restart": "bun run es:stop && bun run es:start",
+    "es:status": "docker ps --filter \"name=tuqdar_elasticsearch\"",
+    "dev:services": "bun run supabase:start && bun run es:start",
+    "stop:services": "bun run es:stop && bun run supabase:stop",
+    "dev:start": "./scripts/start-dev-environment.sh"
   },
   "private": true,
   "dependencies": {
@@ -20,6 +29,7 @@
     "@angular/platform-browser-dynamic": "^19.0.0",
     "@angular/platform-server": "^19.0.0",
     "@angular/router": "^19.0.0",
+    "@elastic/elasticsearch": "^8.17.1",
     "@jsverse/transloco": "^7.5.1",
     "@ng-icons/core": "^29.10.0",
     "@ng-icons/lucide": ">=29.0.0",
