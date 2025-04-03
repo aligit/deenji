@@ -1,5 +1,11 @@
 # Deenji Real Estate Platform
 
+Creates a properly structured Elasticsearch index for properties
+Maps PostgreSQL data to the correct format for Elasticsearch
+Handles bulk indexing for performance
+Properly extracts amenities from your attributes array
+Includes handling for Persian text and numbers
+
 Deenji is a modern real estate platform built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication.
 
 ## Features
@@ -147,10 +153,32 @@ To apply database migrations:
 bunx supabase migration up
 ```
 
+## Database schema
+
+```bash
+pg_dump "postgresql://postgres:postgres@127.0.0.1:54322/postgres" --schema-only > deenji_schema.sql
+```
+
 ## Building for Production
 
 ```bash
 bunx nx build deenji
+```
+
+## Index Data for elasticsearch
+
+### First time
+
+```bash
+cd ./migrations
+ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts --recreate-index
+```
+
+### Otherwise
+
+```bash
+cd ./migrations
+ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts
 ```
 
 ## License
