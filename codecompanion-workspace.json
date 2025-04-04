@@ -1,167 +1,320 @@
 {
   "name": "Deenji Real Estate Platform",
-  "description": "A real estate platform like Zillow but enhanced with LLMs, connecting property buyers and agents with powerful search, detailed property insights, and investment analytics.",
-  "systemPrompt": "You are assisting with the development of Deenji, a real estate platform enhanced with LLMs. The platform connects property buyers and agents, offering powerful search, detailed property insights, and investment analytics. Focus on helping users make data-driven property decisions, ensuring mobile responsiveness, and supporting multi-language features including Persian with RTL layout.",
+  "version": "1.0.0",
+  "systemPrompt": "You are assisting with Deenji, a real estate platform enhanced with LLMs that connects property buyers and agents. The platform offers powerful search tools, detailed property insights, and investment analytics. It's built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication. The platform supports multilingual interfaces with Persian/Farsi as the default language (RTL layout).",
+  "vars": {
+    "tech_stack": "AnalogJS, Supabase, tRPC, TailwindCSS, Spartan UI, Elasticsearch, MapBox/Neshan, Recharts",
+    "default_lang": "Persian/Farsi with RTL layout",
+    "project_name": "Deenji"
+  },
   "groups": [
     {
-      "name": "Architecture Overview",
-      "description": "High-level architecture and tech stack of the Deenji platform",
-      "systemPrompt": "This group provides an overview of the technical architecture and design decisions for the Deenji platform. Use this context to understand the project's structure, technology choices, and design patterns.",
+      "name": "Project Overview & Requirements",
+      "systemPrompt": "This section contains the key features, priorities, and development approach for the ${project_name} real estate platform. It provides context on user management, property search & discovery, property details & analytics, user tools, project priorities, and sprint planning.",
       "items": [
         {
           "type": "text",
-          "content": "Deenji is built with a modern tech stack including:\n- Frontend: Angular/AnalogJS for the UI\n- Backend: Node.js/tRPC for type-safe API\n- Database: PostgreSQL with Supabase\n- Search: Elasticsearch for property search\n- Maps: MapBox/Neshan for interactive maps\n- Charts: Recharts for analytics visualizations\n- Styling: TailwindCSS for responsive design\n- Multi-language support: i18n with RTL layout for Persian"
+          "content": "# ${project_name} Real Estate Platform Overview\n\n${project_name} is a real estate platform like Zillow but supercharged with large language models (LLMs). It's designed to connect property buyers and agents, offering a slick experience with powerful search tools, detailed property insights, and investment analytics.\n\n## Key Features\n\n### User Management\n- Registration and authentication with email/phone verification\n- Profile updates for personal info\n- Account settings (passwords, notifications)\n- Multi-language support, including Persian with right-to-left (RTL) layout\n\n### Property Search & Discovery\n- **Basic Search**: Filter by location (e.g., \"Tehran\"), price range (e.g., 500M-1B IRR), and type (e.g., \"Apartment\")\n- **Advanced Filters**: Bedrooms (e.g., 2+), area (e.g., 100-150 sqm), amenities (e.g., parking), property age (e.g., <5 years), investment score (e.g., >80)\n- **Views**:\n  - List View: Property cards with sorting (e.g., price low-to-high), pagination, and quick-view tooltips\n  - Map View: Interactive map with pins, clustering in dense areas, and mini-cards on click\n- Autocomplete for locations (e.g., \"Teh\" suggests \"Tehran\")\n- Error handling (e.g., \"Invalid price range\" for max < min)\n\n### Property Details & Analysis\n- **Details**: Specs (type, size, beds/baths, year built), features (e.g., parking), description (e.g., \"Modern kitchen\"), and highlights (e.g., \"Renovated\" in gold)\n- **Image Gallery**: Carousel with thumbnails, fullscreen mode, zoom, and progressive loading\n- **Analytics**:\n  - Investment Score (e.g., \"85/100\") with tooltips\n  - Price Trend chart (e.g., \"Rising\" over 12 months)\n  - Price/Rent Ratio (e.g., \"22:1\" vs. neighborhood avg)\n  - Neighborhood Fit Score with breakdowns (e.g., \"Safety: 90\")\n  - Comparable properties table (3-5 listings)"
         },
         {
           "type": "text",
-          "content": "The application follows a sprint-based development approach:\nSprint 1: User management (authentication, profiles)\nSprint 2: Basic/advanced search, list view, saved properties\nSprint 3: Map view, property cards, details, images\nSprint 4: Analytics dashboard and investment scoring"
+          "content": "## Project Priorities\n\n### Mobile Responsiveness\nEverything must look and feel smooth on phones—like swiping the map view without lag.\n\n### Performance\nUse lazy loading (e.g., saved properties), virtual scrolling (list view), and debouncing (search input) to keep it snappy.\n\n### Data-Driven\nAnalytics are king—focus on insights like price trends or neighborhood fit to help buyers decide.\n\n### Multi-Language Support\nPersian with RTL is a big deal. Layouts should adjust appropriately (e.g., \"Filters go right-to-left in Persian mode\").\n\n## Sprint Planning\n- **Sprint 1**: User management\n- **Sprint 2**: Basic/advanced search, list view, saved properties\n- **Sprint 3**: Map view, property cards, details, images\n- **Sprint 4**: Analytics\n\n## Technology Stack\n- **Frontend**: AnalogJS (Angular) with TailwindCSS and Spartan UI\n- **Backend**: tRPC for API, Supabase for auth and database\n- **Search**: Elasticsearch for property search\n- **Maps**: MapBox/Neshan for interactive maps\n- **Charts**: Recharts for price trends and analytics"
+        }
+      ]
+    },
+    {
+      "name": "Architecture Overview",
+      "systemPrompt": "I've grouped key files that help understand the overall architecture of ${project_name}. This real estate platform uses ${tech_stack} with ${default_lang}. The platform follows a modern Angular architecture with file-based routing from AnalogJS, type-safe backend communication with tRPC, and Supabase for authentication and data storage. Below are the core configuration files and important components that define the system architecture.",
+      "items": [
+        {
+          "type": "text",
+          "content": "# ${project_name} Real Estate Platform Architecture\n\nThe platform is built using AnalogJS, a meta-framework for Angular that provides SSR capabilities, file-based routing, and API routes. The architecture follows these key technology decisions:\n\n- **Frontend**: AnalogJS (Angular meta-framework) with TailwindCSS for styling\n- **Backend**: tRPC for type-safe API communication with the frontend\n- **Authentication**: Supabase for passwordless/magic link authentication\n- **Database**: PostgreSQL with Supabase and Drizzle ORM\n- **UI Components**: Spartan UI (Angular CDK-based component library)\n- **Multilingual Support**: Full RTL support for Persian (default language)\n- **Search Engine**: Elasticsearch for advanced property filtering\n- **Maps Integration**: MapBox/Neshan for interactive property maps\n- **Data Visualization**: Recharts for analytics and price trend charts"
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/app.config.ts",
+          "description": "Main application configuration including providers for HTTP, tRPC, routing, and internationalization."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/trpc-client.ts",
+          "description": "tRPC client setup with authentication integration."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/core/services/supabase.service.ts",
+          "description": "Service for interacting with Supabase authentication and database."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/db.ts",
+          "description": "Database schema definitions using Drizzle ORM."
+        }
+      ]
+    },
+    {
+      "name": "Authentication Flow",
+      "systemPrompt": "The authentication in ${project_name} uses Supabase with a passwordless (magic link) authentication flow. Users enter their email, receive a one-time password (OTP), and verify their identity by entering the code. The system creates a user profile if it doesn't exist. The following files implement this authentication flow and the guards that protect private routes.",
+      "items": [
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/(auth)/login.page.ts",
+          "description": "Login page component with email input and OTP verification."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/(auth)/confirm.page.ts",
+          "description": "Confirmation page for magic link authentication."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/core/guards/auth.guard.ts",
+          "description": "Authentication guard for protecting routes."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/core/services/auth-interceptor.service.ts",
+          "description": "Interceptor for handling authentication errors from tRPC."
         }
       ]
     },
     {
       "name": "User Management",
-      "description": "Authentication, profile management, and user settings",
-      "systemPrompt": "This group covers the user management features including registration, authentication, profile updates, and account settings.",
+      "systemPrompt": "${project_name} implements comprehensive user management with profiles, settings, and account management capabilities. The following files handle user data, profile management, and account settings. The system uses tRPC for secure API communication between the client and server for user data operations.",
       "items": [
         {
           "type": "file",
-          "path": "src/app/pages/auth/*.page.ts",
-          "description": "Authentication pages including login, registration, and verification"
+          "path": "deenji/src/app/core/services/user.service.ts",
+          "description": "Service for managing user data via tRPC."
         },
         {
           "type": "file",
-          "path": "src/app/pages/profile/*.page.ts",
-          "description": "User profile management pages"
+          "path": "deenji/src/app/pages/(protected)/account.page.ts",
+          "description": "Account page component with tabs for profile, settings, and saved properties."
         },
         {
           "type": "file",
-          "path": "src/server/routers/user.ts",
-          "description": "tRPC router handling user-related API endpoints"
+          "path": "deenji/src/app/pages/(protected)/components/profile-info.component.ts",
+          "description": "Component for displaying and editing user profile information."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/(protected)/components/account-settings.component.ts",
+          "description": "Component for managing account settings like language preferences."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/core/models/user.model.ts",
+          "description": "TypeScript interfaces for user profile and settings."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/routers/user.ts",
+          "description": "tRPC router for user-related API endpoints."
         }
       ]
     },
     {
       "name": "Property Search & Discovery",
-      "description": "Search functionality, filters, and property listing views",
-      "systemPrompt": "This group contains components related to property search, filters, and different ways to view property listings (list view and map view).",
+      "systemPrompt": "${project_name} provides powerful property search and discovery features as specified in the requirements. These include basic and advanced filtering, list and map views, location autocomplete, and proper error handling.",
       "items": [
         {
-          "type": "file",
-          "path": "src/app/pages/(search)/*.page.ts",
-          "description": "Property search pages with basic and advanced filtering"
+          "type": "text",
+          "content": "# Property Search & Discovery Implementation\n\nThe property search and discovery features include:\n\n## Search Features\n- Basic search by location, price range, and property type\n- Advanced filtering by bedrooms, area, amenities, property age, and investment score\n- Autocomplete suggestions for location searches\n- Error handling for invalid inputs (e.g., max price < min price)\n\n## View Types\n- List View with sorting options, pagination, and quick-view tooltips\n- Map View with interactive pins, clustering for dense areas, and mini property cards on pin click\n\n## Technical Implementation\n- Elasticsearch for rapid, fuzzy text search and advanced filtering\n- MapBox/Neshan integration for map view\n- Debounced search inputs for performance\n- Virtual scrolling for list view to handle large result sets\n- Mobile-responsive design for all search interfaces"
         },
         {
           "type": "file",
-          "path": "src/app/components/search/*.ts",
-          "description": "Search components including filters, autocomplete, and error handling"
+          "path": "deenji/src/app/pages/home/sticky-search.component.ts",
+          "description": "Sticky search component that appears on scroll."
         },
         {
           "type": "file",
-          "path": "src/app/components/map/*.ts",
-          "description": "Map view components with interactive pins and clustering"
-        },
-        {
-          "type": "file",
-          "path": "src/server/routers/search.ts",
-          "description": "tRPC router for search-related API endpoints"
+          "path": "deenji/src/app/pages/home/hero.component.ts",
+          "description": "Hero section with main search functionality."
         }
       ]
     },
     {
-      "name": "Property Details & Analysis",
-      "description": "Property detail pages, image galleries, and analytics",
-      "systemPrompt": "This group focuses on the detailed property view, image gallery, and analytical features that help users evaluate properties.",
+      "name": "Property Details & Analytics",
+      "systemPrompt": "${project_name} offers comprehensive property details and powerful analytics tools to help buyers make informed decisions. This includes property specifications, image galleries, investment scores, price trends, and neighborhood analysis.",
       "items": [
         {
-          "type": "file",
-          "path": "src/app/pages/properties/[propertyId].page.ts",
-          "description": "Property detail page showing comprehensive information about a property"
-        },
-        {
-          "type": "file",
-          "path": "src/app/components/gallery/*.ts",
-          "description": "Image gallery components with carousel, thumbnails, and fullscreen mode"
-        },
-        {
-          "type": "file",
-          "path": "src/app/components/analytics/*.ts",
-          "description": "Analytics components including investment score, price trends, and neighborhood fit"
-        },
-        {
-          "type": "file",
-          "path": "src/server/routers/property.ts",
-          "description": "tRPC router for property-related API endpoints"
+          "type": "text",
+          "content": "# Property Details & Analytics Implementation\n\n## Property Details\n- Comprehensive property specifications (type, size, bedrooms, bathrooms, year built)\n- Feature highlighting for important amenities\n- Detailed descriptions with formatting\n- Special callouts for property highlights (e.g., \"Renovated\")\n\n## Image Gallery\n- Carousel interface with thumbnail navigation\n- Fullscreen viewing mode\n- Zoom functionality for detailed inspection\n- Progressive image loading for performance\n\n## Analytics Tools\n- Investment Score (0-100) with detailed breakdown\n- Interactive price trend charts showing historical data\n- Price/Rent ratio analysis compared to neighborhood averages\n- Neighborhood Fit Score with category breakdowns (safety, schools, amenities)\n- Comparable properties table showing similar listings\n\n## Technical Implementation\n- Recharts for data visualization\n- Carousel component for image gallery\n- Advanced algorithms for investment score calculation\n- Data-driven approach to present meaningful insights"
         }
       ]
     },
     {
       "name": "User Tools",
-      "description": "User tools like saved properties and notification preferences",
-      "systemPrompt": "This group covers features that enhance user experience, such as saving properties and setting up notifications.",
+      "systemPrompt": "${project_name} provides user tools like saved properties and notification preferences to enhance the user experience.",
       "items": [
         {
-          "type": "file",
-          "path": "src/app/pages/saved/*.page.ts",
-          "description": "Pages for viewing and managing saved properties"
+          "type": "text",
+          "content": "# User Tools Implementation\n\n## Saved Properties\n- Save and remove properties from favorites\n- Organize saved properties into custom folders\n- Side-by-side comparison of property features\n- Optimized with lazy loading for performance\n\n## Notifications\n- Customizable notification preferences\n- Price drop alerts\n- New listing notifications based on search criteria\n- Email and in-app notification options"
         },
         {
           "type": "file",
-          "path": "src/app/components/saved/*.ts",
-          "description": "Components for organizing saved properties into folders and comparing them"
-        },
-        {
-          "type": "file",
-          "path": "src/app/components/notifications/*.ts",
-          "description": "Components for managing notification preferences"
-        },
-        {
-          "type": "file",
-          "path": "src/server/routers/saved.ts",
-          "description": "tRPC router for saved properties and notification preferences"
+          "path": "deenji/src/app/pages/(protected)/components/properties.component.ts",
+          "description": "Component for managing saved properties."
         }
       ]
     },
     {
-      "name": "Internationalization",
-      "description": "Multi-language support including Persian with RTL layout",
-      "systemPrompt": "This group focuses on the internationalization features of the platform, with special attention to Persian language support and RTL layout.",
+      "name": "Home Page Components",
+      "systemPrompt": "The home page of ${project_name} features several key components that together create an engaging real estate browsing experience. These include a hero section with search capabilities, a sticky search bar that appears on scroll, featured properties section, and a call-to-action component. The following files implement these features.",
       "items": [
         {
           "type": "file",
-          "path": "src/app/i18n/*.ts",
-          "description": "Internationalization configuration and utilities"
+          "path": "deenji/src/app/pages/(home).page.ts",
+          "description": "Home page component that integrates hero, search, featured properties, and call-to-action."
         },
         {
           "type": "file",
-          "path": "src/assets/i18n/*.json",
-          "description": "Translation files for different languages"
+          "path": "deenji/src/app/pages/home/hero.component.ts",
+          "description": "Hero section with background image and search bar."
         },
         {
           "type": "file",
-          "path": "src/app/components/rtl/*.ts",
-          "description": "Components that handle RTL-specific layout adjustments"
+          "path": "deenji/src/app/pages/home/sticky-search.component.ts",
+          "description": "Search bar that appears when scrolling down the page."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/home/featured.component.ts",
+          "description": "Featured properties section on the home page."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/home/call-action.component.ts",
+          "description": "Call-to-action section prompting users to find their dream home."
         }
       ]
     },
     {
-      "name": "Data Models",
-      "description": "Core data models and database schema",
-      "systemPrompt": "This group contains the core data models that represent the domain entities in the Deenji platform.",
+      "name": "Multilingual Support",
+      "systemPrompt": "${project_name} supports multiple languages with Persian/Farsi as the default, including right-to-left (RTL) layout. The implementation uses Transloco for internationalization. The following files demonstrate how the multilingual support is implemented.",
       "items": [
         {
           "type": "file",
-          "path": "src/types/*.ts",
-          "description": "TypeScript interfaces and types for domain entities"
+          "path": "deenji/src/app/transloco-loader.ts",
+          "description": "Custom loader for translation files."
         },
         {
           "type": "file",
-          "path": "src/server/schema/*.ts",
-          "description": "Database schema definitions and migrations"
+          "path": "deenji/src/app/app.config.ts",
+          "description": "Internationalization configuration in the app config."
         },
         {
           "type": "file",
-          "path": "src/server/models/*.ts",
-          "description": "Server-side models and data access logic"
+          "path": "deenji/public/i18n/fa.json",
+          "description": "Persian translation strings."
+        },
+        {
+          "type": "file",
+          "path": "deenji/index.html",
+          "description": "Root HTML with RTL direction and Persian language setting."
+        }
+      ]
+    },
+    {
+      "name": "tRPC Backend",
+      "systemPrompt": "${project_name} uses tRPC for type-safe API communication between the client and server. The API is organized into routers for different domains (users, properties, etc.) with middleware for authentication and authorization. The following files show how the tRPC backend is structured.",
+      "items": [
+        {
+          "type": "file",
+          "path": "deenji/src/server/routes/trpc/[trpc].ts",
+          "description": "tRPC API handler setup for AnalogJS."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/context.ts",
+          "description": "tRPC context creation with Supabase authentication."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/trpc.ts",
+          "description": "Base tRPC setup with procedures and middleware for authentication."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/routers/index.ts",
+          "description": "Main router that combines all domain-specific routers."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/routers/user.ts",
+          "description": "tRPC router for user-related API endpoints."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/server/trpc/routers/notes.ts",
+          "description": "Example tRPC router for notes feature."
+        }
+      ]
+    },
+    {
+      "name": "Spartan UI Components",
+      "systemPrompt": "${project_name} uses the Spartan UI component library which is built on top of Angular CDK and TailwindCSS. These components provide a consistent design language throughout the application. Below are examples of key UI components in use across the application.",
+      "items": [
+        {
+          "type": "text",
+          "content": "# Spartan UI Components\n\nSpartan UI is a comprehensive component library that's used throughout the application. The library provides the following components that we're using:\n\n- **Accordion**: Used for collapsible property feature sections\n- **Alert/Alert Dialog**: Used for system notifications and confirmations\n- **Avatar**: Used in the user profile\n- **Badge**: Used for property highlights and status indicators\n- **Button**: Used throughout the app with different variants\n- **Calendar/Date Picker**: Used for move-in dates and scheduling\n- **Card**: Used for property listings and content sections\n- **Carousel**: Used for property image galleries\n- **Dialog**: Used for confirmation prompts and alerts\n- **Dropdown Menu**: Used for navigation and filtering options\n- **Form Fields**: Used in login and profile forms\n- **Input**: Used in search and forms\n- **Tabs**: Used in the account page for organizing profile sections\n- **Toggle**: Used for filter options\n- **Tooltip**: Used for providing additional information\n\nAll components follow a consistent design system with proper RTL support for Persian language."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/pages/(protected)/account.page.ts",
+          "description": "Example of Tabs component usage from Spartan UI."
+        },
+        {
+          "type": "file",
+          "path": "deenji/tailwind.config.ts",
+          "description": "TailwindCSS configuration with Spartan UI preset."
+        }
+      ]
+    },
+    {
+      "name": "AnalogJS Integration",
+      "systemPrompt": "AnalogJS provides file-based routing, server-side rendering, and API routes to the Angular application. This section covers how ${project_name} leverages AnalogJS features for improved performance, SEO, and developer experience.",
+      "items": [
+        {
+          "type": "text",
+          "content": "# AnalogJS Features in ${project_name}\n\nAnalogJS extends Angular with several key features used in ${project_name}:\n\n- **File-based Routing**: Pages are automatically generated based on file structure in `src/app/pages`\n- **API Routes**: Backend endpoints defined in `src/server/routes`\n- **Server-Side Rendering (SSR)**: Improved SEO and initial load performance\n- **TypeScript Integration**: End-to-end type safety with tRPC\n\nThese features allow for a more intuitive development experience while maintaining the power of Angular."
+        },
+        {
+          "type": "file",
+          "path": "deenji/vite.config.ts",
+          "description": "Vite configuration with AnalogJS plugin setup."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/main.server.ts",
+          "description": "Server-side rendering entry point."
+        },
+        {
+          "type": "file",
+          "path": "deenji/project.json",
+          "description": "Project configuration with AnalogJS executors."
+        }
+      ]
+    },
+    {
+      "name": "Shared Components",
+      "systemPrompt": "${project_name} has several shared components that are used across multiple pages, including navigation elements and layout components. These components maintain consistent styling and behavior throughout the application.",
+      "items": [
+        {
+          "type": "file",
+          "path": "deenji/src/app/app.component.ts",
+          "description": "Root component with layout structure and route detection."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/shared/navbar.component.ts",
+          "description": "Navigation bar component with authentication state."
+        },
+        {
+          "type": "file",
+          "path": "deenji/src/app/shared/footer.component.ts",
+          "description": "Footer component with site links and information."
         }
       ]
     }

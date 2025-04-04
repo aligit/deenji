@@ -22,12 +22,14 @@ Deenji is a modern real estate platform built with AnalogJS (Angular meta-framew
 - **Frontend**: AnalogJS (Angular), TailwindCSS, Spartan UI
 - **Backend**: Supabase, tRPC, Drizzle ORM
 - **Database**: PostgreSQL (via Supabase)
+- **Search**: Elasticsearch for property search and filtering
 
 ## Prerequisites
 
 - Node.js 16+
 - Bun package manager
 - Supabase CLI
+- Python 3.11+ (for VectorCode)
 
 ## Getting Started
 
@@ -179,6 +181,96 @@ ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts --recr
 ```bash
 cd ./migrations
 ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts
+```
+
+## Using VectorCode for Development
+
+VectorCode is a semantic code search tool that helps developers navigate and understand the codebase. It's especially useful for new team members and when implementing new features that interact with multiple parts of the system.
+
+### Installation
+
+Install VectorCode using Python's virtual environment:
+
+```bash
+# Create a virtual environment
+python3 -m venv ~/vectorcode-env
+
+# Activate the environment
+source ~/vectorcode-env/bin/activate
+
+# Install VectorCode
+pip install vectorcode
+```
+
+For easier access, consider adding an alias to your shell profile:
+
+```bash
+# Add to your .bashrc or .zshrc
+alias vectorcode="~/vectorcode-env/bin/vectorcode"
+```
+
+### Initializing VectorCode for the Project
+
+```bash
+# From the project root
+source ~/vectorcode-env/bin/activate  # If not already activated
+vectorcode init
+```
+
+### Indexing the Codebase
+
+```bash
+# Index TypeScript and HTML files
+vectorcode vectorise "src/**/*.ts" "src/**/*.html"
+
+# For targeted indexing of specific components (e.g., search functionality)
+vectorcode vectorise "src/app/pages/home/sticky-search.component.ts" "src/server/trpc/routers/search.ts"
+```
+
+### Semantic Code Search
+
+Find relevant files when implementing or understanding features:
+
+```bash
+# Find files related to authentication
+vectorcode query "authentication flow supabase" -n 5
+
+# Find files related to property search
+vectorcode query "elasticsearch property search" -n 5
+
+# Find RTL support implementation
+vectorcode query "RTL Persian language support" -n 5
+```
+
+### Using VectorCode with CodeCompanion Workspace
+
+For developers using Neovim with CodeCompanion, you can enhance your development experience by creating a structured workspace based on VectorCode searches:
+
+1. Create a workspace file:
+
+   ```bash
+   # From project root
+   cp .vectorcode/config.json codecompanion-workspace.json
+   ```
+
+2. Use VectorCode to find relevant files for features:
+
+   ```bash
+   # Example: When working on search functionality
+   vectorcode query "property search elasticsearch" -n 8
+   ```
+
+3. Update your workspace file with these results
+
+4. In Neovim, use `:CodeCompanionActions` and select "Workspace File" to work with your workspace
+
+### Keeping VectorCode Updated
+
+As the codebase evolves, periodically update your VectorCode index:
+
+```bash
+# Update all indexed files
+vectorcode update
 ```
 
 ## License
