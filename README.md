@@ -217,29 +217,34 @@ source ~/vectorcode-env/bin/activate  # If not already activated
 vectorcode init
 ```
 
-### Indexing the Codebase
+### Optimized Indexing Strategy
+
+For better semantic search results, index specific directories with appropriate chunk sizes:
 
 ```bash
-# Index TypeScript and HTML files
-vectorcode vectorise "src/**/*.ts" "src/**/*.html"
+# Index Angular components with optimized settings
+vectorcode vectorise ./deenji/src/app -r --chunk_size 1500 --overlap 0.25
 
-# For targeted indexing of specific components (e.g., search functionality)
-vectorcode vectorise "src/app/pages/home/sticky-search.component.ts" "src/server/trpc/routers/search.ts"
+# Index server-side code
+vectorcode vectorise ./deenji/src/server -r --chunk_size 1500 --overlap 0.25
+
+# For specific feature areas
+vectorcode vectorise ./deenji/src/app/pages/home -r --chunk_size 1000 --overlap 0.3
 ```
 
-### Semantic Code Search
+### Effective Semantic Search
 
 Find relevant files when implementing or understanding features:
 
 ```bash
-# Find files related to authentication
-vectorcode query "authentication flow supabase" -n 5
+# Find search-related components on the home page
+vectorcode query "search of properties from the home page" -n 3
 
-# Find files related to property search
-vectorcode query "elasticsearch property search" -n 5
+# Find authentication implementation
+vectorcode query "user authentication login" -n 3
 
-# Find RTL support implementation
-vectorcode query "RTL Persian language support" -n 5
+# Find property detail views
+vectorcode query "property detail page" -n 5
 ```
 
 ### Using VectorCode with CodeCompanion Workspace
