@@ -1,0 +1,1744 @@
+Introduction
+Analog is a fullstack meta-framework for building applications and websites with Angular.
+
+Similar to other meta-frameworks such as Next.JS, Nuxt, SvelteKit, Qwik City, and others, Analog provides a similar experience, building on top of Angular.
+
+Features
+Supports Vite/Vitest/Playwright
+Server and deployment integrations powered by Nitro
+File-based routing
+Server-side data fetching
+Support for using Markdown as content routes
+API/server routes
+Hybrid SSR/SSG support
+Supports Angular CLI/Nx workspaces
+Supports Angular components with Astro
+Routing
+Analog supports filesystem-based routing on top of the Angular Router.
+
+Defining Routes
+Routes are defined using folders and files in the src/app/pages folder. Only files ending with .page.ts are collected and used to build the set of routes.
+
+info
+Route components must be defined as the default export and all route components are lazy-loaded.
+
+There are 5 primary types of routes:
+
+Routing
+Defining Routes
+Index Routes
+Static Routes
+Route Groups
+Dynamic Routes
+Using Route Component Input Bindings
+Layout Routes
+Pathless Layout Routes
+Catch-all Routes
+Putting It All Together
+These routes can be combined in different ways to build URLs for navigation.
+
+note
+In addition to the 5 primary types of routes, Analog also supports Redirect Routes and Content Routes.
+
+Index Routes
+Index routes are defined by using the filename as the route path enclosed in parenthesis.
+
+The example route below in src/app/pages/(home).page.ts defines an / route.
+
+import { Component } from '@angular/core';
+
+@Component({
+  standalone: true,
+  template: ` <h2>Welcome</h2> `,
+})
+export default class HomePageComponent {}
+
+tip
+Index routes can also be defined by using index.page.ts as the route filename.
+
+Static Routes
+Static routes are defined by using the filename as the route path.
+
+The example route below in src/app/pages/about.page.ts defines an /about route.
+
+import { Component } from '@angular/core';
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Hello Analog</h2>
+
+    Analog is a meta-framework on top of Angular.
+  `,
+})
+export default class AboutPageComponent {}
+
+It's also possible to define nested static routes in two different ways:
+
+By nesting the route files in folders - src/app/pages/about/team.page.ts defines an /about/team route.
+By using the dot notation in the filename - src/app/pages/about.team.page.ts also defines an /about/team route.
+Route Groups
+Routes can be grouped together in the same folder without adding a route path segment by wrapping a folder name in parenthesis.
+
+src/
+└── app/
+    └── pages/
+        └── (auth)/
+            ├── login.page.ts
+            └── signup.page.ts
+
+The above example defines /login and /signup routes.
+
+Dynamic Routes
+Dynamic routes are defined by using the filename as the route path enclosed in square brackets. The parameter for the route is extracted from the route path.
+
+The example route below in src/app/pages/products/[productId].page.ts defines a /products/:productId route.
+
+import { Component, inject } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
+
+@Component({
+  standalone: true,
+  imports: [AsyncPipe],
+  template: `
+    <h2>Product Details</h2>
+
+    ID: {{ productId$ | async }}
+  `,
+})
+export default class ProductDetailsPageComponent {
+  private readonly route = inject(ActivatedRoute);
+
+  readonly productId$ = this.route.paramMap.pipe(
+    map((params) => params.get('productId')),
+  );
+}
+
+Dynamic routes can also be defined using the dot notation in the filename - src/app/pages/products.[productId].page.ts defines a /products/:productId route.
+
+Using Route Component Input Bindings
+If you are using the withComponentInputBinding() feature with the Angular Router, you can use the Input decorator, along with the same parameter name to get the route parameter.
+
+First, add the withComponentInputBinding() to the arguments for the provideFileRouter() function.
+
+// src/app/app.config.ts
+import { ApplicationConfig } from '@angular/core';
+import { provideFileRouter } from '@analogjs/router';
+import { withComponentInputBinding } from '@angular/router';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideFileRouter(withComponentInputBinding()),
+    // other providers
+  ],
+};
+
+Next, use the route parameter as an input.
+
+// src/app/pages/products/[productId].page.ts
+import { Component, Input } from '@angular/core';
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Product Details</h2>
+
+    ID: {{ productId }}
+  `,
+})
+export default class ProductDetailsPageComponent {
+  @Input() productId: string;
+}
+
+Layout Routes
+Layout routes are defined by using a parent file and child folder with the same name.
+
+The following structure below represents a layout route.
+
+src/
+└── app/
+    └── pages/
+        ├── products/
+        │   ├── [productId].page.ts
+        │   └── (products-list).page.ts
+        └── products.page.ts
+
+This defines two routes with a shared layout:
+
+/products
+/products/:productId
+The parent src/app/pages/products.page.ts file contains the parent page with a router outlet.
+
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  standalone: true,
+  imports: [RouterOutlet],
+  template: `
+    <h2>Products</h2>
+
+    <router-outlet></router-outlet>
+  `,
+})
+export default class ProductsComponent {}
+
+The nested src/app/pages/products/(products-list).page.ts file contains the /products list page.
+
+import { Component } from '@angular/core';
+
+@Component({
+  standalone: true,
+  template: ` <h2>Products List</h2> `,
+})
+export default class ProductsListComponent {}
+
+The nested src/app/pages/products/[productId].page.ts file contains the /products/:productId details page.
+
+import { Component, inject } from '@angular/core';
+import { AsyncPipe, JsonPipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
+
+@Component({
+  standalone: true,
+  imports: [AsyncPipe, JsonPipe],
+  template: `
+    <h2>Product Details</h2>
+
+    ID: {{ productId$ | async }}
+  `,
+})
+export default class ProductDetailsPageComponent {
+  private readonly route = inject(ActivatedRoute);
+
+  readonly productId$ = this.route.paramMap.pipe(
+    map((params) => params.get('productId')),
+  );
+}
+
+Pathless Layout Routes
+Layout routes can also be defined without adding a route path segment.
+
+src/
+└── app/
+    └── pages/
+        ├── (auth)/
+        │   ├── login.page.ts
+        │   └── signup.page.ts
+        └── (auth).page.ts
+
+The above example defines /login and /signup routes with a shared layout. The parent src/app/pages/(auth).page.ts file contains the parent page with a router outlet.
+
+Catch-all Routes
+Catch-all routes are defined by using the filename as the route path prefixed with 3 periods enclosed in square brackets.
+
+The example route below in src/app/pages/[...page-not-found].page.ts defines a wildcard ** route. This route is usually for 404 pages.
+
+import { Component } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { injectResponse } from '@analogjs/router/tokens';
+import { RouteMeta } from '@analogjs/router';
+
+export const routeMeta: RouteMeta = {
+  title: 'Page Not Found',
+  canActivate: [
+    () => {
+      const response = injectResponse();
+      if (import.meta.env.SSR && response) {
+        response.statusCode = 404;
+        response.end();
+      }
+      return true;
+    },
+  ],
+};
+
+@Component({
+  standalone: true,
+  imports: [RouterLink],
+  template: `
+    <h2>Page Not Found</h2>
+
+    <a routerLink="/">Go Back Home</a>
+  `,
+})
+export default class PageNotFoundComponent {}
+
+Catch-all routes can also be defined as nested child routes.
+
+Putting It All Together
+For the following file structure:
+
+src/
+└── app/
+    └── pages/
+        ├── (auth)/
+        │   ├── login.page.ts
+        │   └── signup.page.ts
+        ├── (marketing)/
+        │   ├── about.md
+        │   └── contact.md
+        ├── products/
+        │   ├── (product-list).page.ts
+        │   ├── [productId].edit.page.ts
+        │   └── [productId].page.ts
+        ├── (auth).page.ts
+        ├── (home).page.ts
+        ├── [...not-found].md
+        └── products.page.ts
+
+The filesystem-based router will generate the following routes:
+
+Path	Page
+/	(home).page.ts
+/about	(marketing)/about.md
+/contact	(marketing)/contact.md
+/login	(auth)/login.page.ts (layout: (auth).page.ts)
+/signup	(auth)/signup.page.ts (layout: (auth).page.ts)
+/products	products/(product-list).page.ts (layout: products.page.ts)
+/products/1	products/[productId].page.ts (layout: products.page.ts)
+/products/1/edit	products/[productId].edit.page.ts (layout: products.page.ts)
+/unknown-url	[...not-found].md
+Providing Extra Routes
+Routes can be added manually in addition to the routes discovered through the filesystem. Use the withExtraRoutes with an array of routes to be prepended to the discovered routes array. All the routes are merged into a single array.
+
+import { ApplicationConfig } from '@angular/core';
+import { Routes } from '@angular/router';
+import { provideFileRouter, withExtraRoutes } from '@analogjs/router';
+
+const customRoutes: Routes = [
+  {
+    path: '/custom',
+    loadComponent: () =>
+      import('./custom-component').then((m) => m.CustomComponent),
+  },
+];
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideFileRouter(withExtraRoutes(customRoutes))],
+};
+
+Visualizing and Debugging Routes
+When you are building the pages for your application, it can help to visually see the routes based on the filesystem structure. You can use the withDebugRoutes() function to provide a debug route that displays the pages and layouts for your application.
+
+Use the withDebugRoutes function in the app.config.ts:
+
+import { ApplicationConfig } from '@angular/core';
+import { provideFileRouter, withDebugRoutes } from '@analogjs/router';
+
+export const appConfig: ApplicationConfig = {
+  providers: [provideFileRouter(withDebugRoutes())],
+};
+
+Navigate the __analog/routes URL in the browser to see the routes table.
+Route Metadata
+Additional metadata to add to the generated route config for each route can be done using the RouteMeta type. This is where you can define the page title, any necessary guards, resolvers, providers, and more.
+
+Defining Route Metadata
+import { Component } from '@angular/core';
+import { RouteMeta } from '@analogjs/router';
+
+import { AboutService } from './about.service';
+
+export const routeMeta: RouteMeta = {
+  title: 'About Analog',
+  canActivate: [() => true],
+  providers: [AboutService],
+};
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Hello Analog</h2>
+
+    Analog is a meta-framework on top of Angular.
+  `,
+})
+export default class AboutPageComponent {
+  private readonly service = inject(AboutService);
+}
+
+Redirect Routes
+Routes can be defined for the sole purpose of redirecting to another route.
+
+To create a redirect route, add the redirectTo and pathMatch properties to the routeMeta object inside the route file:
+
+// src/app/pages/index.page.ts
+import { RouteMeta } from '@analogjs/router';
+
+export const routeMeta: RouteMeta = {
+  redirectTo: '/home',
+  pathMatch: 'full',
+};
+
+The example above is a redirect from the / route to the /home route.
+
+tip
+Redirect route files should not export a component.
+
+It's also possible to define nested redirect routes. For the following file structure:
+
+src/
+└── app/
+    └── pages/
+        └── cities/
+            ├── index.page.ts
+            ├── new-york.page.ts
+            └── san-francisco.page.ts
+
+and the following routeMeta definition to the src/app/pages/cities/index.page.ts file:
+
+import { RouteMeta } from '@analogjs/router';
+
+export const routeMeta: RouteMeta = {
+  redirectTo: '/cities/new-york',
+  pathMatch: 'full',
+};
+
+Navigating to /cities redirects to /cities/new-york.
+
+note
+Nested redirects always require an absolute path.
+
+Route Meta Tags
+The RouteMeta type has a property meta which can be used to define a list of meta tags for each route:
+
+import { Component } from '@angular/core';
+import { RouteMeta } from '@analogjs/router';
+
+import { AboutService } from './about.service';
+
+export const routeMeta: RouteMeta = {
+  title: 'Refresh every 30 sec',
+  meta: [
+    {
+      httpEquiv: 'refresh',
+      content: '30',
+    },
+  ],
+};
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Hello Analog</h2>
+
+    See you again in 30 seconds.
+  `,
+})
+export default class RefreshComponent {}
+
+The above example sets meta tag <meta http-equiv="refresh" content="30">, which forces the browser to refresh the page every 30 seconds.
+
+To read more about possible standard meta tags, please visit official docs.
+
+Open Graph meta tags
+The above property meta can also be used to define OpenGraph meta tags for SEO and social apps optimizations:
+
+export const routeMeta: RouteMeta = {
+  meta: [
+    {
+      name: 'description',
+      content: 'Description of the page',
+    },
+    {
+      name: 'author',
+      content: 'Analog Team',
+    },
+    {
+      property: 'og:title',
+      content: 'Title of the page',
+    },
+    {
+      property: 'og:description',
+      content: 'Some catchy description',
+    },
+    {
+      property: 'og:image',
+      content: 'https://somepage.com/someimage.png',
+    },
+  ],
+};
+
+This example will allow social apps like Facebook or Twitter to display titles, descriptions, and images optimally.
+
+Content Routes
+Analog also supports using markdown content as routes, and rendering markdown content in components.
+
+Setup
+In the src/app/app.config.ts, add the provideContent() function, along with the withMarkdownRenderer() feature to the providers array when bootstrapping the application.
+
+import { ApplicationConfig } from '@angular/core';
+import { provideContent, withMarkdownRenderer } from '@analogjs/content';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ... other providers
+    provideContent(withMarkdownRenderer()),
+  ],
+};
+
+Defining Content Routes
+Content routes include support for frontmatter, metatags, and syntax highlighting with PrismJS.
+
+The example route below in src/app/pages/about.md defines an /about route.
+
+---
+title: About
+meta:
+  - name: description
+    content: About Page Description
+  - property: og:title
+    content: About
+---
+
+## About Analog
+
+Analog is a meta-framework for Angular.
+
+[Back Home](./)
+
+PrismJS Syntax Highlighting
+Analog supports syntax highlighting with PrismJS. To enable syntax highlighting with PrismJS, add withPrismHighlighter() to the provideContent() function in app.config.ts.
+
+import { ApplicationConfig } from '@angular/core';
+import { provideContent, withMarkdownRenderer } from '@analogjs/content';
++ import { withPrismHighlighter } from '@analogjs/content/prism-highlighter';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ... other providers
+-   provideContent(withMarkdownRenderer()),
++   provideContent(withMarkdownRenderer(), withPrismHighlighter()),
+  ],
+};
+
+Import a Prism theme into to your global stylesheet:
+
+@import 'prismjs/themes/prism.css';
+
+Using the diff Highlight Plugin
+Analog supports highlighting diff changes with PrismJS.
+
+Add the prism-diff language to the additionalLangs in the analog plugin:
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+export default defineConfig({
+  // ...
+  plugins: [
+    analog({
+      content: {
+        prismOptions: {
+          additionalLangs: ['prism-diff'],
+        },
+      },
+    }),
+  ],
+});
+
+Add the diff-highlight plugin import to the app.config.ts:
+
+import 'prismjs/plugins/diff-highlight/prism-diff-highlight';
+
+Use the diff language tag to highlight them or diff-<language> to highlight the diff changes in a specific language.
+
+```diff
+- This is a sentence.
++ This is a longer sentence.
+```
+
+```diff-typescript
+- const foo = 'bar';
++ const foo = 'baz';
+```
+
+To highlight changed line backgrounds instead of just the text, add this import to your global stylesheet:
+
+@import 'prismjs/plugins/diff-highlight/prism-diff-highlight.css';
+
+Shiki Syntax Highlighting
+Analog also supports syntax highlighting with Shiki. To enable syntax highlighting with Shiki, add withShikiHighlighter() to the provideContent() function in app.config.ts.
+
+import { ApplicationConfig } from '@angular/core';
+import { provideContent, withMarkdownRenderer } from '@analogjs/content';
++ import { withShikiHighlighter } from '@analogjs/content/shiki-highlighter';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    // ... other providers
+-   provideContent(withMarkdownRenderer()),
++   provideContent(withMarkdownRenderer(), withShikiHighlighter()),
+  ],
+};
+
+To enable build-time syntax highlighting with shiki, configure the analog plugin in the vite.config.ts.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+export default defineConfig({
+  // ...
+  plugins: [
+    analog({
+      content: {
+        highlighter: 'shiki',
+      },
+    }),
+  ],
+});
+
+Configure Shiki Highlighter
+Please check out Shiki Documentation for more information on configuring Shiki.
+
+To configure Shiki, you can pass options to the shikiOptions object.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+export default defineConfig({
+  // ...
+  plugins: [
+    analog({
+      content: {
+        highlighter: 'shiki',
+        shikiOptions: {
+          highlight: {
+            // alternate theme
+            theme: 'ayu-dark'
+          }
+          highlighter: {
+             // add more languages
+            additionalLangs: ['mermaid'],
+          },
+        },
+      },
+    }),
+  ],
+});
+
+By default, shikiOptions has the following options.
+
+{
+  "container": "%s",
+  "highlight": {
+    "theme": "github-dark"
+  }
+  "highlighter": {
+    "langs": [
+      "json",
+      "ts",
+      "tsx",
+      "js",
+      "jsx",
+      "html",
+      "css",
+      "angular-html",
+      "angular-ts",
+    ],
+    "themes": ["github-dark", "github-light"]
+  }
+}
+
+Defining Content Files
+For more flexibility, markdown content files can be provided in the src/content folder. Here you can list markdown files such as blog posts.
+
+---
+title: My First Post
+slug: 2022-12-27-my-first-post
+description: My First Post Description
+coverImage: https://images.unsplash.com/photo-1493612276216-ee3925520721?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=464&q=80
+---
+
+Hello World
+
+
+Using the Content Files List
+To get a list using the list of content files in the src/content folder, use the injectContentFiles<Attributes>(filterFn?: InjectContentFilesFilterFunction<Attributes>) function from the @analogjs/content package in your component. To narrow the files, you can use the filterFn predicate function as an argument. You can use the InjectContentFilesFilterFunction<T> type to set up your predicate.
+
+import { Component } from '@angular/core';
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { injectContentFiles } from '@analogjs/content';
+import { NgFor } from '@angular/common';
+
+export interface PostAttributes {
+  title: string;
+  slug: string;
+  description: string;
+  coverImage: string;
+}
+
+@Component({
+  standalone: true,
+  imports: [RouterOutlet, RouterLink, NgFor],
+  template: `
+    <ul>
+      <li *ngFor="let post of posts">
+        <a [routerLink]="['/blog', 'posts', post.slug]">{{
+          post.attributes.title
+        }}</a>
+      </li>
+    </ul>
+  `,
+})
+export default class BlogComponent {
+  readonly posts = injectContentFiles<PostAttributes>((contentFile) =>
+    contentFile.filename.includes('/src/content/blog/'),
+  );
+}
+
+Using the Analog Markdown Component
+Analog provides a MarkdownComponent and injectContent() function for rendering markdown content with frontmatter.
+
+The injectContent() function uses the slug route parameter by default to get the content file from the src/content folder.
+
+// /src/app/pages/blog/posts.[slug].page.ts
+import { injectContent, MarkdownComponent } from '@analogjs/content';
+import { AsyncPipe, NgIf } from '@angular/common';
+import { Component } from '@angular/core';
+
+export interface PostAttributes {
+  title: string;
+  slug: string;
+  description: string;
+  coverImage: string;
+}
+
+@Component({
+  standalone: true,
+  imports: [MarkdownComponent, AsyncPipe, NgIf],
+  template: `
+    <ng-container *ngIf="post$ | async as post">
+      <h1>{{ post.attributes.title }}</h1>
+      <analog-markdown [content]="post.content"></analog-markdown>
+    </ng-container>
+  `,
+})
+export default class BlogPostComponent {
+  readonly post$ = injectContent<PostAttributes>();
+}
+
+Using A Resolver For Metatags
+In your route configuration, you can use the RouteMeta object to resolve meta tags for a route. This is done by assigning the postMetaResolver function to the meta property.
+
+Below is an example of using a postMetaResolver function that fetches the meta tags for a post. This function returns an array of meta tags.
+
+export const postMetaResolver: ResolveFn<MetaTag[]> = (route) => {
+  const postAttributes = injectActivePostAttributes(route);
+
+  return [
+    {
+      name: 'description',
+      content: postAttributes.description,
+    },
+    {
+      name: 'author',
+      content: 'Analog Team',
+    },
+    {
+      property: 'og:title',
+      content: postAttributes.title,
+    },
+    {
+      property: 'og:description',
+      content: postAttributes.description,
+    },
+    {
+      property: 'og:image',
+      content: postAttributes.coverImage,
+    },
+  ];
+};
+
+The meta tags can be done asynchronously also. Assign the postMetaResolver function to the meta property.
+
+export const routeMeta: RouteMeta = {
+  title: postTitleResolver,
+  meta: postMetaResolver,
+};
+
+The resolved meta tags can also be accessed in the component using the ActivatedRoute service.
+
+export default class BlogPostComponent {
+  readonly route = inject(ActivatedRoute);
+  readonly metaTags$ = this.route.data.pipe(map(data => data['meta']));
+
+  // In the template
+  <my-component [metaTags]="metaTags$ | async"></my-component>
+}
+
+Enabling support for Mermaid
+Analog's markdown component supports Mermaid. To enable support by the MarkdownComponent define a dynamic import for loadMermaid in withMarkdownRenderer().
+
+withMarkdownRenderer({
+  loadMermaid: () => import('mermaid'),
+});
+
+After it is enabled, Mermaid blocks are transformed by mermaid into SVGs.
+
+Example of mermaid graph:
+
+graph TD
+    A[Before] -->|Playing with AnalogJS| B(Now Yes !)
+
+Support for Content Subdirectories
+Analog also supports subdirectories within your content folder.
+
+The injectContent() function can also be used with an object that contains the route parameter and subdirectory name.
+
+This can be useful if, for instance, you have blog posts, as well as a portfolio of project markdown files to be used on the site.
+
+src/
+└── app/
+│   └── pages/
+│       └── project.[slug].page.ts
+└── content/
+    ├── posts/
+    │   ├── my-first-post.md
+    │   └── my-second-post.md
+    └── projects/
+        ├── my-first-project.md
+        └── my-second-project.md
+
+// /src/app/pages/project.[slug].page.ts
+import { injectContent, MarkdownComponent } from '@analogjs/content';
+import { AsyncPipe, NgIf } from '@angular/common';
+import { Component } from '@angular/core';
+
+export interface ProjectAttributes {
+  title: string;
+  slug: string;
+  description: string;
+  coverImage: string;
+}
+
+@Component({
+  standalone: true,
+  imports: [MarkdownComponent, AsyncPipe, NgIf],
+  template: `
+    <ng-container *ngIf="project$ | async as project">
+      <h1>{{ project.attributes.title }}</h1>
+      <analog-markdown [content]="project.content"></analog-markdown>
+    </ng-container>
+  `,
+})
+export default class ProjectComponent {
+  readonly project$ = injectContent<ProjectAttributes>({
+    param: 'slug',
+    subdirectory: 'projects',
+  });
+}
+
+Loading Custom Content
+By default, Analog uses the route params to build the filename for retrieving a content file from the src/content folder. Analog also supports using a custom filename for retrieving content from the src/content folder. This can be useful if, for instance, you have a custom markdown file that you want to load on a page.
+
+The injectContent() function can be used by passing an object that contains the customFilename property.
+
+readonly post$ = injectContent<ProjectAttributes>({
+  customFilename: 'path/to/custom/file',
+});
+
+Middleware
+Analog supports server-side middleware that can be used to modify requests, check for authentication, send redirects, and more.
+
+Setting up Middleware
+Middleware is automatically registered when placed in the src/server/middleware folder.
+
+src/
+└── server/
+    └── middleware/
+        └── auth.ts
+
+Middleware is defined using the defineEventHandler function.
+
+import { defineEventHandler, sendRedirect, setHeaders } from 'h3';
+
+export default defineEventHandler((event) => {
+  if (event.node.req.originalUrl === '/checkout') {
+    console.log('event url', event.node.req.originalUrl);
+
+    setHeaders(event, {
+      'x-analog-checkout': 'true',
+    });
+  }
+});
+
+Middleware should only modify requests and should not return anything!
+Middleware is run in order of the defined filenames. Prefix filenames with numbers to enforce a particular order.
+Filtering in Middleware
+Middleware can only be applied to specific routes using filtering.
+
+export default defineEventHandler(async (event) => {
+  // Only execute for /admin routes
+  if (getRequestURL(event).pathname.startsWith('/admin')) {
+    const cookies = parseCookies(event);
+    const isLoggedIn = cookies['authToken'];
+
+    // check auth and redirect
+    if (!isLoggedIn) {
+      sendRedirect(event, '/login', 401);
+    }
+  }
+});
+API Routes
+Analog supports defining API routes that can be used to serve data to the application.
+
+Defining an API Route
+API routes are defined in the src/server/routes/api folder. API routes are also filesystem based, and are exposed under the default /api prefix.
+
+import { defineEventHandler } from 'h3';
+
+export default defineEventHandler(() => ({ message: 'Hello World' }));
+
+Defining XML Content
+To create an RSS feed for your site, set the content-type to be text/xml and Analog serves up the correct content type for the route.
+
+//server/routes/api/rss.xml.ts
+
+import { defineEventHandler, setHeader } from 'h3';
+export default defineEventHandler((event) => {
+  const feedString = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+</rss>
+  `;
+  setHeader(event, 'content-type', 'text/xml');
+  return feedString;
+});
+
+Note: For SSG content, set Analog to prerender an API route to make it available as prerendered content:
+
+// vite.config.ts
+...
+prerender: {
+  routes: async () => {
+    return [
+      ...
+      '/api/rss.xml',
+      ...
+      .
+    ];
+  },
+  sitemap: {
+    host: 'https://analog-blog.netlify.app',
+  },
+},
+
+The XML is available as a static XML document at /dist/analog/public/api/rss.xml
+
+Dynamic API Routes
+Dynamic API routes are defined by using the filename as the route path enclosed in square brackets. Parameters can be accessed via event.context.params.
+
+// /server/routes/api/v1/hello/[name].ts
+import { defineEventHandler } from 'h3';
+
+export default defineEventHandler(
+  (event) => `Hello ${event.context.params?.['name']}!`,
+);
+
+Another way to access route parameters is by using the getRouterParam function.
+
+// /server/routes/api/v1/hello/[name].ts
+import { defineEventHandler, getRouterParam } from 'h3';
+
+export default defineEventHandler((event) => {
+  const name = getRouterParam(event, 'name');
+  return `Hello, ${name}!`;
+});
+
+Specific HTTP request method
+File names can be suffixed with .get, .post, .put, .delete, etc. to match the specific HTTP request method.
+
+GET
+// /server/routes/api/v1/users/[id].get.ts
+import { defineEventHandler, getRouterParam } from 'h3';
+
+export default defineEventHandler(async (event) => {
+  const id = getRouterParam(event, 'id');
+  // TODO: fetch user by id
+  return `User profile of ${id}!`;
+});
+
+POST
+// /server/routes/api/v1/users.post.ts
+import { defineEventHandler, readBody } from 'h3';
+
+export default defineEventHandler(async (event) => {
+  const body = await readBody(event);
+  // TODO: Handle body and add user
+  return { updated: true };
+});
+
+The h3 JSDocs provide more info and utilities, including readBody.
+
+Requests with Query Parameters
+Sample query /api/v1/query?param1=Analog&param2=Angular
+
+// routes/api/v1/query.ts
+import { defineEventHandler, getQuery } from 'h3';
+
+export default defineEventHandler((event) => {
+  const { param1, param2 } = getQuery(event);
+  return `Hello, ${param1} and ${param2}!`;
+});
+
+Catch-all Routes
+Catch-all routes are helpful for fallback route handling.
+
+// routes/api/[...].ts
+export default defineEventHandler((event) => `Default page`);
+
+Error Handling
+If no errors are thrown, a status code of 200 OK will be returned. Any uncaught errors will return a 500 Internal Server Error HTTP Error. To return other error codes, throw an exception with createError
+
+// routes/api/v1/[id].ts
+import { defineEventHandler, getRouterParam, createError } from 'h3';
+
+export default defineEventHandler((event) => {
+  const param = getRouterParam(event, 'id');
+  const id = parseInt(param ? param : '');
+  if (!Number.isInteger(id)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'ID should be an integer',
+    });
+  }
+  return `ID is ${id}`;
+});
+
+Accessing Cookies
+Analog allows setting and reading cookies in your server-side calls.
+
+Setting cookies
+//(home).server.ts
+import { setCookie } from 'h3';
+import { PageServerLoad } from '@analogjs/router';
+
+import { Product } from '../products';
+
+export const load = async ({ fetch, event }: PageServerLoad) => {
+  setCookie(event, 'products', 'loaded'); // setting the cookie
+  const products = await fetch<Product[]>('/api/v1/products');
+
+  return {
+    products: products,
+  };
+};
+
+Reading cookies
+//index.server.ts
+import { parseCookies } from 'h3';
+import { PageServerLoad } from '@analogjs/router';
+
+export const load = async ({ event }: PageServerLoad) => {
+  const cookies = parseCookies(event);
+
+  console.log('products cookie', cookies['products']);
+
+  return {
+    shipping: true,
+  };
+};
+
+More Info
+API routes are powered by Nitro and h3. See the Nitro and h3 docs for more examples around building API routes.
+
+WebSocket
+Analog also supports WebSockets and Server-Sent Events through Nitro.
+
+Enabling WebSockets
+Currently, WebSocket support in Nitro is experimental and it can be enabled in the analog plugin:
+
+vite.config.ts
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+export default defineConfig({
+  // ...
+  plugins: [
+    analog({
+      // ...
+      nitro: {
+        experimental: {
+          websocket: true,
+        },
+      },
+    }),
+  ],
+  // ...
+});
+
+Note: In development, the Vite HMR WebSocket server runs on the same port as the dev server by default. To prevent conflicts, you need to change this port. The dev server port is usually defined in project.json/angular.json, which takes precedence over vite.config.ts. To allow the port settings in vite.config.ts to take effect, remove the port definition from project.json/angular.json. Additionally, you can specify an optional path to easily differentiate connections in the browser dev tools:
+
+vite.config.ts
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+export default defineConfig({
+  // ...
+  server: {
+    port: 3000, // dev-server port
+    hmr: {
+      port: 3002, // hmr ws port
+      path: 'vite-hmr', // optional
+    },
+  },
+  // ...
+});
+
+Defining a WebSocket Handler
+Similar to API routes, WebSocket Handlers are defined in the src/server/routes/api folder.
+
+// src/server/api/routes/ws/chat.ts
+import { defineWebSocketHandler } from 'h3';
+
+export default defineWebSocketHandler({
+  open(peer) {
+    peer.send({ user: 'server', message: `Welcome ${peer}!` });
+    peer.publish('chat', { user: 'server', message: `${peer} joined!` });
+    peer.subscribe('chat');
+  },
+  message(peer, message) {
+    if (message.text().includes('ping')) {
+      peer.send({ user: 'server', message: 'pong' });
+    } else {
+      const msg = {
+        user: peer.toString(),
+        message: message.toString(),
+      };
+      peer.send(msg); // echo
+      peer.publish('chat', msg);
+    }
+  },
+  close(peer) {
+    peer.publish('chat', { user: 'server', message: `${peer} left!` });
+  },
+});
+
+WebSocket Routes
+WebSocket routes are exposed with the same path as API routes. For example, src/server/routes/api/ws/chat is exposed as ws://example.com/api/ws/chat.
+
+Defining a Server-sent Event Handler
+Server-sent event handlers can be created using createEventStream function in the event handler.
+
+// src/server/routes/api/sse.ts
+import { defineEventHandler, createEventStream } from 'h3';
+
+export default defineEventHandler(async (event) => {
+  const eventStream = createEventStream(event);
+
+  const interval = setInterval(async () => {
+    await eventStream.push(`Message @ ${new Date().toLocaleTimeString()}`);
+  }, 1000);
+
+  eventStream.onClosed(async () => {
+    clearInterval(interval);
+    await eventStream.close();
+  });
+
+  return eventStream.send();
+});
+
+More Info
+WebSockets are powered by Nitro, h3 and crossws. See the Nitro, h3 and crossws docs for more details.
+Open Graph (OG) Image Generation
+Open Graph images can be used to display previews of pages when shared on social media sites such as Twitter/X, LinkedIn, Facebook, etc. Analog supports generating Open Graph images using API Routes.
+
+Setup
+First, install the necessary satori dependencies:
+
+npm
+Yarn
+pnpm
+npm install satori satori-html sharp --save
+
+Setting Up An API Route
+Next, define an API route in the src/server/routes/api directory.
+
+// src/server/routes/api/v1/og-images.ts
+import { ImageResponse } from '@analogjs/content/og';
+
+export default defineEventHandler(async (event) => {
+  const fontFile = await fetch(
+    'https://og-playground.vercel.app/inter-latin-ext-700-normal.woff',
+  );
+  const fontData: ArrayBuffer = await fontFile.arrayBuffer();
+  const query = getQuery(event); // query params
+
+  const template = `
+    <div tw="bg-gray-50 flex w-full h-full items-center justify-center">
+        <div tw="flex flex-col md:flex-row w-full py-12 px-4 md:items-center justify-between p-8">
+          <h2 tw="flex flex-col text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 text-left">
+            <span>${query['title'] ? `${query['title']}` : 'Hello World'}</span>
+          </h2>
+        </div>
+      </div>
+  `;
+
+  return new ImageResponse(template, {
+    debug: true, // disable caching
+    fonts: [
+      {
+        name: 'Inter Latin',
+        data: fontData,
+        style: 'normal',
+      },
+    ],
+  });
+});
+
+
+The API route uses the ImageResponse class from the @analogjs/content/og sub-package.
+Provide HTML that is rendered to a png.
+Tailwind class are supported, and optional.
+Adding Open Graph Metadata
+Open Graph images are registered through meta tags inside the HTML head tag.
+
+<html>
+  <head>
+    <meta
+      property="og:image"
+      content="https://your-url.com/api/v1/og-images?title=Developer"
+    />
+    <meta
+      name="twitter:image"
+      content="https://your-url.com/api/v1/og-images?title=Developer"
+      key="twitter:image"
+    />
+    ...
+  </head>
+</html>
+
+The meta tags can be set manually in the index.html or dynamically using Route Metadata
+Overview
+Data fetching in Analog builds on top of concepts in Angular, such as using HttpClient for making API requests.
+
+Using HttpClient
+Using HttpClient is the recommended way to make API requests for internal and external endpoints. The context for the request is provided by the provideServerContext function for any request that uses HttpClient and begins with a /.
+
+Server Request Context
+On the server, use the provideServerContext function from the Analog router in the main.server.ts.
+
+import 'zone.js/node';
+import { enableProdMode } from '@angular/core';
+import { bootstrapApplication } from '@angular/platform-browser';
+import { renderApplication } from '@angular/platform-server';
+
+// Analog server context
+import { provideServerContext } from '@analogjs/router/server';
+import { ServerContext } from '@analogjs/router/tokens';
+
+import { config } from './app/app.config.server';
+import { AppComponent } from './app/app.component';
+
+if (import.meta.env.PROD) {
+  enableProdMode();
+}
+
+export function bootstrap() {
+  return bootstrapApplication(AppComponent, config);
+}
+
+export default async function render(
+  url: string,
+  document: string,
+  serverContext: ServerContext,
+) {
+  const html = await renderApplication(bootstrap, {
+    document,
+    url,
+    platformProviders: [provideServerContext(serverContext)],
+  });
+
+  return html;
+}
+
+This provides the Request and Response, and Base URL from the server and registers them as providers that can be injected and used.
+
+Injection Functions
+import { inject } from '@angular/core';
+import {
+  injectRequest,
+  injectResponse,
+  injectBaseURL,
+} from '@analogjs/router/tokens';
+
+class MyService {
+  request = injectRequest(); // <- Server Request Object
+  response = injectResponse(); // <- Server Response Object
+  baseUrl = injectBaseURL(); // <-- Server Base URL
+}
+
+Request Context Interceptor
+Analog also provides requestContextInterceptor for the HttpClient that handles transforming any request to URL beginning with a / to a full URL request on the server, client, and during prerendering.
+
+Use it with the withInterceptors function from the @angular/common/http packages.
+
+import {
+  provideHttpClient,
+  withFetch,
+  withInterceptors,
+} from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+import { provideClientHydration } from '@angular/platform-browser';
+import { provideFileRouter, requestContextInterceptor } from '@analogjs/router';
+import { withNavigationErrorHandler } from '@angular/router';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideFileRouter(withNavigationErrorHandler(console.error)),
+    provideHttpClient(
+      withFetch(),
+      withInterceptors([requestContextInterceptor]),
+    ),
+    provideClientHydration(),
+  ],
+};
+
+Make sure the requestContextInterceptor is last in the array of interceptors.
+
+Making Requests
+In your component/service, use HttpClient along with [/docs/features/api/overview](API routes) with providing a full URL.
+
+An example API route that fetches todos.
+
+// src/server/routes/api/v1/todos.ts -> /api/v1/todos
+import { eventHandler } from 'h3';
+
+export default eventHandler(async () => {
+  const response = await fetch('https://jsonplaceholder.typicode.com/todos');
+  const todos = await response.json();
+
+  return todos;
+});
+
+An example service that fetches todos from the API endpoint.
+
+// todos.service.ts
+import { Injectable, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+import { Todo } from './todos';
+
+@Injectable({
+  providedIn: 'root',
+})
+export class TodosService {
+  http = inject(HttpClient);
+
+  getAll() {
+    return this.http.get<Todo[]>('/api/v1/todos');
+  }
+
+  getData() {
+    return this.http.get<Todo[]>('/assets/data.json');
+  }
+}
+
+Data requests also use Angular's TransferState to store any requests made during Server-Side Rendering, and are transferred to prevent an additional request during the initial client-side hydration.
+
+Edit this page
+
+Server-Side Data Fetching
+Analog supports fetching data from the server before loading a page. This can be achieved by defining an async load function in .server.ts file of the page.
+
+Fetching the Data
+To fetch the data from the server, create a .server.ts file that contains the async load function alongside the .page.ts file.
+
+// src/app/pages/index.server.ts
+import { PageServerLoad } from '@analogjs/router';
+
+export const load = async ({
+  params, // params/queryParams from the request
+  req, // H3 Request
+  res, // H3 Response handler
+  fetch, // internal fetch for direct API calls,
+  event, // full request event
+}: PageServerLoad) => {
+  return {
+    loaded: true,
+  };
+};
+
+Injecting the Data
+Accessing the data fetched on the server can be done using the injectLoad function provided by @analogjs/router. The load function is resolved using Angular route resolvers, so setting requireSync: false and initialValue: {} offers no advantage, as load is fetched before the component is instantiated.
+
+// src/app/pages/index.page.ts
+import { Component } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { injectLoad } from '@analogjs/router';
+
+import { load } from './index.server'; // not included in client build
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Home</h2>
+
+    Loaded: {{ data().loaded }}
+  `,
+})
+export default class BlogComponent {
+  data = toSignal(injectLoad<typeof load>(), { requireSync: true });
+}
+
+Accessing the data can also be done with Component Inputs and Component Input Bindings provided in the Angular Router configuration. To configure the Angular Router for Component Input Bindings, add withComponentInputBinding() to the arguments passed to provideFileRouter() in the app.config.ts.
+
+import { provideHttpClient } from '@angular/common/http';
+import { ApplicationConfig } from '@angular/core';
+import { provideClientHydration } from '@angular/platform-browser';
+import { provideFileRouter } from '@analogjs/router';
+import { withNavigationErrorHandler } from '@angular/router';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideFileRouter(
+      withComponentInputBinding(),
+      withNavigationErrorHandler(console.error),
+    ),
+    provideHttpClient(),
+    provideClientHydration(),
+  ],
+};
+
+Now to get the data in the component add an input called load.
+
+// src/app/pages/index.page.ts
+import { Component } from '@angular/core';
+import { LoadResult } from '@analogjs/router';
+
+import { load } from './index.server'; // not included in client build
+
+@Component({
+  standalone: true,
+  template: `
+    <h2>Home</h2>
+    Loaded: {{ data.loaded }}
+  `,
+})
+export default class BlogComponent {
+  @Input() load(data: LoadResult<typeof load>) {
+    this.data = data;
+  }
+
+  data!: LoadResult<typeof load>;
+}
+
+Accessing to the server load data
+Accessing to the server load data from RouteMeta resolver can be done using the getLoadResolver function provided by @analogjs/router.
+
+import { getLoadResolver } from '@analogjs/router';
+
+export const routeMeta: RouteMeta = {
+  resolve: {
+    data: async (route) => {
+      // call server load resolver for this route from another resolver
+      const data = await getLoadResolver(route);
+
+      return { ...data };
+    },
+  },
+};
+
+Overriding the Public Base URL
+Analog automatically infers the public base URL to be set when using the server-side data fetching through its Server Request Context and Request Context Interceptor. To explcitly set the base URL, set an environment variable, using a .env file to define the public base URL.
+
+// .env
+VITE_ANALOG_PUBLIC_BASE_URL="http://localhost:5173"
+
+The environment variable must also be set when building for deployment.
+
+Server Side Rendering
+Analog supports server-side rendering during development and building for production.
+
+Transforming Packages for SSR Compatibility
+Some dependencies may need additional transforms to work for server-side rendering. If you receive an error during SSR in development, one option is to add the package(s) to the ssr.noExternal array in the Vite config.
+
+You can use glob patterns to include sets of packages or libraries. Some examples are listed below.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  ssr: {
+    noExternal: [
+      'apollo-angular', // npm package import
+      'apollo-angular/**', // npm package import along with sub-packages
+      '@spartan-ng/**', // libs under the npmScope inside an Nx workspace
+    ],
+  },
+  // ...other config
+}));
+
+For more information about externals with SSR, check out the Vite documentation.
+
+Hybrid Rendering with Client-Only Routes
+SSR is enabled by default. For a hybrid approach, you can specific some routes to only be rendered client-side, and not be server side rendered. This is done through the routeRules configuration object by specifying an ssr option.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  // ...other config
+  plugins: [
+    analog({
+      prerender: {
+        routes: ['/', '/404.html'],
+      },
+      nitro: {
+        routeRules: {
+          // All admin URLs are only rendered on the client
+          '/admin/**': { ssr: false },
+
+          // Render a 404 page as a fallback page
+          '/404.html': { ssr: false },
+        },
+      },
+    }),
+  ],
+}));
+
+Disabling SSR
+You can opt-out of it and generate a client-only build by adding the following option to the analog() plugin in your vite.config.ts:
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  // ...other config
+  plugins: [analog({ ssr: false })],
+}));
+
+Prerendering routes
+With SSR, the "/" route is prerendered by default.
+
+It is a necessary step to return a rendered HTML when the user visits the root of the application. The prerendered routes can be customized, but keep in mind to include the "/" route also.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  // ...other config
+  plugins: [
+    analog({
+      prerender: {
+        routes: ['/', '/about'],
+      },
+    }),
+  ],
+}));
+
+You can opt out of prerendering by passing an empty array of routes and disabling prerender on the root route.
+
+import { defineConfig } from 'vite';
+import analog from '@analogjs/platform';
+// https://vitejs.dev/config/
+export default defineConfig(({ mode }) => ({
+  // ...other config
+  plugins: [
+    analog({
+      ssr: true,
+      nitro: {
+        routeRules: {
+          '/': {
+            prerender: false,
+          },
+        },
+      },
+      prerender: {
+        routes: async () => {
+          return [];
+        },
+      },
+    }),
+  ],
+}));
+
+Form Server Actions
+Analog supports server-side handling of form submissions and validation.
+
+
+Setting up the Form
+To handle form submissions, use the FormAction directive from the @analogjs/router package. The directives handles collecting the FormData and sending a POST request to the server.
+
+The directive emits after processing the form:
+
+onSuccess: when the form is processing on the server and returns a success response.
+onError: when the form returns an error response.
+onStateChange: when the form is submitted.
+The example page below submits an email for a newsletter signup.
+
+// src/app/pages/newsletter.page.ts
+import { Component, signal } from '@angular/core';
+
+import { FormAction } from '@analogjs/router';
+
+type FormErrors =
+  | {
+      email?: string;
+    }
+  | undefined;
+
+@Component({
+  selector: 'app-newsletter-page',
+  standalone: true,
+  imports: [FormAction],
+  template: `
+    <h3>Newsletter Signup</h3>
+
+    @if (!signedUp()) {
+      <form
+        method="post"
+        (onSuccess)="onSuccess()"
+        (onError)="onError($any($event))"
+        (onStateChange)="errors.set(undefined)"
+      >
+        <div>
+          <label for="email"> Email </label>
+          <input type="email" name="email" />
+        </div>
+
+        <button class="button" type="submit">Submit</button>
+      </form>
+
+      @if (errors()?.email) {
+        <p>{{ errors()?.email }}</p>
+      }
+    } @else {
+      <div>Thanks for signing up!</div>
+    }
+  `,
+})
+export default class NewsletterComponent {
+  signedUp = signal(false);
+  errors = signal<FormErrors>(undefined);
+
+  onSuccess() {
+    this.signedUp.set(true);
+  }
+
+  onError(result?: FormErrors) {
+    this.errors.set(result);
+  }
+}
+
+The FormAction directive submits the form data to the server, which is processed by its handler.
+
+Handling the Form Action
+To handle the form action, define the .server.ts alongside the .page.ts file that contains the async action function to process the form submission.
+
+In the server action, you can use access environment variables, read cookies, and perform other server-side only operations.
+
+// src/app/pages/newsletter.server.ts
+import {
+  type PageServerAction,
+  redirect,
+  json,
+  fail,
+} from '@analogjs/router/server/actions';
+import { readFormData } from 'h3';
+
+export async function action({ event }: PageServerAction) {
+  const body = await readFormData(event);
+  const email = body.get('email') as string;
+
+  if (!email) {
+    return fail(422, { email: 'Email is required' });
+  }
+
+  if (email.length < 10) {
+    return redirect('/');
+  }
+
+  return json({ type: 'success' });
+}
+
+The json function returns a JSON response.
+The redirect function returns a redirect response to the client. This should be an absolute path.
+The fail function is used for returning form validation errors.
+Handling Multiple Forms
+To handle multiple forms on the same page, add a hidden input to distinguish each form.
+
+<form method="post">
+  <div>
+    <label for="email"> Email </label>
+    <input type="email" name="email" />
+  </div>
+
+  <input type="hidden" name="action" value="register" />
+
+  <button class="button" type="submit">Submit</button>
+</form>
+
+In the server action, use the action value.
+
+export async function action({ event }: PageServerAction) {
+  const body = await readFormData(event);
+  const action = body.get('action') as string;
+
+  if (action === 'register') {
+    // process register form
+  }
+}
+
+Handling GET Requests
+Forms with a GET action can be used to navigate to the same URL, with the form inputs passed as query parameters.
+
+The example below defines a search form with the search field as a query param.
+
+// src/app/pages/search.page.ts
+import { Component, computed } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { injectLoad, FormAction } from '@analogjs/router';
+
+import type { load } from './search.server';
+
+@Component({
+  selector: 'app-search-page',
+  standalone: true,
+  imports: [FormAction],
+  template: `
+    <h3>Search</h3>
+
+    <form method="get">
+      <div>
+        <label for="search"> Search </label>
+        <input type="text" name="search" [value]="searchTerm()" />
+      </div>
+
+      <button class="button" type="submit">Submit</button>
+    </form>
+
+    @if (searchTerm()) {
+      <p>Search Term: {{ searchTerm() }}</p>
+    }
+  `,
+})
+export default class NewsletterComponent {
+  loader = toSignal(injectLoad<typeof load>(), { requireSync: true });
+  searchTerm = computed(() => this.loader().searchTerm);
+}
+
+The query parameter can be accessed through the server form action.
+
+// src/app/pages/search.server.ts
+import type { PageServerLoad } from '@analogjs/router';
+import { getQuery } from 'h3';
+
+export async function load({ event }: PageServerLoad) {
+  const query = getQuery(event);
+  console.log('loaded search', query['search']);
+
+  return {
+    loaded: true,
+    searchTerm: `${query['search']}`,
+  };
+}

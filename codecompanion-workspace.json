@@ -1,0 +1,99 @@
+{
+  "name": "Deenji Real Estate Platform",
+  "version": "1.0.0",
+  "system_prompt": "You are assisting with Deenji, a real estate platform enhanced with LLMs that connects property buyers and agents. The platform offers powerful search tools, detailed property insights, and investment analytics. It's built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication. The platform supports multilingual interfaces with Persian/Farsi as the default language (RTL layout).",
+  "vars": {
+    "tech_stack": "AnalogJS, Supabase, tRPC, TailwindCSS, Spartan UI, Elasticsearch, MapBox/Neshan, Recharts",
+    "default_lang": "Persian/Farsi with RTL layout",
+    "project_name": "Deenji"
+  },
+  "groups": [
+    {
+      "name": "Project Overview & Requirements",
+      "system_prompt": "This section contains the key features, priorities, and development approach for the ${project_name} real estate platform. It provides context on user management, property search & discovery, property details & analytics, user tools, project priorities, and sprint planning.",
+      "data": ["overview_doc"]
+    },
+    {
+      "name": "Architecture Overview",
+      "system_prompt": "I've grouped key files that help understand the overall architecture of ${project_name}. This real estate platform uses ${tech_stack} with ${default_lang}.",
+      "data": ["arch_stack_doc"]
+    },
+    {
+      "name": "Fullstack Overview",
+      "system_prompt": "I've grouped key files that help understand the overall architecture of ${project_name}. This real estate platform uses ${tech_stack} with ${default_lang}.",
+      "data": ["arch_stack_doc", "backend_doc", "frontend_doc"]
+    },
+    {
+      "name": "Authentication Flow",
+      "system_prompt": "The authentication in ${project_name} uses Supabase with a passwordless (magic link) authentication flow.",
+      "data": ["login_page", "confirm_page", "auth_guard", "auth_interceptor"]
+    }
+  ],
+  "data": {
+    "overview_doc": {
+      "type": "file",
+      "path": "docs/overview",
+      "description": "Main project overview and key features documentation"
+    },
+    "arch_stack_doc": {
+      "type": "file",
+      "path": "docs/architecture/stack",
+      "description": "Technical stack overview and architecture decisions"
+    },
+    "backend_doc": {
+      "type": "file",
+      "path": "docs/backend/trpc",
+      "description": "Technical stack overview and architecture decisions"
+    },
+    "frontend_doc": {
+      "type": "file",
+      "path": "docs/frontend/analogjs",
+      "description": "Technical stack overview and architecture decisions"
+    },
+    "spartan_doc": {
+      "type": "file",
+      "path": "docs/frontend/ui-components-spartan",
+      "description": "Technical stack overview and architecture decisions"
+    },
+    "app_config": {
+      "type": "file",
+      "path": "deenji/src/app/app.config.ts",
+      "description": "Main application configuration including providers for HTTP, tRPC, routing, and internationalization"
+    },
+    "trpc_client": {
+      "type": "file",
+      "path": "deenji/src/trpc-client.ts",
+      "description": "tRPC client setup with authentication integration"
+    },
+    "supabase_service": {
+      "type": "file",
+      "path": "deenji/src/app/core/services/supabase.service.ts",
+      "description": "Service for interacting with Supabase authentication and database"
+    },
+    "db_schema": {
+      "type": "file",
+      "path": "deenji/src/db.ts",
+      "description": "Database schema definitions using Drizzle ORM"
+    },
+    "login_page": {
+      "type": "file",
+      "path": "deenji/src/app/pages/(auth)/login.page.ts",
+      "description": "Login page component with email input and OTP verification"
+    },
+    "confirm_page": {
+      "type": "file",
+      "path": "deenji/src/app/pages/(auth)/confirm.page.ts",
+      "description": "Confirmation page for magic link authentication"
+    },
+    "auth_guard": {
+      "type": "file",
+      "path": "deenji/src/app/core/guards/auth.guard.ts",
+      "description": "Authentication guard for protecting routes"
+    },
+    "auth_interceptor": {
+      "type": "file",
+      "path": "deenji/src/app/core/services/auth-interceptor.service.ts",
+      "description": "Interceptor for handling authentication errors from tRPC"
+    }
+  }
+}

@@ -1,0 +1,3648 @@
+
+>>>> adapters-intro.md
+---
+id: adapters-intro
+title: Adapters
+sidebar_label: Adapters
+slug: /server/adapters
+---
+
+tRPC is not a server on its own, and must therefore be served using other hosts, such as a simple [Node.js HTTP Server](adapters/standalone), [Express](adapters/express), or even [Next.js](adapters/nextjs). Most tRPC features are the same no matter which backend you choose. **Adapters** act as the glue between the host system and your tRPC API.
+
+Adapters typically follow some common conventions, allowing you to set up context creation via `createContext`, and globally handle errors via `onError`, but importantly allow you to choose an appropriate host for your application.
+
+We support many modes of hosting an API, which you will find documented here.
+
+- For serverful APIs, you might want our [Standalone](adapters/standalone) adapter, or use the [Express](adapters/express) or [Fastify](adapters/fastify) adapters to hook into your existing APIs
+- You might want a serverless solution and choose [AWS Lambda](adapters/aws-lambda), or [Fetch](adapters/fetch) for edge runtimes
+- You might have a full-stack framework and want a full integration like [Next.js](adapters/nextjs), or you could use the [Fetch](adapters/fetch) adapter with Next.js, Astro, Remix, or SolidStart
+
+:::tip
+For local development or serverful infrastructure, the simplest Adapter to use is the [Standalone Adapter](adapters/standalone), which can be used to run a standard Node.js HTTP Server. We recommend this when you need to get started quickly and have no existing HTTP Server to integrate with. Swapping out later is trivial if your needs change.
+:::
+
+>>>> adapters/aws-lambda.md
+---
+id: aws-lambda
+title: AWS Lambda + API Gateway Adapter
+sidebar_label: AWS Lambda + API Gateway
+slug: /server/adapters/aws-lambda
+---
+
+## AWS Lambda adapter
+
+The AWS Lambda adapter is supported for API Gateway Rest API(v1) and HTTP API(v2) use cases.
+
+## Example app
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>API Gateway with NodeJS client.</td>
+      <td>
+        <ul>
+          <li><a href="https://github.com/trpc/trpc/tree/main/examples/lambda-api-gateway">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## How to add tRPC
+
+### 1. Install deps
+
+```bash
+yarn add @trpc/server
+```
+
+### 2. Create a tRPC router
+
+Implement your tRPC router. A sample router is given below:
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+
+const appRouter = t.router({
+  getUser: t.procedure.input(z.string()).query((opts) => {
+    opts.input; // string
+    return { id: opts.input, name: 'Bilbo' };
+  }),
+});
+
+// export type definition of API
+export type AppRouter = typeof appRouter;
+```
+
+### 3. Use the Amazon API Gateway adapter
+
+tRPC includes an adapter for API Gateway out of the box. This adapter lets you run your routes through the API Gateway handler.
+
+```ts title='server.ts'
+import { CreateAWSLambdaContextOptions, awsLambdaRequestHandler } from '@trpc/server/adapters/aws-lambda';
+
+const appRouter = /* ... */;
+
+// created for each request
+const createContext = ({
+  event,
+  context,
+}: CreateAWSLambdaContextOptions<APIGatewayProxyEventV2>) => ({}) // no context
+type Context = Awaited<ReturnType<typeof createContext>>;
+
+export const handler = awsLambdaRequestHandler({
+  router: appRouter,
+  createContext,
+})
+```
+
+Build & deploy your code, now use your API Gateway URL to call your function.
+
+| Endpoint  | HTTP URI                                                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------ |
+| `getUser` | `GET https://<execution-api-link>/getUser?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+
+#### A word about payload format version
+
+API Gateway has two different event data formats when it invokes a Lambda. For REST APIs they should be version "1.0"(`APIGatewayProxyEvent`), but you can choose which for HTTP APIs by stating either version "1.0" or "2.0".
+
+- Version 1.0: `APIGatewayProxyEvent`
+- Version 2.0: `APIGatewayProxyEventV2`
+
+To infer what version you might have, supply the context as following:
+
+```ts
+function createContext({
+  event,
+  context,
+}: CreateAWSLambdaContextOptions<APIGatewayProxyEvent>) {
+  ...
+}
+
+// CreateAWSLambdaContextOptions<APIGatewayProxyEvent> or CreateAWSLambdaContextOptions<APIGatewayProxyEventV2>
+```
+
+[Read more here about payload format version](https://docs.aws.amazon.com/apigateway/latest/developerguide/http-api-develop-integrations-lambda.html)
+
+>>>> adapters/express.md
+---
+id: express
+title: Express Adapter
+sidebar_label: Express
+slug: /server/adapters/express
+---
+
+## Example app
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Express server &amp; procedure calls with Node.js.</td>
+      <td>
+        <ul>
+          <li><a href="https://githubbox.com/trpc/trpc/tree/main/examples/express-server">CodeSandbox</a></li>
+          <li><a href="https://github.com/trpc/trpc/tree/main/examples/express-server">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## How to add tRPC to existing Express project
+
+### 1. Install deps
+
+```bash
+yarn add @trpc/server zod
+```
+
+> [Zod](https://github.com/colinhacks/zod) isn't a required dependency, but it's used in the sample router below.
+
+### 2. Create a tRPC router
+
+Implement your tRPC router. A sample router is given below:
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+
+export const appRouter = t.router({
+  getUser: t.procedure.input(z.string()).query((opts) => {
+    opts.input; // string
+    return { id: opts.input, name: 'Bilbo' };
+  }),
+  createUser: t.procedure
+    .input(z.object({ name: z.string().min(5) }))
+    .mutation(async (opts) => {
+      // use your ORM of choice
+      return await UserModel.create({
+        data: opts.input,
+      });
+    }),
+});
+
+// export type definition of API
+export type AppRouter = typeof appRouter;
+```
+
+If your router file starts getting too big, split your router into several subrouters each implemented in its own file. Then [merge them](/docs/server/merging-routers) into a single root `appRouter`.
+
+### 3. Use the Express adapter
+
+tRPC includes an adapter for Express out of the box. This adapter lets you convert your tRPC router into an Express middleware.
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+import * as trpcExpress from '@trpc/server/adapters/express';
+
+// created for each request
+const createContext = ({
+  req,
+  res,
+}: trpcExpress.CreateExpressContextOptions) => ({}); // no context
+type Context = Awaited<ReturnType<typeof createContext>>;
+
+const t = initTRPC.context<Context>().create();
+const appRouter = t.router({
+  // [...]
+});
+
+const app = express();
+
+app.use(
+  '/trpc',
+  trpcExpress.createExpressMiddleware({
+    router: appRouter,
+    createContext,
+  }),
+);
+
+app.listen(4000);
+```
+
+Your endpoints are now available via HTTP!
+
+| Endpoint     | HTTP URI                                                                                                   |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| `getUser`    | `GET http://localhost:4000/trpc/getUser?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+| `createUser` | `POST http://localhost:4000/trpc/createUser` <br/><br/>with `req.body` of type `{name: string}`            |
+
+>>>> adapters/fastify.md
+---
+id: fastify
+title: Fastify Adapter
+sidebar_label: Fastify
+slug: /server/adapters/fastify
+---
+
+## Example app
+
+The best way to start with the Fastify adapter is to take a look at the example application.
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <ul>
+          <li>Fastify server with WebSocket</li>
+          <li>Simple tRPC client in node</li>
+        </ul>
+      </td>
+      <td>
+        <ul>
+          <li><a href="https://codesandbox.io/s/github/trpc/trpc/tree/main/examples/fastify-server">CodeSandbox</a></li>
+          <li><a href="https://github.com/trpc/trpc/tree/main/examples/fastify-server">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## How to use tRPC with Fastify
+
+### Install dependencies
+
+```bash
+yarn add @trpc/server fastify zod
+```
+
+> [Zod](https://github.com/colinhacks/zod) isn't a required dependency, but it's used in the sample router below.
+
+### Create the router
+
+First of all you need a [router](/docs/server/routers) to handle your queries, mutations and subscriptions.
+
+A sample router is given below, save it in a file named `router.ts`.
+
+<details>
+  <summary>router.ts</summary>
+
+```ts title='router.ts'
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+type User = {
+  id: string;
+  name: string;
+  bio?: string;
+};
+
+const users: Record<string, User> = {};
+
+export const t = initTRPC.create();
+
+export const appRouter = t.router({
+  getUserById: t.procedure.input(z.string()).query((opts) => {
+    return users[opts.input]; // input type is string
+  }),
+  createUser: t.procedure
+    .input(
+      z.object({
+        name: z.string().min(3),
+        bio: z.string().max(142).optional(),
+      }),
+    )
+    .mutation((opts) => {
+      const id = Date.now().toString();
+      const user: User = { id, ...opts.input };
+      users[user.id] = user;
+      return user;
+    }),
+});
+
+// export type definition of API
+export type AppRouter = typeof appRouter;
+```
+
+</details>
+
+If your router file starts getting too big, split your router into several subrouters each implemented in its own file. Then [merge them](/docs/server/merging-routers) into a single root `appRouter`.
+
+### Create the context
+
+Then you need a [context](/docs/server/context) that will be created for each request.
+
+A sample context is given below, save it in a file named `context.ts`:
+
+<details>
+  <summary>context.ts</summary>
+
+```ts title='context.ts'
+import { CreateFastifyContextOptions } from '@trpc/server/adapters/fastify';
+
+export function createContext({ req, res }: CreateFastifyContextOptions) {
+  const user = { name: req.headers.username ?? 'anonymous' };
+
+  return { req, res, user };
+}
+
+export type Context = Awaited<ReturnType<typeof createContext>>;
+```
+
+</details>
+
+### Create Fastify server
+
+tRPC includes an adapter for [Fastify](https://www.fastify.io/) out of the box. This adapter lets you convert your tRPC router into a [Fastify plugin](https://www.fastify.io/docs/latest/Reference/Plugins/). In order to prevent errors during large batch requests, make sure to set the `maxParamLength` Fastify option to a suitable value, as shown.
+
+:::tip
+Due to limitations in Fastify's plugin system and type inference, there might be some issues getting for example `onError` typed correctly. You can add a `satisfies FastifyTRPCPluginOptions<AppRouter>['trpcOptions']` to help TypeScript out and get the correct types.
+:::
+
+```ts title='server.ts'
+import {
+  fastifyTRPCPlugin,
+  FastifyTRPCPluginOptions,
+} from '@trpc/server/adapters/fastify';
+import fastify from 'fastify';
+import { createContext } from './context';
+import { appRouter, type AppRouter } from './router';
+
+const server = fastify({
+  maxParamLength: 5000,
+});
+
+server.register(fastifyTRPCPlugin, {
+  prefix: '/trpc',
+  trpcOptions: {
+    router,
+    createContext,
+    onError({ path, error }) {
+      // report to error monitoring
+      console.error(`Error in tRPC handler on path '${path}':` error)
+    },
+  } satisfies FastifyTRPCPluginOptions<AppRouter>['trpcOptions'],
+});
+
+(async () => {
+  try {
+    await server.listen({ port: 3000 });
+  } catch (err) {
+    server.log.error(err);
+    process.exit(1);
+  }
+})();
+```
+
+Your endpoints are now available via HTTP!
+
+| Endpoint     | HTTP URI                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `getUser`    | `GET http://localhost:3000/trpc/getUserById?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+| `createUser` | `POST http://localhost:3000/trpc/createUser` <br/><br/>with `req.body` of type `User`                          |
+
+## How to enable subscriptions (WebSocket)
+
+The Fastify adapter supports [subscriptions](/docs/subscriptions) via the [@fastify/websocket](https://www.npmjs.com/package/@fastify/websocket) plugin. All you have to do in addition to the above steps is install the dependency, add some subscriptions to your router and activate the `useWSS` [option](#fastify-plugin-options) in the plugin. The minimum Fastify version required for `@fastify/websocket` is `3.11.0`.
+
+### Install dependencies
+
+```bash
+yarn add @fastify/websocket
+```
+
+### Import and register `@fastify/websocket`
+
+```ts
+import ws from '@fastify/websocket';
+
+server.register(ws);
+```
+
+### Add some subscriptions
+
+Edit the `router.ts` file created in the previous steps and add the following code:
+
+```ts title='router.ts'
+import { initTRPC } from '@trpc/server';
+import { observable } from '@trpc/server/observable';
+
+const t = initTRPC.create();
+
+export const appRouter = t.router({
+  randomNumber: t.procedure.subscription(() => {
+    return observable<{ randomNumber: number }>((emit) => {
+      const timer = setInterval(() => {
+        emit.next({ randomNumber: Math.random() });
+      }, 1000);
+      return () => {
+        clearInterval(timer);
+      };
+    });
+  }),
+});
+```
+
+### Activate the `useWSS` option
+
+```ts title='server.ts'
+server.register(fastifyTRPCPlugin, {
+  useWSS: true,
+  // ...
+});
+```
+
+It's alright, you can subscribe to the topic `randomNumber` and you should receive a random number every second 🚀.
+
+## Fastify plugin options
+
+| name        | type                     | optional | default   | description |
+| ----------- | ------------------------ | -------- | --------- | ----------- |
+| prefix      | `string`                 | `true`   | `"/trpc"` |             |
+| useWSS      | `boolean`                | `true`   | `false`   |             |
+| trpcOptions | `NodeHTTPHandlerOptions` | `false`  | `n/a`     |             |
+
+>>>> adapters/fetch.mdx
+---
+id: fetch
+title: Fetch / Edge Runtimes Adapter
+sidebar_label: Fetch / Edge Runtimes
+slug: /server/adapters/fetch
+---
+
+import TabItem from '@theme/TabItem';
+import Tabs from '@theme/Tabs';
+
+You can create a tRPC server within any edge runtime that follow the [WinterCG](https://wintercg.org/), specifically the [Minimum Common Web Platform API](https://common-min-api.proposal.wintercg.org/) specification.
+
+Some of these runtimes includes, but not limited to:
+
+- Cloudflare Workers
+- Deno Deploy
+- Vercel Edge Runtime (& Next.js Edge Runtime)
+
+This also makes it easy to integrate into frameworks that uses the web platform APIs to represent requests and responses, such as:
+
+- Astro (SSR mode)
+- Remix
+- SolidStart
+
+## Example apps
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Cloudflare Workers example</td>
+      <td>
+        <a href="https://github.com/trpc/trpc/tree/main/examples/cloudflare-workers">
+          Source
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>Deno Deploy example</td>
+      <td>
+        <a href="https://github.com/trpc/trpc/tree/main/examples/deno-deploy">
+          Source
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>Next.js Edge Runtime example</td>
+      <td>
+        <a href="https://github.com/trpc/trpc/tree/main/examples/next-edge-runtime">
+          Source
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td>Vercel Edge Runtime example</td>
+      <td>
+        <a href="https://github.com/trpc/trpc/tree/main/examples/vercel-edge-runtime">
+          Source
+        </a>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## How to use tRPC server with an edge runtime
+
+tRPC provides a [fetch adapter](/docs/server/adapters/fetch) that uses the native [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) and [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) APIs as input and output. The tRPC-specific code is the same across all runtimes, the only difference being how the response is returned.
+
+tRPC includes an adapter for the native [Fetch API](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) out of the box. This adapter lets you convert your tRPC router into a [`Request`](https://developer.mozilla.org/en-US/docs/Web/API/Request) handler that returns [`Response`](https://developer.mozilla.org/en-US/docs/Web/API/Response) objects.
+
+## Required Web APIs
+
+tRPC server uses the following Fetch APIs:
+
+- `Request`, `Response`
+- `fetch`
+- `Headers`
+- `URL`
+
+If your runtime supports these APIs, you can [use tRPC server](#how-to-use-trpc-server-with-an-edge-runtime).
+
+:::tip
+Fun fact: that also means you can use a tRPC server in your browser!
+:::
+
+## Common setup
+
+### Install dependencies
+
+:::tip
+You can skip this step if you use Deno Deploy.
+:::
+
+<Tabs>
+  <TabItem value="npm" label="npm" default>
+
+```sh
+npm install @trpc/server zod
+```
+
+  </TabItem>
+  <TabItem value="yarn" label="yarn">
+
+```sh
+yarn add @trpc/server zod
+```
+
+  </TabItem>
+  <TabItem value="pnpm" label="pnpm">
+
+```sh
+pnpm add @trpc/server zod
+```
+
+  </TabItem>
+  <TabItem value="bun" label="bun">
+
+```sh
+bun add @trpc/server zod
+```
+
+  </TabItem>
+</Tabs>
+
+> [Zod](https://github.com/colinhacks/zod) isn't a required dependency, but it's used in the sample router below.
+
+### Create the router
+
+First of all you need a [router](/docs/server/routers) to handle your queries, mutations and subscriptions.
+
+A sample router is given below, save it in a file named `router.ts`.
+
+<details>
+  <summary>router.ts</summary>
+
+```ts title='router.ts'
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+import { Context } from './context';
+
+type User = {
+  id: string;
+  name: string;
+  bio?: string;
+};
+
+const users: Record<string, User> = {};
+
+export const t = initTRPC.context<Context>().create();
+
+export const appRouter = t.router({
+  getUserById: t.procedure.input(z.string()).query((opts) => {
+    return users[opts.input]; // input type is string
+  }),
+  createUser: t.procedure
+    // validate input with Zod
+    .input(
+      z.object({
+        name: z.string().min(3),
+        bio: z.string().max(142).optional(),
+      }),
+    )
+    .mutation((opts) => {
+      const id = Date.now().toString();
+      const user: User = { id, ...opts.input };
+      users[user.id] = user;
+      return user;
+    }),
+});
+
+// export type definition of API
+export type AppRouter = typeof appRouter;
+```
+
+</details>
+
+If your router file starts getting too big, split your router into several subrouters each implemented in its own file. Then [merge them](/docs/server/merging-routers) into a single root `appRouter`.
+
+### Create the context
+
+Then you need a [context](/docs/server/context) that will be created for each request.
+
+A sample context is given below, save it in a file named `context.ts`:
+
+<details>
+  <summary>context.ts</summary>
+
+```ts title='context.ts'
+import { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch';
+
+export function createContext({
+  req,
+  resHeaders,
+}: FetchCreateContextFnOptions) {
+  const user = { name: req.headers.get('username') ?? 'anonymous' };
+  return { req, resHeaders, user };
+}
+
+export type Context = Awaited<ReturnType<typeof createContext>>;
+```
+
+</details>
+
+## Runtimes-specific setup
+
+### Astro
+
+```ts title='src/pages/trpc/[trpc].ts'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import type { APIRoute } from 'astro';
+import { createContext } from '../../server/context';
+import { appRouter } from '../../server/router';
+
+export const all: APIRoute = (opts) => {
+  return fetchRequestHandler({
+    endpoint: '/trpc',
+    req: opts.request,
+    router: appRouter,
+    createContext,
+  });
+};
+```
+
+### Cloudflare Worker
+
+:::note
+You need the [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) to run Cloudflare Workers.
+:::
+
+#### Create Cloudflare Worker
+
+```ts title='server.ts'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { createContext } from './context';
+import { appRouter } from './router';
+
+export default {
+  async fetch(request: Request): Promise<Response> {
+    return fetchRequestHandler({
+      endpoint: '/trpc',
+      req: request,
+      router: appRouter,
+      createContext,
+    });
+  },
+};
+```
+
+Run `wrangler dev server.ts` and your endpoints will be available via HTTP!
+
+| Endpoint     | HTTP URI                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `getUser`    | `GET http://localhost:8787/trpc/getUserById?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+| `createUser` | `POST http://localhost:8787/trpc/createUser` <br/><br/>with `req.body` of type `User`                          |
+
+### Deno Oak
+
+:::note
+This assumes you have Deno installed and setup. Refer to their [getting started guide](https://deno.com/manual/getting_started/installation) for more information.
+:::
+
+#### Update the imports in `router.ts`
+
+```ts title='router.ts'
+import { initTRPC } from 'npm:@trpc/server';
+import { z } from 'npm:zod';
+import { Context } from './context.ts';
+```
+
+#### Update the imports in `context.ts`
+
+```ts title='context.ts'
+import { FetchCreateContextFnOptions } from 'npm:@trpc/server/adapters/fetch';
+```
+
+#### Use `fetchRequestHandler` with Oak in `app.ts`
+
+```ts title='app.ts'
+import { Application, Router } from 'https://deno.land/x/oak/mod.ts';
+import { fetchRequestHandler } from 'npm:@trpc/server/adapters/fetch';
+import { createContext } from './context.ts';
+import { appRouter } from './router.ts';
+
+const app = new Application();
+const router = new Router();
+
+router.all('/trpc/(.*)', async (ctx) => {
+  const res = await fetchRequestHandler({
+    endpoint: '/trpc',
+    req: new Request(ctx.request.url, {
+      headers: ctx.request.headers,
+      body:
+        ctx.request.method !== 'GET' && ctx.request.method !== 'HEAD'
+          ? ctx.request.body({ type: 'stream' }).value
+          : void 0,
+      method: ctx.request.method,
+    }),
+    router: appRouter,
+    createContext,
+  });
+
+  ctx.response.status = res.status;
+  ctx.response.headers = res.headers;
+  ctx.response.body = res.body;
+});
+
+app.use(router.routes());
+app.use(router.allowedMethods());
+
+await app.listen({ port: 3000 });
+```
+
+### Deno Deploy
+
+:::note
+This assumes you have Deno installed and setup. Refer to their [getting started guide](https://deno.com/manual/getting_started/installation) for more information.
+:::
+
+:::tip
+See our example [Deno Deploy app](https://github.com/trpc/trpc/tree/main/examples/deno-deploy) for a working example.
+:::
+
+#### Update the imports in `router.ts`
+
+```ts title='router.ts'
+import { initTRPC } from 'npm:@trpc/server';
+import { z } from 'npm:zod';
+import { Context } from './context.ts';
+```
+
+#### Update the imports in `context.ts`
+
+```ts title='context.ts'
+import { FetchCreateContextFnOptions } from 'npm:@trpc/server/adapters/fetch';
+```
+
+#### Create Deno Deploy Function
+
+```ts title='server.ts'
+import { fetchRequestHandler } from 'npm:@trpc/server/adapters/fetch';
+import { createContext } from './context.ts';
+import { appRouter } from './router.ts';
+
+function handler(request) {
+  return fetchRequestHandler({
+    endpoint: '/trpc',
+    req: request,
+    router: appRouter,
+    createContext,
+  });
+}
+
+Deno.serve(handler);
+```
+
+Run `deno run --allow-net=:8000 --allow-env ./server.ts` and your endpoints will be available via HTTP!
+
+| Endpoint     | HTTP URI                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `getUser`    | `GET http://localhost:8000/trpc/getUserById?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+| `createUser` | `POST http://localhost:8000/trpc/createUser` <br/><br/>with `req.body` of type `User`                          |
+
+### Next.js Edge Runtime
+
+See a full example [here](https://github.com/trpc/trpc/tree/main/examples/next-edge-runtime).
+
+### Remix
+
+```ts title='app/routes/trpc/$trpc.ts'
+import type { ActionArgs, LoaderArgs } from '@remix-run/node';
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { createContext } from '~/server/context';
+import { appRouter } from '~/server/router';
+
+export const loader = async (args: LoaderArgs) => {
+  return handleRequest(args);
+};
+export const action = async (args: ActionArgs) => {
+  return handleRequest(args);
+};
+function handleRequest(args: LoaderArgs | ActionArgs) {
+  return fetchRequestHandler({
+    endpoint: '/trpc',
+    req: args.request,
+    router: appRouter,
+    createContext,
+  });
+}
+```
+
+### SolidStart
+
+```ts title='src/routes/api/trpc/[trpc].ts'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import type { APIEvent } from 'solid-start';
+import { createContext } from '../../server/context';
+import { appRouter } from '../../server/router';
+
+const handler = (event: APIEvent) =>
+  fetchRequestHandler({
+    endpoint: '/api/trpc',
+    req: event.request,
+    router: appRouter,
+    createContext,
+  });
+export { handler as GET, handler as POST };
+```
+
+### Vercel Edge Runtime
+
+:::note
+See the official [Vercel Edge Runtime documentation](https://edge-runtime.vercel.app/getting-started) for more information.
+:::
+
+:::tip
+See our example [Vercel Edge Runtime app](https://github.com/trpc/trpc/tree/main/examples/vercel-edge-runtime) for a working example.
+:::
+
+#### Install dependencies
+
+<Tabs>
+  <TabItem value="npm" label="npm" default>
+
+```sh
+npm install -g edge-runtime
+```
+
+  </TabItem>
+  <TabItem value="yarn" label="yarn">
+
+```sh
+yarn global add edge-runtime
+```
+
+  </TabItem>
+  <TabItem value="pnpm" label="pnpm">
+
+```sh
+pnpm add -g edge-runtime
+```
+
+  </TabItem>
+  <TabItem value="bun" label="bun">
+
+```sh
+bun add -g edge-runtime
+```
+
+  </TabItem>
+</Tabs>
+
+#### Create Edge Runtime Function
+
+```ts title='server.ts'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { createContext } from './context';
+import { appRouter } from './router';
+
+addEventListener('fetch', (event) => {
+  return event.respondWith(
+    fetchRequestHandler({
+      endpoint: '/trpc',
+      req: event.request,
+      router: appRouter,
+      createContext,
+    }),
+  );
+});
+```
+
+Run `edge-runtime --listen server.ts --port 3000` and your endpoints will be available via HTTP!
+
+| Endpoint     | HTTP URI                                                                                                       |
+| ------------ | -------------------------------------------------------------------------------------------------------------- |
+| `getUser`    | `GET http://localhost:3000/trpc/getUserById?input=INPUT` <br/><br/>where `INPUT` is a URI-encoded JSON string. |
+| `createUser` | `POST http://localhost:3000/trpc/createUser` <br/><br/>with `req.body` of type `User`                          |
+
+>>>> adapters/nextjs.md
+---
+id: nextjs
+title: Next.js Adapter
+sidebar_label: Next.js
+slug: /server/adapters/nextjs
+---
+
+:::tip
+tRPC's support for Next.js is far more expansive than just an adapter. This page covers a brief summary of how to set up the adapter, but complete documentation is [available here](../../client/nextjs/introduction.mdx)
+:::
+
+## Example app
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Next.js Minimal Starter</td>
+      <td>
+        <ul>
+          <li><a href="https://githubbox.com/trpc/trpc/tree/main/examples/next-minimal-starter">CodeSandbox</a></li>
+          <li><a href="https://github.com/trpc/trpc/tree/main/examples/next-minimal-starter">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## Next.js example
+
+Serving your tRPC router in a Next.js project is straight-forward. Just create an API handler in `pages/api/trpc/[trpc].ts` as shown below:
+
+```ts title='pages/api/trpc/[trpc].ts'
+import { createNextApiHandler } from '@trpc/server/adapters/next';
+import { createContext } from '../../../server/trpc/context';
+import { appRouter } from '../../../server/trpc/router/_app';
+
+// @see https://nextjs.org/docs/api-routes/introduction
+export default createNextApiHandler({
+  router: appRouter,
+  createContext,
+});
+```
+
+## Handling CORS, and other Advanced usage
+
+While you can usually just "set and forget" the API Handler as shown above, sometimes you might want to modify it further.
+
+The API handler created by `createNextApiHandler` and equivalents in other frameworks is just a function that takes `req` and `res` objects. This means you can also modify those objects before passing them to the handler, for example to [enable CORS](/docs/client/cors).
+
+```ts title='pages/api/trpc/[trpc].ts'
+import { createNextApiHandler } from '@trpc/server/adapters/next';
+import { createContext } from '../../../server/trpc/context';
+import { appRouter } from '../../../server/trpc/router/_app';
+
+// create the API handler, but don't return it yet
+const nextApiHandler = createNextApiHandler({
+  router: appRouter,
+  createContext,
+});
+
+// @see https://nextjs.org/docs/api-routes/introduction
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse,
+) {
+  // We can use the response object to enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Request-Method', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Headers', '*');
+
+  // If you need to make authenticated CORS calls then
+  // remove what is above and uncomment the below code
+
+  // Allow-Origin has to be set to the requesting domain that you want to send the credentials back to
+  // res.setHeader('Access-Control-Allow-Origin', 'http://example:6006');
+  // res.setHeader('Access-Control-Request-Method', '*');
+  // res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET');
+  // res.setHeader('Access-Control-Allow-Headers', 'content-type');
+  // res.setHeader('Referrer-Policy', 'no-referrer');
+  // res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200);
+    return res.end();
+  }
+
+  // finally pass the request on to the tRPC handler
+  return nextApiHandler(req, res);
+}
+```
+
+## Route Handlers
+
+If you're trying out the Next.js App Router and want to use [route handlers](https://beta.nextjs.org/docs/routing/route-handlers), you can do so by using the [fetch](fetch) adapter, as they build on web standard Request and Response objects:
+
+```ts title='app/api/trpc/[trpc]/route.ts'
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { appRouter } from '~/server/api/router';
+
+const handler = (req: Request) =>
+  fetchRequestHandler({
+    endpoint: '/api/trpc',
+    req,
+    router: appRouter,
+    createContext: () => ({ ... })
+  });
+
+export { handler as GET, handler as POST };
+```
+
+>>>> adapters/standalone.md
+---
+id: standalone
+title: Standalone Adapter
+sidebar_label: Standalone
+slug: /server/adapters/standalone
+---
+
+tRPC's Standalone Adapter is the simplest way to get a new project working. It's ideal for local development, and for server-based production environments. In essence it's just a wrapper around the standard [Node.js HTTP Server](https://nodejs.org/api/http.html) with the normal options related to tRPC.
+
+If you have an existing API deployment like [Express](express), [Fastify](fastify), or [Next.js](nextjs), which you want to integrate tRPC into, you should have a look at their respective adapters. Likewise if you have a preference to host on serverless or edge compute, we have adapters like [AWS Lambda](aws-lambda) and [Fetch](fetch) which may fit your needs.
+
+It's also not uncommon, where the deployed adapter is hard to run on local machines, to have 2 entry-points in your application. You could use the Standalone Adapter for local development, and a different adapter when deployed.
+
+## Example app
+
+<table>
+  <thead>
+    <tr>
+      <th>Description</th>
+      <th>Links</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Standalone tRPC Server</td>
+      <td>
+        <ul>
+          <li><a href="https://stackblitz.com/github/trpc/trpc/tree/main/examples/minimal">StackBlitz</a></li>
+          <li><a href="https://github.com/trpc/trpc/blob/main/examples/minimal/server/index.ts">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>Standalone tRPC Server with CORS handling</td>
+      <td>
+        <ul>
+          <li><a href="https://stackblitz.com/github/trpc/trpc/tree/main/examples/minimal-react">StackBlitz</a></li>
+          <li><a href="https://github.com/trpc/trpc/blob/main/examples/minimal-react/server/index.ts">Source</a></li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+## Setting up a Standalone tRPC Server
+
+### 1. Implement your App Router
+
+Implement your tRPC router. For example:
+
+```ts title='appRouter.ts'
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+
+export const appRouter = t.router({
+  getUser: t.procedure.input(z.string()).query((opts) => {
+    return { id: opts.input, name: 'Bilbo' };
+  }),
+  createUser: t.procedure
+    .input(z.object({ name: z.string().min(5) }))
+    .mutation(async (opts) => {
+      // use your ORM of choice
+      return await UserModel.create({
+        data: opts.input,
+      });
+    }),
+});
+
+// export type definition of API
+export type AppRouter = typeof appRouter;
+```
+
+For more information you can look at the [quickstart guide](/docs/quickstart)
+
+### 2. Use the Standalone adapter
+
+The Standalone adapter runs a simple Node.js HTTP server.
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+import { createHTTPServer } from '@trpc/server/adapters/standalone';
+import { appRouter } from './appRouter.ts';
+
+createHTTPServer({
+  router: appRouter,
+  createContext() {
+    console.log('context 3');
+    return {};
+  },
+}).listen(2022);
+```
+
+## Handling CORS & OPTIONS
+
+By default the standalone server will not respond to HTTP OPTIONS requests, or set any CORS headers.
+
+If you're not hosting in an environment which can handle this for you, like during local development, you may need to handle it.
+
+### 1. Install cors
+
+You can add support yourself with the popular `cors` package
+
+```bash
+yarn add cors
+yarn add -D @types/cors
+```
+
+For full information on how to configure this package, [check the docs](https://github.com/expressjs/cors#readme)
+
+### 2. Configure the Standalone server
+
+This example just throws open CORS to any request, which is useful for development, but you can and should configure it more strictly in a production environment.
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+import { createHTTPServer } from '@trpc/server/adapters/standalone';
+import cors from 'cors';
+
+createHTTPServer({
+  middleware: cors(),
+  router: appRouter,
+  createContext() {
+    console.log('context 3');
+    return {};
+  },
+}).listen(3333);
+```
+
+The `middleware` option will accept any function which resembles a connect/node.js middleware, so it can be used for more than `cors` handling if you wish. It is, however, intended to be a simple escape hatch and as such won't on its own allow you to compose multiple middlewares together. If you want to do this then you could:
+
+1. Use an alternate adapter with more comprehensive middleware support, like the [Express adapter](/docs/server/adapters/express)
+2. Use a solution to compose middlewares such as [connect](https://github.com/senchalabs/connect)
+3. Extend the Standalone `createHTTPHandler` with a custom http server (see below)
+
+## Going further
+
+If `createHTTPServer` isn't enough you can also use the standalone adapter's `createHTTPHandler` function to create your own HTTP Server. For instance:
+
+```ts title='server.ts'
+import { createServer } from 'http';
+import { initTRPC } from '@trpc/server';
+import { createHTTPHandler } from '@trpc/server/adapters/standalone';
+
+const handler = createHTTPHandler({
+  router: appRouter,
+  createContext() {
+    return {};
+  },
+});
+
+createServer((req, res) => {
+  /**
+   * Handle the request however you like,
+   * just call the tRPC handler when you're ready
+   */
+
+  handler(req, res);
+}).listen(3333);
+```
+
+>>>> authorization.md
+---
+id: authorization
+title: Authorization
+sidebar_label: Authorization
+slug: /server/authorization
+---
+
+The `createContext` function is called for each incoming request, so here you can add contextual information about the calling user from the request object.
+
+## Create context from request headers
+
+```ts title='server/context.ts'
+import * as trpcNext from '@trpc/server/adapters/next';
+import { decodeAndVerifyJwtToken } from './somewhere/in/your/app/utils';
+
+export async function createContext({
+  req,
+  res,
+}: trpcNext.CreateNextContextOptions) {
+  // Create your context based on the request object
+  // Will be available as `ctx` in all your resolvers
+
+  // This is just an example of something you might want to do in your ctx fn
+  async function getUserFromHeader() {
+    if (req.headers.authorization) {
+      const user = await decodeAndVerifyJwtToken(
+        req.headers.authorization.split(' ')[1],
+      );
+      return user;
+    }
+    return null;
+  }
+  const user = await getUserFromHeader();
+
+  return {
+    user,
+  };
+}
+export type Context = Awaited<ReturnType<typeof createContext>>;
+```
+
+## Option 1: Authorize using resolver
+
+```ts title='server/routers/_app.ts'
+import { initTRPC, TRPCError } from '@trpc/server';
+import type { Context } from '../context';
+
+export const t = initTRPC.context<Context>().create();
+
+const appRouter = t.router({
+  // open for anyone
+  hello: t.procedure
+    .input(z.string().nullish())
+    .query((opts) => `hello ${opts.input ?? opts.ctx.user?.name ?? 'world'}`),
+  // checked in resolver
+  secret: t.procedure.query((opts) => {
+    if (!opts.ctx.user) {
+      throw new TRPCError({ code: 'UNAUTHORIZED' });
+    }
+    return {
+      secret: 'sauce',
+    };
+  }),
+});
+```
+
+## Option 2: Authorize using middleware
+
+```ts title='server/routers/_app.ts'
+import { initTRPC, TRPCError } from '@trpc/server';
+
+export const t = initTRPC.context<Context>().create();
+
+// you can reuse this for any procedure
+export const protectedProcedure = t.procedure.use(async function isAuthed(
+  opts,
+) {
+  const { ctx } = opts;
+  // `ctx.user` is nullable
+  if (!ctx.user) {
+    //     ^?
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+
+  return opts.next({
+    ctx: {
+      // ✅ user value is known to be non-null now
+      user: ctx.user,
+      // ^?
+    },
+  });
+});
+
+t.router({
+  // this is accessible for everyone
+  hello: t.procedure
+    .input(z.string().nullish())
+    .query((opts) => `hello ${opts.input ?? opts.ctx.user?.name ?? 'world'}`),
+  admin: t.router({
+    // this is accessible only to admins
+    secret: protectedProcedure.query((opts) => {
+      return {
+        secret: 'sauce',
+      };
+    }),
+  }),
+});
+```
+
+>>>> caching.md
+---
+id: caching
+title: Response Caching
+sidebar_label: Response Caching
+slug: /server/caching
+---
+
+The below examples uses [Vercel's edge caching](https://vercel.com/docs/edge-network/caching) to serve data to your users as fast as possible.
+
+:::info
+Always be careful with caching - especially if you handle personal information.
+
+&nbsp;
+Since batching is enabled by default, it's recommended to set your cache headers in the `responseMeta` function and make sure that there are not any concurrent calls that may include personal data - or to omit cache headers completely if there is an auth header or cookie.
+
+&nbsp;
+You can also use a [`splitLink`](../client/links/splitLink.mdx) to split your public requests and those that should be private and uncached.
+:::
+
+## App Caching
+
+If you turn on SSR in your app, you might discover that your app loads slowly on, for instance, Vercel, but you can actually statically render your whole app without using SSG; [read this Twitter thread](https://twitter.com/alexdotjs/status/1386274093041950722) for more insights.
+
+### Example code
+
+```tsx title='utils/trpc.tsx'
+import { httpBatchLink } from '@trpc/client';
+import { createTRPCNext } from '@trpc/next';
+import type { AppRouter } from '../server/routers/_app';
+
+export const trpc = createTRPCNext<AppRouter>({
+  config(opts) {
+    if (typeof window !== 'undefined') {
+      return {
+        links: [
+          httpBatchLink({
+            url: '/api/trpc',
+          }),
+        ],
+      };
+    }
+
+    const url = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}/api/trpc`
+      : 'http://localhost:3000/api/trpc';
+
+    return {
+      links: {
+        http: httpBatchLink({
+          url,
+        }),
+      },
+    };
+  },
+  ssr: true,
+  responseMeta(opts) {
+    const { clientErrors } = opts;
+
+    if (clientErrors.length) {
+      // propagate http first error from API calls
+      return {
+        status: clientErrors[0].data?.httpStatus ?? 500,
+      };
+    }
+
+    // cache request for 1 day + revalidate once every second
+    const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
+    return {
+      headers: {
+        'cache-control': `s-maxage=1, stale-while-revalidate=${ONE_DAY_IN_SECONDS}`,
+      },
+    };
+  },
+});
+```
+
+## API Response caching
+
+Since all queries are normal HTTP `GET`s, we can use normal HTTP headers to cache responses, make the responses snappy, give your database a rest, and easily scale your API to gazillions of users.
+
+### Using `responseMeta` to cache responses
+
+> Assuming you're deploying your API somewhere that can handle stale-while-revalidate cache headers like Vercel.
+
+```tsx title='server.ts'
+import { initTRPC } from '@trpc/server';
+import * as trpcNext from '@trpc/server/adapters/next';
+
+export const createContext = async ({
+  req,
+  res,
+}: trpcNext.CreateNextContextOptions) => {
+  return {
+    req,
+    res,
+    prisma,
+  };
+};
+
+type Context = Awaited<ReturnType<typeof createContext>>;
+
+export const t = initTRPC.context<Context>().create();
+
+const waitFor = async (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
+
+export const appRouter = t.router({
+  public: t.router({
+    slowQueryCached: t.procedure.query(async (opts) => {
+      await waitFor(5000); // wait for 5s
+
+      return {
+        lastUpdated: new Date().toJSON(),
+      };
+    }),
+  }),
+});
+
+// Exporting type _type_ AppRouter only exposes types that can be used for inference
+// https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-8.html#type-only-imports-and-export
+export type AppRouter = typeof appRouter;
+
+// export API handler
+export default trpcNext.createNextApiHandler({
+  router: appRouter,
+  createContext,
+  responseMeta(opts) {
+    const { ctx, paths, errors, type } = opts;
+    // assuming you have all your public routes with the keyword `public` in them
+    const allPublic = paths && paths.every((path) => path.includes('public'));
+    // checking that no procedures errored
+    const allOk = errors.length === 0;
+    // checking we're doing a query request
+    const isQuery = type === 'query';
+
+    if (ctx?.res && allPublic && allOk && isQuery) {
+      // cache request for 1 day + revalidate once every second
+      const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
+      return {
+        headers: {
+          'cache-control': `s-maxage=1, stale-while-revalidate=${ONE_DAY_IN_SECONDS}`,
+        },
+      };
+    }
+    return {};
+  },
+});
+```
+
+>>>> context.md
+---
+id: context
+title: Context
+sidebar_label: Context
+slug: /server/context
+---
+
+Your context holds data that all of your tRPC procedures will have access to, and is a great place to put things like database connections or authentication information.
+
+Setting up the context is done in 2 steps, defining the type during initialization and then creating the runtime context for each request.
+
+## Defining the context type
+
+When initializing tRPC using `initTRPC`, you should pipe `.context<TContext>()` to the `initTRPC` builder function before calling `.create()`. The type `TContext` can either be inferred from a function's return type or be explicitly defined.
+
+This will make sure your context is properly typed in your procedures and middlewares.
+
+```ts twoslash
+import * as trpc from '@trpc/server';
+// ---cut---
+import { initTRPC } from '@trpc/server';
+import type { CreateNextContextOptions } from '@trpc/server/adapters/next';
+import { getSession } from 'next-auth/react';
+
+export const createContext = async (opts: CreateNextContextOptions) => {
+  const session = await getSession({ req: opts.req });
+
+  return {
+    session,
+  };
+};
+
+const t1 = initTRPC.context<typeof createContext>().create();
+// @noErrors
+t1.procedure.use(({ ctx }) => { ... });
+//                  ^?
+
+type Context = Awaited<ReturnType<typeof createContext>>;
+const t2 = initTRPC.context<Context>().create();
+// @noErrors
+t2.procedure.use(({ ctx }) => { ... });
+//                  ^?
+```
+
+## Creating the context
+
+The `createContext()` function must be passed to the handler that is mounting your appRouter, which may be via HTTP, a [server-side call](server-side-calls) or our [server-side helpers](/docs/client/nextjs/server-side-helpers).
+
+`createContext()` is called for each invocation of tRPC, so batched requests will share a context.
+
+```ts
+// 1. HTTP request
+import { createHTTPHandler } from '@trpc/server/adapters/standalone';
+import { createContext } from './context';
+import { createCaller } from './router';
+
+const handler = createHTTPHandler({
+  router: appRouter,
+  createContext,
+});
+```
+
+```ts
+// 2. Server-side call
+import { createContext } from './context';
+import { createCaller } from './router';
+
+const caller = createCaller(await createContext());
+```
+
+```ts
+// 3. servers-side helpers
+import { createServerSideHelpers } from '@trpc/react-query/server';
+import { createContext } from './context';
+import { appRouter } from './router';
+
+const helpers = createServerSideHelpers({
+  router: appRouter,
+  ctx: await createContext(),
+});
+```
+
+## Example code
+
+<!-- prettier-ignore-start -->
+
+```tsx twoslash
+// -------------------------------------------------
+// @filename: context.ts
+// -------------------------------------------------
+import type { CreateNextContextOptions } from '@trpc/server/adapters/next';
+import { getSession } from 'next-auth/react';
+
+/**
+ * Creates context for an incoming request
+ * @link https://trpc.io/docs/context
+ */
+export async function createContext(opts: CreateNextContextOptions) {
+  const session = await getSession({ req: opts.req });
+
+  return {
+    session,
+  };
+}
+
+export type Context = Awaited<ReturnType<typeof createContext>>;
+
+// -------------------------------------------------
+// @filename: trpc.ts
+// -------------------------------------------------
+import { initTRPC, TRPCError } from '@trpc/server';
+import { Context } from './context';
+
+const t = initTRPC.context<Context>().create();
+
+
+export const router = t.router;
+
+/**
+ * Unprotected procedure
+ */
+export const publicProcedure = t.procedure;
+
+/**
+ * Protected procedure
+ */
+export const protectedProcedure = t.procedure.use(function isAuthed(opts) {
+  if (!opts.ctx.session?.user?.email) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+    });
+  }
+  return opts.next({
+    ctx: {
+      // Infers the `session` as non-nullable
+      session: opts.ctx.session,
+    },
+  });
+});
+```
+
+<!-- prettier-ignore-end -->
+
+## Inner and outer context
+
+In some scenarios it could make sense to split up your context into "inner" and "outer" functions.
+
+**Inner context** is where you define context which doesn’t depend on the request, e.g. your database connection. You can use this function for integration testing or [server-side helpers](/docs/client/nextjs/server-side-helpers), where you don’t have a request object. Whatever is defined here will **always** be available in your procedures.
+
+**Outer context** is where you define context which depends on the request, e.g. for the user's session. Whatever is defined here is only available for procedures that are called via HTTP.
+
+### Example for inner & outer context
+
+```ts
+import type { CreateNextContextOptions } from '@trpc/server/adapters/next';
+import { getSessionFromCookie, type Session } from './auth';
+
+/**
+ * Defines your inner context shape.
+ * Add fields here that the inner context brings.
+ */
+interface CreateInnerContextOptions extends Partial<CreateNextContextOptions> {
+  session: Session | null;
+}
+
+/**
+ * Inner context. Will always be available in your procedures, in contrast to the outer context.
+ *
+ * Also useful for:
+ * - testing, so you don't have to mock Next.js' `req`/`res`
+ * - tRPC's `createServerSideHelpers` where we don't have `req`/`res`
+ *
+ * @see https://trpc.io/docs/context#inner-and-outer-context
+ */
+export async function createContextInner(opts?: CreateInnerContextOptions) {
+  return {
+    prisma,
+    session: opts.session,
+  };
+}
+
+/**
+ * Outer context. Used in the routers and will e.g. bring `req` & `res` to the context as "not `undefined`".
+ *
+ * @see https://trpc.io/docs/context#inner-and-outer-context
+ */
+export async function createContext(opts: CreateNextContextOptions) {
+  const session = getSessionFromCookie(opts.req);
+
+  const contextInner = await createContextInner({ session });
+
+  return {
+    ...contextInner,
+    req: opts.req,
+    res: opts.res,
+  };
+}
+
+export type Context = Awaited<ReturnType<typeof createContextInner>>;
+
+// The usage in your router is the same as the example above.
+```
+
+It is important to infer your `Context` from the **inner** context, as only what is defined there is really always available in your procedures.
+
+If you don't want to check `req` or `res` for `undefined` in your procedures all the time, you could build a small reusable procedure for that:
+
+```ts
+export const apiProcedure = publicProcedure.use((opts) => {
+  if (!opts.ctx.req || !opts.ctx.res) {
+    throw new Error('You are missing `req` or `res` in your call.');
+  }
+  return opts.next({
+    ctx: {
+      // We overwrite the context with the truthy `req` & `res`, which will also overwrite the types used in your procedure.
+      req: opts.ctx.req,
+      res: opts.ctx.res,
+    },
+  });
+});
+```
+
+>>>> data-transformers.md
+---
+id: data-transformers
+title: Data Transformers
+sidebar_label: Data Transformers
+slug: /server/data-transformers
+---
+
+You are able to serialize the response data & input args. The transformers need to be added both to the server and the client.
+
+## Using [superjson](https://github.com/blitz-js/superjson)
+
+SuperJSON allows us to transparently use, e.g., standard `Date`/`Map`/`Set`s over the wire between the server and client. That is, you can return any of these types from your API-resolver and use them in the client without having to recreate the objects from JSON.
+
+### How to
+
+#### 1. Install
+
+```bash
+yarn add superjson
+```
+
+#### 2. Add to your `initTRPC`
+
+```ts title='routers/router/_app.ts'
+import { initTRPC } from '@trpc/server';
+import superjson from 'superjson';
+
+export const t = initTRPC.create({
+  transformer: superjson,
+});
+```
+
+#### 3. Add to `createTRPCProxyClient()` or `createTRPCNext()`
+
+```ts
+import { createTRPCProxyClient } from '@trpc/client';
+import type { AppRouter } from '~/server/routers/_app';
+import superjson from 'superjson';
+
+export const client = createTRPCProxyClient<AppRouter>({
+  transformer: superjson, // <--
+  // [...]
+});
+```
+
+```ts title='utils/trpc.ts'
+import { createTRPCNext } from '@trpc/next';
+import type { AppRouter } from '~/server/routers/_app';
+import superjson from 'superjson';
+
+// [...]
+
+export const trpc = createTRPCNext<AppRouter>({
+  config({ ctx }) {
+    return {
+      transformer: superjson, // <--
+    };
+  },
+  // [...]
+});
+```
+
+## Different transformers for upload and download
+
+If a transformer should only be used for one direction or different transformers should be used for upload and download (e.g., for performance reasons), you can provide individual transformers for upload and download. Make sure you use the same combined transformer everywhere.
+
+### How to
+
+Here [superjson](https://github.com/blitz-js/superjson) is used for uploading and [devalue](https://github.com/Rich-Harris/devalue) for downloading data because devalue is a lot faster but insecure to use on the server.
+
+#### 1. Install
+
+```bash
+yarn add superjson devalue
+```
+
+#### 2. Add to `utils/trpc.ts`
+
+```ts title='utils/trpc.ts'
+import { uneval } from 'devalue';
+import superjson from 'superjson';
+
+// [...]
+
+export const transformer = {
+  input: superjson,
+  output: {
+    serialize: (object) => uneval(object),
+    // This `eval` only ever happens on the **client**
+    deserialize: (object) => eval(`(${object})`),
+  },
+};
+```
+
+#### 3. Add to your `AppRouter`
+
+```ts title='server/routers/_app.ts'
+import { initTRPC } from '@trpc/server';
+import { transformer } from '../../utils/trpc';
+
+export const t = initTRPC.create({
+  transformer,
+});
+
+export const appRouter = t.router({
+  // [...]
+});
+```
+
+#### 4. Add to `createTRPCProxyClient()`
+
+```ts title='client.ts'
+import { createTRPCProxyClient } from '@trpc/client';
+import { transformer } from '../utils/trpc';
+
+export const client = createTRPCProxyClient<AppRouter>({
+  transformer, // <--
+  // [...]
+});
+```
+
+## `DataTransformer` interface
+
+```ts
+export interface DataTransformer {
+  serialize(object: any): any;
+  deserialize(object: any): any;
+}
+
+interface InputDataTransformer extends DataTransformer {
+  /**
+   * This function runs **on the client** before sending the data to the server.
+   */
+  serialize(object: any): any;
+  /**
+   * This function runs **on the server** to transform the data before it is passed to the resolver
+   */
+  deserialize(object: any): any;
+}
+
+interface OutputDataTransformer extends DataTransformer {
+  /**
+   * This function runs **on the server** before sending the data to the client.
+   */
+  serialize(object: any): any;
+  /**
+   * This function runs **only on the client** to transform the data sent from the server.
+   */
+  deserialize(object: any): any;
+}
+
+export interface CombinedDataTransformer {
+  /**
+   * Specify how the data sent from the client to the server should be transformed.
+   */
+  input: InputDataTransformer;
+  /**
+   * Specify how the data sent from the server to the client should be transformed.
+   */
+  output: OutputDataTransformer;
+}
+```
+
+>>>> error-formatting.md
+---
+id: error-formatting
+title: Error Formatting
+sidebar_label: Error Formatting
+slug: /server/error-formatting
+---
+
+The error formatting in your router will be inferred all the way to your client (&&nbsp;React&nbsp;components)
+
+## Usage example highlighted
+
+### Adding custom formatting
+
+```ts title='server.ts'
+import { initTRPC } from '@trpc/server';
+
+export const t = initTRPC.context<Context>().create({
+  errorFormatter(opts) {
+    const { shape, error } = opts;
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError
+            ? error.cause.flatten()
+            : null,
+      },
+    };
+  },
+});
+```
+
+### Usage in React
+
+```tsx title='components/MyComponent.tsx'
+export function MyComponent() {
+  const mutation = trpc.addPost.useMutation();
+
+  useEffect(() => {
+    mutation.mutate({ title: 'example' });
+  }, []);
+
+  if (mutation.error?.data?.zodError) {
+    // zodError will be inferred
+    return (
+      <pre>Error: {JSON.stringify(mutation.error.data.zodError, null, 2)}</pre>
+    );
+  }
+  return <>[...]</>;
+}
+```
+
+## All properties sent to `errorFormatter()`
+
+> Since `v8.x` tRPC is compliant with [JSON-RPC 2.0](https://www.jsonrpc.org/specification)
+
+```ts
+{
+  error: TRPCError;
+  type: ProcedureType | 'unknown';
+  path: string | undefined;
+  input: unknown;
+  ctx: undefined | TContext;
+  shape: DefaultErrorShape; // the default error shape
+}
+```
+
+**`DefaultErrorShape`:**
+
+```ts
+interface DefaultErrorData {
+  code: TRPC_ERROR_CODE_KEY;
+  httpStatus: number;
+  path?: string;
+  stack?: string;
+}
+
+interface DefaultErrorShape
+  extends TRPCErrorShape<TRPC_ERROR_CODE_NUMBER, DefaultErrorData> {
+  message: string;
+  code: TRPC_ERROR_CODE_NUMBER;
+}
+```
+
+>>>> error-handling.md
+---
+id: error-handling
+title: Error Handling
+sidebar_label: Error Handling
+slug: /server/error-handling
+---
+
+Whenever an error occurs in a procedure, tRPC responds to the client with an object that includes an "error" property. This property contains all the information that you need to handle the error in the client.
+
+Here's an example error response caused by a bad request input:
+
+```json
+{
+  "id": null,
+  "error": {
+    "message": "\"password\" must be at least 4 characters",
+    "code": -32600,
+    "data": {
+      "code": "BAD_REQUEST",
+      "httpStatus": 400,
+      "stack": "...",
+      "path": "user.changepassword"
+    }
+  }
+}
+```
+
+**Note**: the returned stack trace is only available in the development environment.
+
+## Error codes
+
+tRPC defines a list of error codes that each represent a different type of error and response with a different HTTP code.
+
+| Code                  | Description                                                                                                             | HTTP code |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------- |
+| BAD_REQUEST           | The server cannot or will not process the request due to something that is perceived to be a client error.              | 400       |
+| UNAUTHORIZED          | The client request has not been completed because it lacks valid authentication credentials for the requested resource. | 401       |
+| FORBIDDEN             | The server was unauthorized to access a required data source, such as a REST API.                                       | 403       |
+| NOT_FOUND             | The server cannot find the requested resource.                                                                          | 404       |
+| TIMEOUT               | The server would like to shut down this unused connection.                                                              | 408       |
+| CONFLICT              | The server request resource conflict with the current state of the target resource.                                     | 409       |
+| PRECONDITION_FAILED   | Access to the target resource has been denied.                                                                          | 412       |
+| PAYLOAD_TOO_LARGE     | Request entity is larger than limits defined by server.                                                                 | 413       |
+| METHOD_NOT_SUPPORTED  | The server knows the request method, but the target resource doesn't support this method.                               | 405       |
+| UNPROCESSABLE_CONTENT | The server understands the request method, and the request entity is correct, but the server was unable to process it.  | 422       |
+| TOO_MANY_REQUESTS     | The rate limit has been exceeded or too many requests are being sent to the server.                                     | 429       |
+| CLIENT_CLOSED_REQUEST | Access to the resource has been denied.                                                                                 | 499       |
+| INTERNAL_SERVER_ERROR | An unspecified error occurred.                                                                                          | 500       |
+
+tRPC exposes a helper function, `getHTTPStatusCodeFromError`, to help you extract the HTTP code from the error:
+
+```ts twoslash
+import { TRPCError } from '@trpc/server';
+// ---cut---
+import { getHTTPStatusCodeFromError } from '@trpc/server/http';
+
+// Example error you might get if your input validation fails
+const error: TRPCError = {
+  name: 'TRPCError',
+  code: 'BAD_REQUEST',
+  message: '"password" must be at least 4 characters',
+};
+
+if (error instanceof TRPCError) {
+  const httpCode = getHTTPStatusCodeFromError(error);
+  console.log(httpCode); // 400
+}
+```
+
+:::tip
+
+There's a full example of how this could be used in a Next.js API endpoint in the [Server Side Calls docs](server-side-calls).
+
+:::
+
+## Throwing errors
+
+tRPC provides an error subclass, `TRPCError`, which you can use to represent an error that occurred inside a procedure.
+
+For example, throwing this error:
+
+```ts title='server.ts'
+import { initTRPC, TRPCError } from '@trpc/server';
+
+const t = initTRPC.create();
+
+const appRouter = t.router({
+  hello: t.procedure.query(() => {
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred, please try again later.',
+      // optional: pass the original error to retain stack trace
+      cause: theError,
+    });
+  }),
+});
+
+// [...]
+```
+
+Results to the following response:
+
+```json
+{
+  "id": null,
+  "error": {
+    "message": "An unexpected error occurred, please try again later.",
+    "code": -32603,
+    "data": {
+      "code": "INTERNAL_SERVER_ERROR",
+      "httpStatus": 500,
+      "stack": "...",
+      "path": "hello"
+    }
+  }
+}
+```
+
+## Handling errors
+
+All errors that occur in a procedure go through the `onError` method before being sent to the client. Here you can handle or change errors.
+
+```ts title='pages/api/trpc/[trpc].ts'
+export default trpcNext.createNextApiHandler({
+  // ...
+  onError(opts) {
+    const { error, type, path, input, ctx, req } = opts;
+    console.error('Error:', error);
+    if (error.code === 'INTERNAL_SERVER_ERROR') {
+      // send to bug reporting
+    }
+  },
+});
+```
+
+The `onError` parameter is an object that contains all information about the error and the context it occurs in:
+
+```ts
+{
+  error: TRPCError; // the original error
+  type: 'query' | 'mutation' | 'subscription' | 'unknown';
+  path: string | undefined; // path of the procedure that was triggered
+  input: unknown;
+  ctx: Context | undefined;
+  req: BaseRequest; // request object
+}
+```
+
+>>>> merging-routers.md
+---
+id: merging-routers
+title: Merging Routers
+sidebar_label: Merging Routers
+slug: /server/merging-routers
+---
+
+Writing all API-code in your code in the same file is not a great idea. It's easy to merge routers with other routers.
+
+## Merging with child routers
+
+```ts twoslash title='server.ts'
+// @filename: trpc.ts
+import { initTRPC } from '@trpc/server';
+const t = initTRPC.create();
+
+
+
+export const router = t.router;
+export const publicProcedure = t.procedure;
+
+// @filename: routers/_app.ts
+import { router } from '../trpc';
+import { z } from 'zod';
+
+import { userRouter } from './user';
+import { postRouter } from './post';
+
+const appRouter = router({
+  user: userRouter, // put procedures under "user" namespace
+  post: postRouter, // put procedures under "post" namespace
+});
+
+// You can then access the merged route with
+// http://localhost:3000/trpc/<NAMESPACE>.<PROCEDURE>
+
+export type AppRouter = typeof appRouter;
+
+
+// @filename: routers/post.ts
+import { router, publicProcedure } from '../trpc';
+import { z } from 'zod';
+export const postRouter = router({
+  create: publicProcedure
+    .input(
+      z.object({
+        title: z.string(),
+      }),
+    )
+    .mutation((opts) => {
+      const { input } = opts;
+      //        ^?
+      // [...]
+    }),
+  list: publicProcedure.query(() => {
+    // ...
+    return [];
+  }),
+});
+
+// @filename: routers/user.ts
+import { router, publicProcedure } from '../trpc';
+import { z } from 'zod';
+export const userRouter = router({
+  list: publicProcedure.query(() => {
+    // [..]
+    return [];
+  }),
+});
+
+```
+
+## Merging with `t.mergeRouters`
+
+If you prefer having all procedures flat in one single namespace, you can instead use `t.mergeRouters`
+
+```ts twoslash title='server.ts'
+// @filename: trpc.ts
+import { initTRPC } from '@trpc/server';
+const t = initTRPC.create();
+
+
+export const router = t.router;
+export const publicProcedure = t.procedure;
+export const mergeRouters = t.mergeRouters;
+
+// @filename: routers/_app.ts
+import { router, publicProcedure, mergeRouters } from '../trpc';
+import { z } from 'zod';
+
+import { userRouter } from './user';
+import { postRouter } from './post';
+
+const appRouter = mergeRouters(userRouter, postRouter)
+
+export type AppRouter = typeof appRouter;
+
+// @filename: routers/post.ts
+import { router, publicProcedure } from '../trpc';
+import { z } from 'zod';
+export const postRouter = router({
+  postCreate: publicProcedure
+    .input(
+      z.object({
+        title: z.string(),
+      }),
+    )
+    .mutation((opts) => {
+      const { input } = opts;
+      //        ^?
+      // [...]
+    }),
+  postList: publicProcedure.query(() => {
+    // ...
+    return [];
+  }),
+});
+
+
+// @filename: routers/user.ts
+import { router, publicProcedure } from '../trpc';
+import { z } from 'zod';
+export const userRouter = router({
+  userList: publicProcedure.query(() => {
+    // [..]
+    return [];
+  }),
+});
+
+```
+
+>>>> metadata.md
+---
+id: metadata
+title: Metadata
+sidebar_label: Metadata
+slug: /server/metadata
+---
+
+Procedure metadata allows you to add an optional procedure specific `meta` property which will be available in all [middleware](middlewares) function parameters.
+
+:::tip
+Use metadata together with [`trpc-openapi`](https://github.com/jlalmes/trpc-openapi) if you want to expose REST-compatible endpoints for your application.
+:::
+
+## Create router with typed metadata
+
+```tsx
+import { initTRPC } from '@trpc/server';
+
+// [...]
+
+interface Meta {
+  authRequired: boolean;
+}
+
+export const t = initTRPC.context<Context>().meta<Meta>().create();
+
+export const appRouter = t.router({
+  // [...]
+});
+```
+
+## Example with per route authentication settings
+
+```tsx title='server.ts'
+import { initTRPC } from '@trpc/server';
+
+// [...]
+
+interface Meta {
+  authRequired: boolean;
+}
+
+export const t = initTRPC.context<Context>().meta<Meta>().create();
+
+export const authedProcedure = t.procedure.use(async (opts) => {
+  const { meta, next, ctx } = opts;
+  // only check authorization if enabled
+  if (meta?.authRequired && !ctx.user) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+  return next();
+});
+
+export const appRouter = t.router({
+  hello: authedProcedure.meta({ authRequired: false }).query(() => {
+    return {
+      greeting: 'hello world',
+    };
+  }),
+  protectedHello: authedProcedure.meta({ authRequired: true }).query(() => {
+    return {
+      greeting: 'hello-world',
+    };
+  }),
+});
+```
+
+## Default meta, chaining, and shallow merging
+
+You can set default values for your meta type, and if you chain meta on top of a base procedure it will be shallow merged.
+
+```tsx
+import { initTRPC } from '@trpc/server';
+
+interface Meta {
+  authRequired: boolean;
+  role?: 'user' | 'admin'
+}
+
+export const t = initTRPC
+  .context<Context>()
+  .meta<Meta>()
+  .create({
+    // Set a default value
+    defaultMeta: { authRequired: false }
+  });
+
+const publicProcedure = t.procedure
+// ^ Default Meta: { authRequired: false }
+
+const authProcedure = publicProcedure
+  .use(authMiddleware)
+  .meta({
+    authRequired: true;
+    role: 'user'
+  });
+// ^ Meta: { authRequired: true, role: 'user' }
+
+const adminProcedure = authProcedure
+  .meta({
+    role: 'admin'
+  });
+// ^ Meta: { authRequired: true, role: 'admin' }
+```
+
+>>>> middlewares.md
+---
+id: middlewares
+title: Middlewares
+sidebar_label: Middlewares
+slug: /server/middlewares
+---
+
+You are able to add middleware(s) to a procedure with the `t.procedure.use()` method. The middleware(s) will wrap the invocation of the procedure and must pass through its return value.
+
+## Authorization
+
+In the example below, any call to a `adminProcedure` will ensure that the user is an "admin" before executing.
+
+```twoslash include admin
+import { TRPCError, initTRPC } from '@trpc/server';
+
+interface Context {
+  user?: {
+    id: string;
+    isAdmin: boolean;
+    // [..]
+  };
+}
+
+const t = initTRPC.context<Context>().create();
+export const publicProcedure = t.procedure;
+export const router = t.router;
+
+export const adminProcedure = publicProcedure.use(async (opts) => {
+  const { ctx } = opts;
+  if (!ctx.user?.isAdmin) {
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+  return opts.next({
+    ctx: {
+      user: ctx.user,
+    },
+  });
+});
+```
+
+```ts twoslash
+// @include: admin
+```
+
+```ts twoslash
+// @filename: trpc.ts
+// @include: admin
+// @filename: _app.ts
+// ---cut---
+import { adminProcedure, publicProcedure, router } from './trpc';
+
+const adminRouter = router({
+  secretPlace: adminProcedure.query(() => 'a key'),
+});
+
+export const appRouter = router({
+  foo: publicProcedure.query(() => 'bar'),
+  admin: adminRouter,
+});
+```
+
+:::tip
+See [Error Handling](error-handling.md) to learn more about the `TRPCError` thrown in the above example.
+:::
+
+## Logging
+
+In the example below timings for queries are logged automatically.
+
+```twoslash include trpclogger
+import { initTRPC } from '@trpc/server';
+const t = initTRPC.create();
+
+
+export const publicProcedure = t.procedure;
+export const router = t.router;
+
+declare function logMock(...args: any[]): void;
+// ---cut---
+
+export const loggedProcedure = publicProcedure.use(async (opts) => {
+  const start = Date.now();
+
+  const result = await opts.next();
+
+  const durationMs = Date.now() - start;
+  const meta = { path: opts.path, type: opts.type, durationMs };
+
+  result.ok
+    ? console.log('OK request timing:', meta)
+    : console.error('Non-OK request timing', meta);
+
+  return result;
+});
+```
+
+```ts twoslash
+// @include: trpclogger
+```
+
+```ts twoslash
+// @filename: trpc.ts
+// @include: trpclogger
+// @filename: _app.ts
+// ---cut---
+import { loggedProcedure, router } from './trpc';
+
+export const appRouter = router({
+  foo: loggedProcedure.query(() => 'bar'),
+  abc: loggedProcedure.query(() => 'def'),
+});
+```
+
+## Context Extension
+
+"Context Extension" enables middlewares to dynamically add and override keys on a base procedure's context in a typesafe manner.
+
+Below we have an example of a middleware that changes properties of a context, the changes are then available to all chained consumers, such as other middlewares and procedures:
+
+```ts twoslash
+// @target: esnext
+import { initTRPC, TRPCError } from '@trpc/server';
+
+const t = initTRPC.context<Context>().create();
+const publicProcedure = t.procedure;
+const router = t.router;
+
+// ---cut---
+
+type Context = {
+  // user is nullable
+  user?: {
+    id: string;
+  };
+};
+
+const protectedProcedure = publicProcedure.use(async function isAuthed(opts) {
+  const { ctx } = opts;
+  // `ctx.user` is nullable
+  if (!ctx.user) {
+    //     ^?
+    throw new TRPCError({ code: 'UNAUTHORIZED' });
+  }
+
+  return opts.next({
+    ctx: {
+      // ✅ user value is known to be non-null now
+      user: ctx.user,
+      // ^?
+    },
+  });
+});
+
+protectedProcedure.query(({ ctx }) => ctx.user);
+//                                        ^?
+```
+
+## Extending middlewares
+
+:::info
+We have prefixed this as `unstable_` as it's a new API, but you're safe to use it! [Read more](/docs/faq#unstable).
+:::
+
+We have a powerful feature called `.pipe()` which allows you to extend middlewares in a typesafe manner.
+
+Below we have an example of a middleware that extends a base middleware(foo). Like the context extension example above, piping middlewares will change properties of the context, and procedures will receive the new context value.
+
+```ts twoslash
+// @target: esnext
+import { initTRPC, TRPCError } from '@trpc/server';
+
+const t = initTRPC.create();
+const publicProcedure = t.procedure;
+const router = t.router;
+const middleware = t.middleware;
+
+// ---cut---
+
+const fooMiddleware = t.middleware((opts) => {
+  return opts.next({
+    ctx: {
+      foo: 'foo' as const,
+    },
+  });
+});
+
+const barMiddleware = fooMiddleware.unstable_pipe((opts) => {
+  const { ctx } = opts;
+  ctx.foo;
+  //   ^?
+  return opts.next({
+    ctx: {
+      bar: 'bar' as const,
+    },
+  });
+});
+
+const barProcedure = publicProcedure.use(barMiddleware);
+barProcedure.query(({ ctx }) => ctx.bar);
+//                              ^?
+```
+
+Beware that the order in which you pipe your middlewares matter and that the context must overlap. An example of a forbidden pipe is shown below. Here, the `fooMiddleware` overrides the `ctx.a` while `barMiddleware` still expects the root context from the initialization in `initTRPC` - so piping `fooMiddleware` with `barMiddleware` would not work, while piping `barMiddleware` with `fooMiddleware` does work.
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+
+const t = initTRPC
+  .context<{
+    a: {
+      b: 'a';
+    };
+  }>()
+  .create();
+
+const fooMiddleware = t.middleware((opts) => {
+  const { ctx } = opts;
+  ctx.a; // 👈 fooMiddleware expects `ctx.a` to be an object
+  //  ^?
+  return opts.next({
+    ctx: {
+      a: 'a' as const, // 👈 `ctx.a` is no longer an object
+    },
+  });
+});
+
+const barMiddleware = t.middleware((opts) => {
+  const { ctx } = opts;
+  ctx.a; // 👈 barMiddleware expects `ctx.a` to be an object
+  //  ^?
+  return opts.next({
+    ctx: {
+      foo: 'foo' as const,
+    },
+  });
+});
+
+// @errors: 2345
+// ❌ `ctx.a` does not overlap from `fooMiddleware` to `barMiddleware`
+fooMiddleware.unstable_pipe(barMiddleware);
+
+// ✅ `ctx.a` overlaps from `barMiddleware` and `fooMiddleware`
+barMiddleware.unstable_pipe(fooMiddleware);
+```
+
+## Experimental: standalone middlewares
+
+:::info
+Caution: we have prefixed this as `experimental_` and it may change with any tRPC release. [Read more](/docs/faq#experimental).
+:::
+
+tRPC has a new experimental API called `experimental_standaloneMiddleware` which allows you to independently define a middleware that can be used with any tRPC instance. Creating middlewares using `t.middleware` has the limitation that
+the `Context` type is tied to the `Context` type of the tRPC instance. This means that you cannot use the same middleware with multiple tRPC instances that have different `Context` types.
+
+Using `experimental_standaloneMiddleware` you can create a middleware that explicitly defines its requirements, i.e. the Context, Input and Meta types:
+
+```ts twoslash
+// @target: esnext
+import {
+  experimental_standaloneMiddleware,
+  initTRPC,
+  TRPCError,
+} from '@trpc/server';
+import * as z from 'zod';
+
+const projectAccessMiddleware = experimental_standaloneMiddleware<{
+  ctx: { allowedProjects: string[] }; // defaults to 'object' if not defined
+  input: { projectId: string }; // defaults to 'unknown' if not defined
+  // 'meta', not defined here, defaults to 'object | undefined'
+}>().create((opts) => {
+  if (!opts.ctx.allowedProjects.includes(opts.input.projectId)) {
+    throw new TRPCError({
+      code: 'FORBIDDEN',
+      message: 'Not allowed',
+    });
+  }
+
+  return opts.next();
+});
+
+const t1 = initTRPC
+  .context<{
+    allowedProjects: string[];
+  }>()
+  .create();
+
+// ✅ `ctx.allowedProjects` satisfies "string[]" and `input.projectId` satisfies "string"
+const accessControlledProcedure = t1.procedure
+  .input(z.object({ projectId: z.string() }))
+  .use(projectAccessMiddleware);
+
+// @errors: 2345
+// ❌ `ctx.allowedProjects` satisfies "string[]" but `input.projectId` does not satisfy "string"
+const accessControlledProcedure2 = t1.procedure
+  .input(z.object({ projectId: z.number() }))
+  .use(projectAccessMiddleware);
+
+// @errors: 2345
+// ❌ `ctx.allowedProjects` does not satisfy "string[]" even though `input.projectId` satisfies "string"
+const t2 = initTRPC
+  .context<{
+    allowedProjects: number[];
+  }>()
+  .create();
+
+const accessControlledProcedure3 = t2.procedure
+  .input(z.object({ projectId: z.string() }))
+  .use(projectAccessMiddleware);
+```
+
+Here is an example with multiple standalone middlewares:
+
+```ts twoslash
+// @target: esnext
+import { experimental_standaloneMiddleware, initTRPC } from '@trpc/server';
+import * as z from 'zod';
+
+const t = initTRPC.create();
+const schemaA = z.object({ valueA: z.string() });
+const schemaB = z.object({ valueB: z.string() });
+
+const valueAUppercaserMiddleware = experimental_standaloneMiddleware<{
+  input: z.infer<typeof schemaA>;
+}>().create((opts) => {
+  return opts.next({
+    ctx: { valueAUppercase: opts.input.valueA.toUpperCase() },
+  });
+});
+
+const valueBUppercaserMiddleware = experimental_standaloneMiddleware<{
+  input: z.infer<typeof schemaB>;
+}>().create((opts) => {
+  return opts.next({
+    ctx: { valueBUppercase: opts.input.valueB.toUpperCase() },
+  });
+});
+
+const combinedInputThatSatisfiesBothMiddlewares = z.object({
+  valueA: z.string(),
+  valueB: z.string(),
+  extraProp: z.string(),
+});
+
+t.procedure
+  .input(combinedInputThatSatisfiesBothMiddlewares)
+  .use(valueAUppercaserMiddleware)
+  .use(valueBUppercaserMiddleware)
+  .query(
+    ({
+      input: { valueA, valueB, extraProp },
+      ctx: { valueAUppercase, valueBUppercase },
+    }) =>
+      `valueA: ${valueA}, valueB: ${valueB}, extraProp: ${extraProp}, valueAUppercase: ${valueAUppercase}, valueBUppercase: ${valueBUppercase}`,
+  );
+```
+
+>>>> procedures.md
+---
+id: procedures
+title: Define Procedures
+sidebar_label: Define Procedures
+slug: /server/procedures
+---
+
+A procedure is a function which is exposed to the client, it can be one of:
+
+- a `Query` - used to fetch data, generally does not change any data
+- a `Mutation` - used to send data, often for create/update/delete purposes
+- a `Subscription` - you might not need this, and we have [dedicated documentation](/docs/subscriptions)
+
+Procedures in tRPC are very flexible primitives to create backend functions. They use an immutable builder pattern, which means you can [create reusable base procedures](#reusable-base-procedures) that share functionality among multiple procedures.
+
+## Writing procedures
+
+The `t` object you create during tRPC setup returns an initial `t.procedure` which all other procedures are built on:
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+const t = initTRPC.context<{ signGuestBook: () => Promise<void> }>().create();
+
+export const router = t.router;
+export const publicProcedure = t.procedure;
+
+const appRouter = router({
+  // Queries are the best place to fetch data
+  hello: publicProcedure.query(() => {
+    return {
+      message: 'hello world',
+    };
+  }),
+
+  // Mutations are the best place to do things like updating a database
+  goodbye: publicProcedure.mutation(async (opts) => {
+    await opts.ctx.signGuestBook();
+
+    return {
+      message: 'goodbye!',
+    };
+  }),
+});
+```
+
+## Reusable "Base Procedures" {#reusable-base-procedures}
+
+As a general pattern we recommend you rename and export `t.procedure` as `publicProcedure`, which then makes room for you to create other named procedures for specific use cases and export those too. This pattern is called "base procedures" and is a key pattern for code and behaviour re-use in tRPC; every application is likely to need it.
+
+The below example takes a user input and [authorizes](https://en.wikipedia.org/wiki/Authorization) them like protective towns-people. This is obviously a contrived example for simplicity, and not an appropriate way to securely authorize an application user, so in practice you may want to use some combination of [Headers](/docs/client/headers), [Context](context), [Middleware](middlewares), and [Metadata](metadata), to [authenticate](https://en.wikipedia.org/wiki/Authentication) and authorize your users.
+
+```ts twoslash
+// @target: esnext
+import { initTRPC, TRPCError } from '@trpc/server';
+import { z } from 'zod';
+
+const t = initTRPC.context<{ signGuestBook: () => Promise<void> }>().create();
+
+export const publicProcedure = t.procedure;
+
+// ---cut---
+
+export const authorizedProcedure = publicProcedure
+  .input(z.object({ townName: z.string() }))
+  .use((opts) => {
+    if (opts.input.townName !== 'Pucklechurch') {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: "We don't take kindly to out-of-town folk",
+      });
+    }
+
+    return opts.next();
+  });
+
+export const appRouter = t.router({
+  hello: authorizedProcedure.query(() => {
+    return {
+      message: 'hello world',
+    };
+  }),
+  goodbye: authorizedProcedure.mutation(async (opts) => {
+    await opts.ctx.signGuestBook();
+
+    return {
+      message: 'goodbye!',
+    };
+  }),
+});
+```
+
+>>>> routers.md
+---
+id: routers
+title: Define Routers
+sidebar_label: Define Routers
+slug: /server/routers
+---
+
+To begin building your tRPC-based API, you'll first need to define your router. Once you've mastered the fundamentals, you can [customize your routers](#advanced-usage) for more advanced use cases.
+
+## Initialize tRPC
+
+You should initialize tRPC **exactly once** per application. Multiple instances of tRPC will cause issues.
+
+```ts twoslash title='server/trpc.ts'
+// @filename: trpc.ts
+// ---cut---
+import { initTRPC } from '@trpc/server';
+
+// You can use any variable name you like.
+// We use t to keep things simple.
+const t = initTRPC.create();
+
+export const router = t.router;
+export const publicProcedure = t.procedure;
+```
+
+You'll notice we are exporting certain methods of the `t` variable here rather than `t` itself. This is to establish a certain set of procedures that we will use idiomatically in our codebase.
+
+## Defining a router
+
+Next, let's define a router with a procedure to use in our application. We have now created an API "endpoint".
+
+In order for these endpoints to be exposed to the frontend, your [Adapter](/docs/server/adapters) should be configured with your `appRouter` instance.
+
+```ts twoslash title="server/_app.ts"
+// @filename: trpc.ts
+import { initTRPC } from '@trpc/server';
+const t = initTRPC.create();
+
+
+
+export const publicProcedure = t.procedure;
+export const router = t.router;
+
+// @filename: _app.ts
+import * as trpc from '@trpc/server';
+// ---cut---
+import { publicProcedure, router } from './trpc';
+
+const appRouter = router({
+  greeting: publicProcedure.query(() => 'hello tRPC v10!'),
+});
+
+// Export only the type of a router!
+// This prevents us from importing server code on the client.
+export type AppRouter = typeof appRouter;
+```
+
+## Advanced usage
+
+When initializing your router, tRPC allows you to:
+
+- Setup [request contexts](/docs/server/context)
+- Assign [metadata](/docs/server/metadata) to procedures
+- [Format](/docs/server/error-formatting) and [handle](/docs/server/error-handling) errors
+- [Transform data](/docs/server/data-transformers) as needed
+- Customize the [runtime configuration](#runtime-configuration)
+
+You can use method chaining to customize your `t`-object on initialization. For example:
+
+```ts
+const t = initTRPC.context<Context>().meta<Meta>().create({
+  /* [...] */
+});
+```
+
+### Runtime Configuration
+
+```ts
+export interface RuntimeConfig<TTypes extends RootConfigTypes> {
+  /**
+   * Use a data transformer
+   * @link https://trpc.io/docs/data-transformers
+   */
+  transformer: TTypes['transformer'];
+
+  /**
+   * Use custom error formatting
+   * @link https://trpc.io/docs/error-formatting
+   */
+  errorFormatter: ErrorFormatter<TTypes['ctx'], any>;
+
+  /**
+   * Allow `@trpc/server` to run in non-server environments
+   * @warning **Use with caution**, this should likely mainly be used within testing.
+   * @default false
+   */
+  allowOutsideOfServer: boolean;
+
+  /**
+   * Is this a server environment?
+   * @warning **Use with caution**, this should likely mainly be used within testing.
+   * @default typeof window === 'undefined' || 'Deno' in window || process.env.NODE_ENV === 'test'
+   */
+  isServer: boolean;
+
+  /**
+   * Is this development?
+   * Will be used to decide if the API should return stack traces
+   * @default process.env.NODE_ENV !== 'production'
+   */
+  isDev: boolean;
+}
+```
+
+>>>> server-side-calls.md
+---
+id: server-side-calls
+title: Server Side Calls
+sidebar_label: Server Side Calls
+slug: /server/server-side-calls
+---
+
+You may need to call your procedure(s) directly from the same server they're hosted in, `createCallerFactory()` can be used to achieve this. This is useful for server-side calls and for integration testing of your tRPC procedures.
+
+:::info
+
+`createCaller` should not be used to call procedures from within other procedures. This creates overhead by (potentially) creating context again, executing all middlewares, and validating the input - all of which were already done by the current procedure. Instead, you should extract the shared logic into a separate function and call that from within the procedures, like so:
+
+<div className="flex gap-2 w-full justify-between pt-2">
+  <img src="https://user-images.githubusercontent.com/51714798/212568342-0a8440cb-68ed-48ae-9849-8c7bc417633e.png" className="w-[49.5%]" />
+  <img src="https://user-images.githubusercontent.com/51714798/212568254-06cc56d0-35f6-4bb5-bff9-d25caf092c2c.png" className="w-[49.5%]" />
+</div>
+
+:::
+
+## Create caller
+
+With the `t.createCallerFactory`-function you can create a server-side caller of any router. You first call `createCallerFactory` with an argument of the router you want to call, then this returns a function where you can pass in a `Context` for the following procedure calls.
+
+### Basic example
+
+We create the router with a query to list posts and a mutation to add posts, and then we a call each method.
+
+```ts twoslash
+// @target: esnext
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+type Context = {
+  foo: string;
+};
+
+const t = initTRPC.context<Context>().create();
+
+const publicProcedure = t.procedure;
+const { createCallerFactory, router } = t;
+
+interface Post {
+  id: string;
+  title: string;
+}
+const posts: Post[] = [
+  {
+    id: '1',
+    title: 'Hello world',
+  },
+];
+const appRouter = router({
+  post: router({
+    add: publicProcedure
+      .input(
+        z.object({
+          title: z.string().min(2),
+        }),
+      )
+      .mutation((opts) => {
+        const post: Post = {
+          ...opts.input,
+          id: `${Math.random()}`,
+        };
+        posts.push(post);
+        return post;
+      }),
+    list: publicProcedure.query(() => posts),
+  }),
+});
+
+// 1. create a caller-function for your router
+const createCaller = createCallerFactory(appRouter);
+
+// 2. create a caller using your `Context`
+const caller = createCaller({
+  foo: 'bar',
+});
+
+// 3. use the caller to add and list posts
+const addedPost = await caller.post.add({
+  title: 'How to make server-side call in tRPC',
+});
+
+const postList = await caller.post.list();
+//     ^?
+```
+
+### Example usage in an integration test
+
+> Taken from <https://github.com/trpc/examples-next-prisma-starter/blob/main/src/server/routers/post.test.ts>
+
+```ts
+import { inferProcedureInput } from '@trpc/server';
+import { createContextInner } from '../context';
+import { AppRouter, createCaller } from './_app';
+
+test('add and get post', async () => {
+  const ctx = await createContextInner({});
+  const caller = createCaller(ctx);
+
+  const input: inferProcedureInput<AppRouter['post']['add']> = {
+    text: 'hello test',
+    title: 'hello test',
+  };
+
+  const post = await caller.post.add(input);
+  const byId = await caller.post.byId({ id: post.id });
+
+  expect(byId).toMatchObject(input);
+});
+```
+
+## `router.createCaller()`
+
+:::caution
+`router.createCaller()` has been deprecated and will be removed in v11 or v12 of tRPC.
+:::
+
+With the `router.createCaller({})` function (first argument is `Context`) we retrieve an instance of `RouterCaller`.
+
+### Input query example
+
+We create the router with an input query, and then we call the asynchronous `greeting` procedure to get the result.
+
+```ts twoslash
+// @target: esnext
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+const t = initTRPC.create();
+
+const router = t.router({
+  // Create procedure at path 'greeting'
+  greeting: t.procedure
+    .input(z.object({ name: z.string() }))
+    .query((opts) => `Hello ${opts.input.name}`),
+});
+
+const caller = router.createCaller({});
+const result = await caller.greeting({ name: 'tRPC' });
+//     ^?
+```
+
+### Mutation example
+
+We create the router with a mutation, and then we call the asynchronous `post` procedure to get the result.
+
+```ts twoslash
+// @target: esnext
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+const posts = ['One', 'Two', 'Three'];
+
+const t = initTRPC.create();
+const router = t.router({
+  post: t.router({
+    add: t.procedure.input(z.string()).mutation((opts) => {
+      posts.push(opts.input);
+      return posts;
+    }),
+  }),
+});
+
+const caller = router.createCaller({});
+const result = await caller.post.add('Four');
+//     ^?
+```
+
+### Context with middleware example
+
+We create a middleware to check the context before executing the `secret` procedure. Below are two examples: the former fails because the context doesn't fit the middleware logic, and the latter works correctly.
+
+<br />
+
+:::info
+
+Middlewares are performed before any procedure(s) are called.
+
+:::
+
+<br />
+
+```ts twoslash
+// @target: esnext
+import { initTRPC, TRPCError } from '@trpc/server';
+
+type Context = {
+  user?: {
+    id: string;
+  };
+};
+const t = initTRPC.context<Context>().create();
+
+const protectedProcedure = t.procedure.use((opts) => {
+  const { ctx } = opts;
+  if (!ctx.user) {
+    throw new TRPCError({
+      code: 'UNAUTHORIZED',
+      message: 'You are not authorized',
+    });
+  }
+
+  return opts.next({
+    ctx: {
+      // Infers that the `user` is non-nullable
+      user: ctx.user,
+    },
+  });
+});
+
+const router = t.router({
+  secret: protectedProcedure.query((opts) => opts.ctx.user),
+});
+
+{
+  // ❌ this will return an error because there isn't the right context param
+  const caller = router.createCaller({});
+
+  const result = await caller.secret();
+}
+
+{
+  // ✅ this will work because user property is present inside context param
+  const authorizedCaller = router.createCaller({
+    user: {
+      id: 'KATT',
+    },
+  });
+  const result = await authorizedCaller.secret();
+  //     ^?
+}
+```
+
+### Example for a Next.js API endpoint
+
+:::tip
+
+This example shows how to use the caller in a Next.js API endpoint. tRPC creates API endpoints for you already, so this file is only meant to show
+how to call a procedure from another, custom endpoint.
+
+:::
+
+```ts twoslash
+// @noErrors
+// ---cut---
+import { TRPCError } from '@trpc/server';
+import { getHTTPStatusCodeFromError } from '@trpc/server/http';
+import { appRouter } from '~/server/routers/_app';
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+type ResponseData = {
+  data?: {
+    postTitle: string;
+  };
+  error?: {
+    message: string;
+  };
+};
+
+export default async (
+  req: NextApiRequest,
+  res: NextApiResponse<ResponseData>,
+) => {
+  /** We want to simulate an error, so we pick a post ID that does not exist in the database. */
+  const postId = `this-id-does-not-exist-${Math.random()}`;
+
+  const caller = appRouter.createCaller({});
+
+  try {
+    // the server-side call
+    const postResult = await caller.post.byId({ id: postId });
+
+    res.status(200).json({ data: { postTitle: postResult.title } });
+  } catch (cause) {
+    // If this a tRPC error, we can extract additional information.
+    if (cause instanceof TRPCError) {
+      // We can get the specific HTTP status code coming from tRPC (e.g. 404 for `NOT_FOUND`).
+      const httpStatusCode = getHTTPStatusCodeFromError(cause);
+
+      res.status(httpStatusCode).json({ error: { message: cause.message } });
+      return;
+    }
+
+    // This is not a tRPC error, so we don't have specific information.
+    res.status(500).json({
+      error: { message: `Error while accessing post with ID ${postId}` },
+    });
+  }
+};
+```
+
+>>>> validators.md
+---
+id: validators
+title: Input & Output Validators
+sidebar_label: Input & Output Validators
+slug: /server/validators
+---
+
+tRPC procedures may define validation logic for their input and/or output, and validators are also used to infer the types of inputs and outputs. We have first class support for many popular validators, and you can [integrate validators](#contributing-your-own-validator-library) which we don't directly support.
+
+## Input Validators
+
+By defining an input validator, tRPC can check that a procedure call is correct and return a validation error if not.
+
+To set up an input validator, use the `procedure.input()` method:
+
+```ts twoslash
+// @target: esnext
+import { initTRPC } from '@trpc/server';
+// ---cut---
+
+// Our examples use Zod by default, but usage with other libraries is identical
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(
+      z.object({
+        name: z.string(),
+      }),
+    )
+    .query((opts) => {
+      const name = opts.input.name;
+      //    ^?
+      return {
+        greeting: `Hello ${opts.input.name}`,
+      };
+    }),
+});
+```
+
+### Input Merging
+
+`.input()` can be stacked to build more complex types, which is particularly useful when you want to utilise some common input to a collection of procedures in a [middleware](middlewares).
+
+```ts twoslash
+// @target: esnext
+import { initTRPC, TRPCError } from '@trpc/server';
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+
+// ---cut---
+
+const baseProcedure = t.procedure
+  .input(z.object({ townName: z.string() }))
+  .use((opts) => {
+    const input = opts.input;
+    //    ^?
+
+    console.log(`Handling request with user from: ${input.townName}`);
+
+    return opts.next();
+  });
+
+export const appRouter = t.router({
+  hello: baseProcedure
+    .input(
+      z.object({
+        name: z.string(),
+      }),
+    )
+    .query((opts) => {
+      const input = opts.input;
+      //    ^?
+      return {
+        greeting: `Hello ${input.name}, my friend from ${input.townName}`,
+      };
+    }),
+});
+```
+
+## Output Validators
+
+Validating outputs is not always as important as defining inputs, since tRPC gives you automatic type-safety by inferring the return type of your procedures. Some reasons to define an output validator include:
+
+- Checking that data returned from untrusted sources is correct
+- Ensure that you are not returning more data to the client than necessary
+
+:::info
+If output validation fails, the server will respond with an `INTERNAL_SERVER_ERROR`.
+:::
+
+```ts twoslash
+// @target: esnext
+import { initTRPC } from '@trpc/server';
+// @noErrors
+// ---cut---
+
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .output(
+      z.object({
+        greeting: z.string(),
+      }),
+    )
+    .query((opts) => {
+      return {
+        gre,
+        // ^|
+      };
+    }),
+});
+```
+
+## The most basic validator: a function
+
+You can define a validator without any 3rd party dependencies, with a function.
+
+:::info
+We don't recommend making a custom validator unless you have a specific need, but it's important to understand that there's no magic here - it's _just typescript_!
+
+In most cases we recommend you use a [validation library](#library-integrations)
+:::
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input((value): string => {
+      if (typeof value === 'string') {
+        return value;
+      }
+      throw new Error('Input is not a string');
+    })
+    .output((value): string => {
+      if (typeof value === 'string') {
+        return value;
+      }
+      throw new Error('Output is not a string');
+    })
+    .query((opts) => {
+      const { input } = opts;
+      //      ^?
+      return `hello ${input}`;
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+## Library integrations
+
+tRPC works out of the box with a number of popular validation and parsing libraries. The below are some examples of usage with validators which we officially maintain support for.
+
+### With [Zod](https://github.com/colinhacks/zod)
+
+Zod is our default recommendation, it has a strong ecosystem which makes it a great choice to use in multiple parts of your codebase. If you have no opinion of your own and want a powerful library which won't limit future needs, Zod is a great choice.
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import { z } from 'zod';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(
+      z.object({
+        name: z.string(),
+      }),
+    )
+    .output(
+      z.object({
+        greeting: z.string(),
+      }),
+    )
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [Yup](https://github.com/jquense/yup)
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import * as yup from 'yup';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(
+      yup.object({
+        name: yup.string().required(),
+      }),
+    )
+    .output(
+      yup.object({
+        greeting: yup.string().required(),
+      }),
+    )
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [Superstruct](https://github.com/ianstormtaylor/superstruct)
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import { object, string } from 'superstruct';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(object({ name: string() }))
+    .output(object({ greeting: string() }))
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [scale-ts](https://github.com/paritytech/scale-ts)
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import * as $ from 'scale-codec';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input($.object($.field('name', $.str)))
+    .output($.object($.field('greeting', $.str)))
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [Typia](https://typia.io/docs/utilization/trpc/)
+
+```ts
+import { initTRPC } from '@trpc/server';
+import typia from 'typia';
+import { v4 } from 'uuid';
+import { IBbsArticle } from '../structures/IBbsArticle';
+
+const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  store: publicProcedure
+    .input(typia.createAssert<IBbsArticle.IStore>())
+    .output(typia.createAssert<IBbsArticle>())
+    .query(({ input }) => {
+      return {
+        id: v4(),
+        writer: input.writer,
+        title: input.title,
+        body: input.body,
+        created_at: new Date().toString(),
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [ArkType](https://github.com/arktypeio/arktype#trpc)
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import { type } from 'arktype';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(type({ name: 'string' }).assert)
+    .output(type({ greeting: 'string' }).assert)
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [@effect/schema](https://github.com/Effect-TS/schema)
+
+```ts twoslash
+import * as S from '@effect/schema/Schema';
+import { initTRPC } from '@trpc/server';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(S.parseSync(S.struct({ name: S.string })))
+    .output(S.parseSync(S.struct({ greeting: S.string })))
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [runtypes](https://github.com/pelotom/runtypes)
+
+```ts twoslash
+import { initTRPC } from '@trpc/server';
+import * as T from 'runtypes';
+
+const t = initTRPC.create();
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(T.Record({ name: T.String }))
+    .output(T.Record({ greeting: T.String }))
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+### With [Valibot](https://github.com/fabian-hiller/valibot)
+
+```ts twoslash
+import { wrap } from '@decs/typeschema';
+import { initTRPC } from '@trpc/server';
+import { object, string } from 'valibot';
+
+export const t = initTRPC.create();
+
+const publicProcedure = t.procedure;
+
+export const appRouter = t.router({
+  hello: publicProcedure
+    .input(wrap(object({ name: string() })))
+    .output(wrap(object({ greeting: string() })))
+    .query(({ input }) => {
+      //      ^?
+      return {
+        greeting: `hello ${input.name}`,
+      };
+    }),
+});
+
+export type AppRouter = typeof appRouter;
+```
+
+## Contributing your own Validator Library
+
+If you work on a validator library which supports tRPC usage, please feel free to open a PR for this page with equivalent usage to the other examples here, and a link to your docs.
+
+Integration with tRPC in most cases is as simple as meeting one of several existing type interfaces, but in some cases we may accept a PR to add a new supported interface. Feel free to open an issue for discussion. You can check the existing supported interfaces here:
+
+- [Types for Inference](https://github.com/trpc/trpc/blob/main/packages/server/src/core/parser.ts)
+- [Functions for parsing/validation](https://github.com/trpc/trpc/blob/main/packages/server/src/core/internals/getParseFn.ts)
