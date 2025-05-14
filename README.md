@@ -64,6 +64,13 @@ bunx nx s deenji
 
 The application will be available at `http://localhost:4200`.
 
+### 4. Run tests
+
+```bash
+# Run tests from deenji directory
+bun nx test deenji
+```
+
 ## Project Structure
 
 - `/src/app` - Angular application code

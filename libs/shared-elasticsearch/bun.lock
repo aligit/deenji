@@ -1,0 +1,17 @@
+{
+  "lockfileVersion": 1,
+  "workspaces": {
+    "": {
+      "name": "@deenji/shared-elasticsearch",
+      "dependencies": {
+        "tslib": "^2.3.0",
+      },
+      "peerDependencies": {
+        "@elastic/elasticsearch": "8.17.4",
+      },
+    },
+  },
+  "packages": {
+    "tslib": ["tslib@2.8.1", "", {}, "sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w=="],
+  }
+}

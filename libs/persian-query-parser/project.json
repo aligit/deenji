@@ -1,0 +1,19 @@
+{
+  "name": "persian-query-parser",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "persian-query-parser/src",
+  "projectType": "library",
+  "targets": {
+    "build": {
+      "executor": "@nx/js:tsc",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/libs/persian-query-parser",
+        "main": "libs/persian-query-parser/src/index.ts",
+        "tsConfig": "libs/persian-query-parser/tsconfig.lib.json",
+        "assets": ["persian-query-parser/*.md"]
+      }
+    }
+  },
+  "tags": []
+}
