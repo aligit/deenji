@@ -81,6 +81,12 @@ bun nx test deenji
   - `/routes` - API routes and endpoints
   - `/trpc` - tRPC router definitions
 
+## Elasticsearch schema
+
+```sh
+curl -X GET "localhost:9200/_all" > elasticsearch_schema.json
+```
+
 ## Authentication Flow
 
 Deenji uses Supabase's passwordless authentication with magic links:
