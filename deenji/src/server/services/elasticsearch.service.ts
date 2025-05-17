@@ -88,23 +88,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-        auth: {
-          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-        },
-      }
+      auth: {
+        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+      },
+    }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-        tls: {
-          // In development, we might want to bypass certificate validation
-          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-        },
-      }
+      tls: {
+        // In development, we might want to bypass certificate validation
+        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+      },
+    }
     : {}),
 
   // General client configuration
@@ -431,7 +431,12 @@ export class ElasticsearchService {
       if (query.maxArea !== undefined) rangeQuery.lte = query.maxArea;
       filterClauses.push({ range: { area: rangeQuery } });
     }
-
+    // Add property type filter if provided
+    if ('property_type' in query && query.property_type) {
+      filterClauses.push({
+        term: { property_type: String(query.property_type) },
+      } as QueryDslQueryContainer);
+    }
     // Add year built filter
     if (query.minYearBuilt !== undefined || query.maxYearBuilt !== undefined) {
       const rangeQuery: { gte?: number; lte?: number } = {};
