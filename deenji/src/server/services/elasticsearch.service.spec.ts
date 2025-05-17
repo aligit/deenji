@@ -1,7 +1,16 @@
 // src/server/services/elasticsearch.service.spec.ts
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import {
+  describe,
+  it,
+  expect,
+  vi,
+  beforeEach,
+  afterEach,
+  MockInstance,
+} from 'vitest';
 import { ElasticsearchService } from './elasticsearch.service';
+import { PropertySearchQuery } from '../trpc/schemas/property.schema';
 
 // Use vi.hoisted() to ensure mock functions are available during mock setup
 const { mockSearch, mockIndex, mockCount, mockedErrors } = vi.hoisted(() => ({
@@ -47,9 +56,21 @@ vi.mock('@elastic/elasticsearch', () => ({
   errors: mockedErrors,
 }));
 
+// Create an extended interface for testing with property_type
+interface ExtendedPropertySearchQuery extends PropertySearchQuery {
+  property_type?: string;
+}
+
+// Type for Elasticsearch filter object
+type ElasticsearchFilter = {
+  term?: Record<string, unknown>;
+  range?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 describe('ElasticsearchService', () => {
   let service: ElasticsearchService;
-  let consoleSpy: any;
+  let consoleSpy: MockInstance;
 
   beforeEach(() => {
     service = new ElasticsearchService();
@@ -233,6 +254,253 @@ describe('ElasticsearchService', () => {
           sortOrder: 'asc',
         })
       ).rejects.toThrow('Generic error');
+    });
+
+    describe('property type search', () => {
+      // Test data setup for property type search tests
+      const mockPropertyResults = (propertyType: string) => ({
+        hits: {
+          hits: [
+            {
+              _source: {
+                id: 1,
+                title: `${propertyType} در تهران`,
+                price: 1000000000,
+                bedrooms: 2,
+                bathrooms: 1,
+                area: 80,
+                description: `یک ${propertyType} زیبا در منطقه خوب`,
+                property_type: propertyType,
+                location: { city: 'تهران' },
+              },
+            },
+          ],
+          total: { value: 1 },
+        },
+        aggregations: {},
+      });
+
+      it('should search for آپارتمان (Apartment) using property_type filter', async () => {
+        mockSearch.mockResolvedValue(mockPropertyResults('آپارتمان'));
+
+        const result = await service.searchProperties({
+          property_type: 'آپارتمان',
+          page: 1,
+          pageSize: 10,
+          sortBy: 'relevance',
+          sortOrder: 'asc',
+        } as ExtendedPropertySearchQuery);
+
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0].title).toBe('آپارتمان در تهران');
+        expect(mockSearch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: expect.arrayContaining([
+                  { term: { property_type: 'آپارتمان' } },
+                ]),
+              }),
+            }),
+          }),
+          expect.any(Object)
+        );
+      });
+
+      it('should search for ویلا (Villa) using property_type filter', async () => {
+        mockSearch.mockResolvedValue(mockPropertyResults('ویلا'));
+
+        const result = await service.searchProperties({
+          property_type: 'ویلا',
+          page: 1,
+          pageSize: 10,
+          sortBy: 'relevance',
+          sortOrder: 'asc',
+        } as ExtendedPropertySearchQuery);
+
+        expect(result.results).toHaveLength(1);
+        expect(result.results[0].title).toBe('ویلا در تهران');
+        expect(mockSearch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: expect.arrayContaining([
+                  { term: { property_type: 'ویلا' } },
+                ]),
+              }),
+            }),
+          }),
+          expect.any(Object)
+        );
+      });
+
+      it('should search for خانه (House) using property_type filter', async () => {
+        mockSearch.mockResolvedValue(mockPropertyResults('خانه'));
+
+        await service.searchProperties({
+          property_type: 'خانه',
+          page: 1,
+          pageSize: 10,
+          sortBy: 'relevance',
+          sortOrder: 'asc',
+        } as ExtendedPropertySearchQuery);
+
+        expect(mockSearch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: expect.arrayContaining([
+                  { term: { property_type: 'خانه' } },
+                ]),
+              }),
+            }),
+          }),
+          expect.any(Object)
+        );
+      });
+
+      it('should search for زمین (Land) using property_type filter', async () => {
+        mockSearch.mockResolvedValue(mockPropertyResults('زمین'));
+
+        await service.searchProperties({
+          property_type: 'زمین',
+          page: 1,
+          pageSize: 10,
+          sortBy: 'relevance',
+          sortOrder: 'asc',
+        } as ExtendedPropertySearchQuery);
+
+        expect(mockSearch).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bool: expect.objectContaining({
+                filter: expect.arrayContaining([
+                  { term: { property_type: 'زمین' } },
+                ]),
+              }),
+            }),
+          }),
+          expect.any(Object)
+        );
+      });
+
+      it('should not apply property_type filter when property_type is empty/undefined', async () => {
+        mockSearch.mockResolvedValue({
+          hits: {
+            hits: [],
+            total: { value: 0 },
+          },
+          aggregations: {},
+        });
+
+        await service.searchProperties({
+          page: 1,
+          pageSize: 10,
+          sortBy: 'relevance',
+          sortOrder: 'asc',
+        });
+
+        // Verify that no property_type term filter was added
+        const searchCall = mockSearch.mock.calls[0][0];
+        const filterClauses = searchCall.query?.bool?.filter || [];
+        const hasPropertyTypeFilter = filterClauses.some(
+          (filter: ElasticsearchFilter) =>
+            filter.term && 'property_type' in filter.term
+        );
+
+        expect(hasPropertyTypeFilter).toBe(false);
+      });
+
+      // Test for partial property type matching
+      describe('partial property type matching', () => {
+        it('should match partial term آپ for آپارتمان', async () => {
+          mockSearch.mockResolvedValue(mockPropertyResults('آپارتمان'));
+
+          await service.searchProperties({
+            q: 'آپ',
+            page: 1,
+            pageSize: 10,
+            sortBy: 'relevance',
+            sortOrder: 'asc',
+          });
+
+          expect(mockSearch).toHaveBeenCalledWith(
+            expect.objectContaining({
+              query: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must: expect.arrayContaining([
+                    expect.objectContaining({
+                      multi_match: expect.objectContaining({
+                        query: 'آپ',
+                        fuzziness: 'AUTO',
+                      }),
+                    }),
+                  ]),
+                }),
+              }),
+            }),
+            expect.any(Object)
+          );
+        });
+
+        it('should match partial term وی for ویلا', async () => {
+          mockSearch.mockResolvedValue(mockPropertyResults('ویلا'));
+
+          await service.searchProperties({
+            q: 'وی',
+            page: 1,
+            pageSize: 10,
+            sortBy: 'relevance',
+            sortOrder: 'asc',
+          });
+
+          expect(mockSearch).toHaveBeenCalledWith(
+            expect.objectContaining({
+              query: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must: expect.arrayContaining([
+                    expect.objectContaining({
+                      multi_match: expect.objectContaining({
+                        query: 'وی',
+                      }),
+                    }),
+                  ]),
+                }),
+              }),
+            }),
+            expect.any(Object)
+          );
+        });
+
+        it('should match partial term کلن for کلنگی', async () => {
+          mockSearch.mockResolvedValue(mockPropertyResults('کلنگی'));
+
+          await service.searchProperties({
+            q: 'کلن',
+            page: 1,
+            pageSize: 10,
+            sortBy: 'relevance',
+            sortOrder: 'asc',
+          });
+
+          expect(mockSearch).toHaveBeenCalledWith(
+            expect.objectContaining({
+              query: expect.objectContaining({
+                bool: expect.objectContaining({
+                  must: expect.arrayContaining([
+                    expect.objectContaining({
+                      multi_match: expect.objectContaining({
+                        query: 'کلن',
+                      }),
+                    }),
+                  ]),
+                }),
+              }),
+            }),
+            expect.any(Object)
+          );
+        });
+      });
     });
   });
 
