@@ -10,7 +10,6 @@ import {
   AggregationsAvgAggregate,
   AggregationsHistogramAggregate,
   AggregationsLongTermsAggregate,
-  AggregationsLongTermsBucketKeys, // Make sure this is correctly typed or used
   AggregationsRangeAggregate,
   AggregationsStringTermsAggregate,
   SearchResponse,
@@ -83,23 +82,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-        auth: {
-          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-        },
-      }
+      auth: {
+        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+      },
+    }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-        tls: {
-          // In development, we might want to bypass certificate validation
-          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-        },
-      }
+      tls: {
+        // In development, we might want to bypass certificate validation
+        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+      },
+    }
     : {}),
 
   // General client configuration
@@ -107,8 +106,60 @@ const client = new Client({
   maxRetries: 3,
   compression: true,
 });
-
 export class ElasticsearchService {
+  /**
+   * Create or update the property index with mappings
+   */
+  async createIndex(forceCreate = false): Promise<boolean> {
+    try {
+      // Check if index exists
+      const indexExists = await client.indices.exists({ index: INDEX });
+
+      if (indexExists && !forceCreate) {
+        console.log(`Index ${INDEX} already exists.`);
+        return true;
+      }
+
+      // If forceCreate is true and index exists, delete it first
+      if (indexExists && forceCreate) {
+        await client.indices.delete({ index: INDEX });
+        console.log(`Deleted existing index ${INDEX}.`);
+      }
+
+      // Create index with mappings
+      await client.indices.create({
+        index: INDEX,
+        // 'mappings' is now a top-level property
+        mappings: {
+          properties: {
+            id: { type: 'keyword' },
+            title: { type: 'text', analyzer: 'standard' },
+            description: { type: 'text', analyzer: 'standard' },
+            price: { type: 'long' },
+            bedrooms: { type: 'integer' },
+            bathrooms: { type: 'float' },
+            area: { type: 'float' },
+            amenities: { type: 'keyword' },
+            location: { type: 'geo_point' },
+            year_built: { type: 'integer' },
+            created_at: { type: 'date' },
+            updated_at: { type: 'date' },
+          },
+        },
+        // 'settings' is now a top-level property
+        settings: {
+          'index.number_of_shards': 1,
+          'index.number_of_replicas': 1,
+        },
+      });
+
+      console.log(`Created index ${INDEX} successfully.`);
+      return true;
+    } catch (error) {
+      console.error(`Error creating index ${INDEX}:`, error);
+      throw error;
+    }
+  }
   /**
    * Search for properties with the given query parameters
    */
