@@ -1,12 +1,6 @@
 # Deenji Real Estate Platform
 
-Creates a properly structured Elasticsearch index for properties
-Maps PostgreSQL data to the correct format for Elasticsearch
-Handles bulk indexing for performance
-Properly extracts amenities from your attributes array
-Includes handling for Persian text and numbers
-
-Deenji is a modern real estate platform built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication.
+Deenji is a modern real estate platform built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication. This platform leverages AI-assisted development tools like CodeCompanion and VectorCode for enhanced productivity.
 
 ## Features
 
@@ -15,7 +9,8 @@ Deenji is a modern real estate platform built with AnalogJS (Angular meta-framew
 - 🔒 Secure authentication via magic links
 - 🌐 Multilingual support (Persian/Farsi by default)
 - 📱 Responsive design for all devices
-- 🔍 Advanced property search
+- 🔍 Advanced property search powered by Elasticsearch
+- ✨ AI-assisted development with CodeCompanion & VectorCode
 
 ## Tech Stack
 
@@ -23,19 +18,19 @@ Deenji is a modern real estate platform built with AnalogJS (Angular meta-framew
 - **Backend**: Supabase, tRPC, Drizzle ORM
 - **Database**: PostgreSQL (via Supabase)
 - **Search**: Elasticsearch for property search and filtering
+- **AI Development Tools**: CodeCompanion.nvim, VectorCode
 
 ## Prerequisites
 
 - Node.js 16+
 - Bun package manager
 - Supabase CLI
-- Python 3.11+ (for VectorCode)
+- Python 3.11+
+- `pipx` (for isolated Python tool installation, recommended for VectorCode)
 
 ## Getting Started
 
 ### 1. Start Supabase locally
-
-Before starting the application, you need to run a local Supabase instance. This provides authentication, database, and storage services.
 
 ```bash
 # Start Supabase while excluding unnecessary services
@@ -44,25 +39,23 @@ bunx supabase start -x edge-runtime,vector,logflare
 
 ### 2. Environment Setup
 
-Create a `.env` file in the root directory with the following variables:
+Create a `.env` file in the root directory:
 
 ```
 VITE_supabaseUrl=http://localhost:54321
 VITE_supabaseKey=your-supabase-anon-key
 ```
 
-You can find your anon key in the Supabase dashboard or in the terminal output after starting Supabase.
+(Find your anon key from Supabase CLI output or dashboard)
 
 ### 3. Start the Development Server
-
-The project uses Nx for monorepo management. To start the development server:
 
 ```bash
 # Start the development server
 bunx nx s deenji
 ```
 
-The application will be available at `http://localhost:4200`.
+App available at `http://localhost:4200`.
 
 ### 4. Run tests
 
@@ -74,221 +67,189 @@ bun nx test deenji
 ## Project Structure
 
 - `/src/app` - Angular application code
-  - `/core` - Core services, guards, and models
-  - `/pages` - Page components following the AnalogJS file-based routing
-  - `/shared` - Shared components like navbar and footer
-- `/src/server` - Server-side code
-  - `/routes` - API routes and endpoints
-  - `/trpc` - tRPC router definitions
+- `/src/server` - Server-side code (tRPC, services)
+- `/docs` - Documentation, including search and integration details
+- `/.vectorcode` - VectorCode project-specific configuration and data
+- `/codecompanion-workspace.json` - Context file for CodeCompanion AI assistant
 
-## Elasticsearch schema
+## Elasticsearch & Database
+
+### Elasticsearch Schema
 
 ```sh
-curl -X GET "localhost:9200/_all" > elasticsearch_schema.json
+# Get current Elasticsearch schema (ensure ES is running)
+curl -X GET "http://localhost:9200/_all" > elasticsearch_schema.json
 ```
 
-## Authentication Flow
-
-Deenji uses Supabase's passwordless authentication with magic links:
-
-1. User enters their email address
-2. User receives a one-time password (OTP) via email
-3. User verifies identity by entering the OTP
-4. System creates user profile if it doesn't exist
-
-### Authentication and Authorization with Supabase and tRPC
-
-#### Overview
-
-Our application uses Supabase for authentication and tRPC for type-safe API communication. The authentication flow works by:
-
-1. Users authenticate with Supabase (via email OTP)
-2. The Supabase session provides an auth token
-3. Our Angular app passes this token to tRPC requests
-4. The tRPC backend verifies this token with Supabase
-5. Middleware enforces appropriate access controls
-
-#### Security Levels
-
-We have three levels of authorization in our tRPC endpoints:
-
-- **publicProcedure**: Available to anyone, authenticated or not
-- **protectedProcedure**: Only available to authenticated users
-- **userProcedure**: Only allows users to access their own data
-
-#### Adding New Secure Routes
-
-When adding new endpoints to tRPC:
-
-1. Choose the appropriate security level for your endpoint:
-
-```typescript
-// Public endpoint (anyone can access)
-myPublicEndpoint: publicProcedure
-  .query(() => { ... })
-
-// Protected endpoint (authenticated users only)
-myProtectedEndpoint: protectedProcedure
-  .query(() => { ... })
-
-// User-specific endpoint (users can only access their own data)
-myUserEndpoint: userProcedure
-  .input(z.object({ userId: z.string().uuid() }))
-  .query(({ input, ctx }) => {
-    // ctx.user is guaranteed to be available and authenticated
-    // input.userId is guaranteed to match ctx.user.id
-    ...
-  })
-```
-
-2. For user-specific endpoints, use the userProcedure and include userId in the input
-
-3. Always access the authenticated user through ctx.user, never trust client-provided data
-
-4. Use the TRPCError with appropriate error codes:
-
-```typescript
-throw new TRPCError({
-  code: 'UNAUTHORIZED', // For authentication failures
-  message: 'You must be logged in to access this resource',
-});
-
-// Or
-throw new TRPCError({
-  code: 'FORBIDDEN', // For authorization failures
-  message: 'You can only access your own data',
-});
-```
-
-## Database Migrations
-
-To apply database migrations:
+### Database Migrations
 
 ```bash
 bunx supabase migration up
 ```
 
-## Database schema
+### Database Schema Dump
 
 ```bash
+# Ensure Supabase is running locally
 pg_dump "postgresql://postgres:postgres@127.0.0.1:54322/postgres" --schema-only > deenji_schema.sql
 ```
 
-## Building for Production
+### Indexing Data for Elasticsearch
 
-```bash
-bunx nx build deenji
-```
-
-## Index Data for elasticsearch
-
-### First time
+**First time (or to recreate index):**
 
 ```bash
 cd ./migrations
 ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts --recreate-index
 ```
 
-### Otherwise
+**Subsequent updates:**
 
 ```bash
 cd ./migrations
 ELASTICSEARCH_URL=http://localhost:9200 bun run src/elasticsearch-sync.ts
 ```
 
-## Using VectorCode for Development
+## AI-Assisted Development with CodeCompanion & VectorCode (Neovim)
 
-VectorCode is a semantic code search tool that helps developers navigate and understand the codebase. It's especially useful for new team members and when implementing new features that interact with multiple parts of the system.
+This project is enhanced for AI-assisted development using CodeCompanion.nvim and VectorCode for semantic code search within Neovim.
 
-### Installation
+### 1. Setup VectorCode CLI
 
-Install VectorCode using Python's virtual environment:
+VectorCode provides semantic search capabilities for your codebase.
+
+**Installation (using `pipx` for isolated environment):**
 
 ```bash
-# Create a virtual environment
-python3 -m venv ~/vectorcode-env
-
-# Activate the environment
-source ~/vectorcode-env/bin/activate
-
-# Install VectorCode
-pip install vectorcode
+pipx install vectorcode --force
+# Or for CPU-only PyTorch (if CUDA issues):
+# PIP_INDEX_URL="https://download.pytorch.org/whl/cpu" PIP_EXTRA_INDEX_URL="https://pypi.org/simple" pipx install vectorcode --force
 ```
 
-For easier access, consider adding an alias to your shell profile:
+Ensure `pipx` binaries are in your `PATH`.
+
+**Initialize & Index Project (run once per project, then update):**
+From the `Deenji` project root:
 
 ```bash
-# Add to your .bashrc or .zshrc
-alias vectorcode="~/vectorcode-env/bin/vectorcode"
-```
-
-### Initializing VectorCode for the Project
-
-```bash
-# From the project root
-source ~/vectorcode-env/bin/activate  # If not already activated
+# Initialize VectorCode for this project
 vectorcode init
+
+# Configure (Optional but Recommended)
+# Edit .vectorcode/config.json5 (create if not exists) with settings like:
+# {
+#   "embedding_function": "SentenceTransformerEmbeddingFunction",
+#   "chunk_size": 1500,
+#   "overlap_ratio": 0.25,
+#   "reranker": "CrossEncoderReranker",
+#   "reranker_params": { "model_name_or_path": "cross-encoder/ms-marco-MiniLM-L-6-v2" }
+# }
+# (Refer to VectorCode docs for full configuration options)
+
+# Initial Indexing (adjust globs as needed for relevant source code)
+vectorcode vectorise "deenji/src/**/*.{ts,tsx,js,jsx}" "docs/**/*.md"
 ```
 
-### Optimized Indexing Strategy
-
-For better semantic search results, index specific directories with appropriate chunk sizes:
-
-```bash
-# Index Angular components with optimized settings
-vectorcode vectorise ./deenji/src/app -r --chunk_size 1500 --overlap 0.25
-
-# Index server-side code
-vectorcode vectorise ./deenji/src/server -r --chunk_size 1500 --overlap 0.25
-
-# For specific feature areas
-vectorcode vectorise ./deenji/src/app/pages/home -r --chunk_size 1000 --overlap 0.3
-```
-
-### Effective Semantic Search
-
-Find relevant files when implementing or understanding features:
-
-```bash
-# Find search-related components on the home page
-vectorcode query "search of properties from the home page" -n 3
-
-# Find authentication implementation
-vectorcode query "user authentication login" -n 3
-
-# Find property detail views
-vectorcode query "property detail page" -n 5
-```
-
-### Using VectorCode with CodeCompanion Workspace
-
-For developers using Neovim with CodeCompanion, you can enhance your development experience by creating a structured workspace based on VectorCode searches:
-
-1. Create a workspace file:
-
-   ```bash
-   # From project root
-   cp .vectorcode/config.json codecompanion-workspace.json
-   ```
-
-2. Use VectorCode to find relevant files for features:
-
-   ```bash
-   # Example: When working on search functionality
-   vectorcode query "property search elasticsearch" -n 8
-   ```
-
-3. Update your workspace file with these results
-
-4. In Neovim, use `:CodeCompanionActions` and select "Workspace File" to work with your workspace
-
-### Keeping VectorCode Updated
-
+**Keeping Index Updated:**
 As the codebase evolves, periodically update your VectorCode index:
 
 ```bash
-# Update all indexed files
-vectorcode update
+vectorcode update # Updates all previously indexed files
+# Or re-vectorise specific files/directories:
+# vectorcode vectorise deenji/src/server/services/your-changed-service.ts
+```
+
+### 2. Setup CodeCompanion.nvim (with VectorCode Extension)
+
+Ensure your Neovim (AstroNvim or similar `lazy.nvim` based config) includes:
+
+- **`Davidyz/VectorCode` Neovim plugin:**
+  - In your `lazy.nvim` plugin specs (e.g., `lua/user/plugins/vectorcode.lua`):
+  ```lua
+  return {
+    "Davidyz/VectorCode",
+    build = "pipx install --force vectorcode", -- Keeps CLI updated with plugin
+    dependencies = { "nvim-lua/plenary.nvim" },
+    opts = { /* VectorCode Neovim plugin opts */ },
+    config = function(_, opts)
+      pcall(require, "vectorcode")
+      require("vectorcode").setup(opts)
+    end,
+  }
+  ```
+- **`olimorris/codecompanion.nvim` with VectorCode extension enabled:**
+  - In your CodeCompanion plugin spec (e.g., `lua/user/plugins/codecompanion.lua`):
+  ```lua
+  return {
+    "olimorris/codecompanion.nvim",
+    dependencies = { /* ..., */ "Davidyz/VectorCode" },
+    opts = function(_, opts)
+      local cc_opts = {
+        -- ... your adapters, strategies ...
+        extensions = {
+          vectorcode = {
+            opts = { add_tool = true }, -- Enables @vectorcode tool
+          },
+          -- ... other extensions like history ...
+        },
+      }
+      return cc_opts
+    end,
+    config = function(_, resolved_opts)
+      require("codecompanion").setup(resolved_opts)
+    end,
+    -- ... your keys ...
+  }
+  ```
+
+Refer to your specific Neovim configuration files for the exact placement.
+
+### 3. Using `@vectorcode` Tool in CodeCompanion
+
+Once set up and your project is indexed by VectorCode:
+
+1.  **Ensure Neovim's Current Working Directory (`:pwd`) is your project root.**
+2.  **Open CodeCompanion Chat:** Use your keybinding (e.g., `<leader>ut`).
+3.  **Query your codebase via the LLM:**
+    ```
+    @vectorcode Find components that handle property search functionality
+    ```
+    ```
+    @vectorcode Show me the tRPC router definitions related to user profiles
+    ```
+    CodeCompanion will use VectorCode to find relevant code snippets and provide them as context to the LLM, enabling more accurate and context-aware AI assistance.
+
+### 4. Using `codecompanion-workspace.json`
+
+This file (located in the project root) provides structured, high-level context about the project to CodeCompanion. It helps the LLM understand different modules, architectural decisions, and key files without needing to read everything initially.
+
+**How to Use:**
+
+1.  **Review and Update:** Keep `codecompanion-workspace.json` updated as your project evolves. Add new groups for major features or refactor existing ones.
+2.  **Load Workspace Context in Chat:**
+    - `:CodeCompanionChat`
+    - Type `/workspace` and select a relevant group (e.g., "Search Backend Implementation", "Database Schema (PostgreSQL)").
+3.  **Prompt the LLM:** With the workspace context loaded, ask specific questions or request code generation related to that area.
+    ```
+    /workspace Search Backend Implementation
+    Now, help me implement the bedroom filter endpoint in the tRPC search router.
+    ```
+    The LLM will use the system prompt and file descriptions from the selected workspace group. If it needs full file content, it might ask, or you can provide it using `/file <path>` or instruct it to use `@files` (if the tool is configured and capable).
+
+### Key CodeCompanion Commands/Features for This Workflow:
+
+- `:CodeCompanionChat` (or keybinding): Open/toggle the chat.
+- `@vectorcode <query>`: Perform a semantic search on your indexed codebase.
+- `/workspace <GroupName>`: Load a predefined context group.
+- `/file <path>`: Add content of a specific file to the chat.
+- `#buffer{watch}` or `#buffer{pin}`: Keep the LLM updated on an active buffer.
+- `@editor`: Instruct the LLM to attempt modifications to a watched/pinned buffer. (Use `ga` in diff view to accept changes).
+- `:CodeCompanionActions` (or keybinding): Access various prompts and actions.
+
+## Building for Production
+
+```bash
+bunx nx build deenji
 ```
 
 ## License
