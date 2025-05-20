@@ -60,7 +60,7 @@ export const multiStageSearchQuerySchema = z.object({
 });
 
 // Schema for search suggestions query
-export const searchsuggestionsqueryschema = z.object({
+export const searchSuggestionsQuerySchema = z.object({
   q: z.string().min(1),
   stage: z.enum(['property_type', 'bedrooms', 'price']).optional(),
   context: z.record(z.string(), z.union([z.string(), z.number()])).optional(), // For contextual suggestions
@@ -127,7 +127,7 @@ export const propertySchema = z.object({
 export type PropertySearchQuery = z.infer<typeof propertySearchQuerySchema>;
 export type MultiStageSearchQuery = z.infer<typeof multiStageSearchQuerySchema>;
 export type SearchSuggestionsQuery = z.infer<
-  typeof searchsuggestionsqueryschema
+  typeof searchSuggestionsQuerySchema
 >;
 export type SuggestionType = z.infer<typeof suggestionTypeSchema>;
 export type SearchSuggestion = z.infer<typeof searchSuggestionSchema>;
