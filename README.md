@@ -81,6 +81,40 @@ bun nx test deenji
 curl -X GET "http://localhost:9200/_all" > elasticsearch_schema.json
 ```
 
+### Elasticsearch Search Examples
+
+```sh
+# Example 1: Search for properties with prefix "آپ" (beginning of "آپارتمان"/apartment)
+curl -X GET "http://localhost:9200/divar_properties/_search" -H 'Content-Type: application/json' -d '{
+  "query": {
+       "multi_match": {
+         "query": "آپ",
+         "type": "bool_prefix",
+         "fields": ["property_type", "property_type.ngram"]
+       }
+  }
+}' | jq '.hits.total.value, .hits.hits[]._source.title'
+```
+
+Example output:
+
+```
+"آپارتمان خوش ساخت مناسب سکونت ویا سرمایه گذاری"
+```
+
+```sh
+# Example 2: Search for properties with prefix "وی"
+curl -X GET "http://localhost:9200/divar_properties/_search" -H 'Content-Type: application/json' -d '{
+  "query": {
+       "multi_match": {
+         "query": "وی",
+         "type": "bool_prefix",
+         "fields": ["property_type", "property_type.ngram"]
+       }
+  }
+}' | jq '.hits.total.value, .hits.hits[]._source.title'
+```
+
 ### Database Migrations
 
 ```bash
