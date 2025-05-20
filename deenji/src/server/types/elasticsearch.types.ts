@@ -24,6 +24,32 @@ export interface ElasticsearchSource {
   year_built?: number;
 }
 
+export interface RangeBucket {
+  key: string;
+  from?: number;
+  to?: number;
+  doc_count: number;
+}
+
+export interface RangeAggregation {
+  buckets: RangeBucket[];
+}
+
+// Expand your existing SearchSuggestion type
+export interface SearchSuggestion {
+  type: string;
+  text: string;
+  query: string;
+  count: number;
+  filter?: {
+    field: string;
+    value?: number | string;
+    // Add these fields explicitly
+    min?: number;
+    max?: number;
+  };
+}
+
 // Define HitSource type for mapping Elasticsearch results
 export interface HitSource {
   _source: ElasticsearchSource;
@@ -37,10 +63,6 @@ export interface AggregationBucket {
   doc_count: number;
   from?: number;
   to?: number;
-}
-// Type for range aggregation containing buckets
-export interface RangeAggregation {
-  buckets: AggregationBucket[];
 }
 
 // Define types for boolean queries

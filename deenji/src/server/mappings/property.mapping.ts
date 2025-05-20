@@ -90,11 +90,18 @@ export const propertySettings = {
   'index.number_of_shards': 1,
   'index.number_of_replicas': 1,
   analysis: {
+    char_filter: {
+      persian_char_filter: {
+        type: 'mapping',
+        mappings: ['ي=>ی', 'ك=>ک', 'ة=>ه'],
+      },
+    },
     filter: {
       persian_normalizer: { type: 'persian_normalization' },
     },
     analyzer: {
-      persian: {
+      persian_standard: {
+        char_filter: ['persian_char_filter'],
         filter: ['lowercase', 'persian_normalizer'],
         tokenizer: 'standard',
       },

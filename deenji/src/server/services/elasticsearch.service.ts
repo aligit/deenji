@@ -1,5 +1,6 @@
 // src/server/services/elasticsearch.service.ts
 import { Client, errors } from '@elastic/elasticsearch';
+import { SearchCompletionSuggestOption } from '@elastic/elasticsearch/lib/api/types';
 import {
   PropertySearchQuery,
   SearchSuggestionsQuery,
@@ -15,12 +16,13 @@ import {
   SearchResponse,
   CountResponse,
   QueryDslQueryContainer,
-  QueryDslBoolQuery, // Added for clarity
+  QueryDslBoolQuery,
   SortCombinations,
 } from '@elastic/elasticsearch/lib/api/types';
 import {
   PropertySearchAggregations,
   ElasticsearchSource,
+  RangeAggregation,
 } from '../types/elasticsearch.types';
 import {
   propertyMappings,
@@ -88,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-      auth: {
-        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-      },
-    }
+        auth: {
+          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+        },
+      }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-      tls: {
-        // In development, we might want to bypass certificate validation
-        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-      },
-    }
+        tls: {
+          // In development, we might want to bypass certificate validation
+          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+        },
+      }
     : {}),
 
   // General client configuration
@@ -595,7 +597,7 @@ export class ElasticsearchService {
           min_doc_count: 1,
         },
       },
-    } as buildAggsReturn; // Cast is okay here if buildAggsReturn is precise
+    } as buildAggsReturn;
   }
 
   /**
@@ -1086,6 +1088,189 @@ export class ElasticsearchService {
       query.length >= 3 &&
       !filterKeywords.some((keyword) => query.includes(keyword))
     );
+  }
+
+  /**
+   * Get property type suggestions for the first stage of search
+   */
+  async getPropertyTypeSuggestions(
+    prefix: string,
+    location?: string
+  ): Promise<SearchSuggestion[]> {
+    try {
+      const contexts: Record<string, string[]> = {}; // Proper typing instead of any
+      if (location) {
+        contexts['location'] = [location];
+      }
+      contexts['stage'] = ['property_type'];
+
+      const response = await client.search({
+        index: INDEX,
+        suggest: {
+          property_type_suggest: {
+            prefix,
+            completion: {
+              field: 'property_type.suggest',
+              size: 5,
+              contexts,
+            },
+          },
+        },
+      });
+
+      // Get the suggest results and ensure it's an array
+      const suggestResults =
+        response.suggest?.['property_type_suggest']?.[0]?.options;
+      const suggestions = Array.isArray(suggestResults) ? suggestResults : [];
+
+      // Now TypeScript knows suggestions is definitely an array
+      return suggestions.map(
+        (option: SearchCompletionSuggestOption<unknown>) => ({
+          type: 'property_type',
+          text: option.text,
+          query: option.text,
+          count: option._score || 1,
+        })
+      );
+    } catch (error) {
+      console.error('Error getting property type suggestions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get bedroom suggestions for the second stage of search
+   */
+  async getStageBedroomSuggestions(
+    propertyType: string,
+    prefix = ''
+  ): Promise<SearchSuggestion[]> {
+    try {
+      const response = await client.search({
+        index: INDEX,
+        suggest: {
+          bedroom_suggest: {
+            prefix,
+            completion: {
+              field: 'bedrooms.suggest',
+              size: 5,
+              contexts: {
+                property_type: [propertyType],
+              },
+            },
+          },
+        },
+      });
+
+      // Safely extract suggest results and ensure it's an array
+      const suggestResults =
+        response.suggest?.['bedroom_suggest']?.[0]?.options;
+      const suggestions = Array.isArray(suggestResults) ? suggestResults : [];
+
+      // Now TypeScript knows suggestions is definitely an array
+      return suggestions.map(
+        (option: SearchCompletionSuggestOption<unknown>) => ({
+          type: 'bedrooms',
+          text: `${option.text}خوابه`,
+          query: `${option.text}خوابه`,
+          count: option._score || 1,
+          filter: {
+            field: 'bedrooms',
+            value: parseInt(option.text),
+          },
+        })
+      );
+    } catch (error) {
+      console.error('Error getting bedroom suggestions:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get price range suggestions for the third stage based on aggregations
+   */
+  async getStagePriceSuggestions(
+    propertyType: string,
+    bedrooms?: number
+  ): Promise<SearchSuggestion[]> {
+    try {
+      // Build filter for properties matching current criteria
+      const must: QueryDslQueryContainer[] = [
+        { term: { property_type: propertyType } },
+      ];
+      if (bedrooms !== undefined) {
+        must.push({ term: { bedrooms: bedrooms } });
+      }
+
+      // Get price statistics for matching properties
+      const response = await client.search({
+        index: INDEX,
+        size: 0,
+        query: {
+          bool: { must },
+        },
+        aggs: {
+          price_stats: {
+            stats: { field: 'price' },
+          },
+          price_ranges: {
+            range: {
+              field: 'price',
+              ranges: [
+                { to: 5000000000, key: 'تا ۵ میلیارد' },
+                {
+                  from: 5000000000,
+                  to: 10000000000,
+                  key: 'بین ۵ تا ۱۰ میلیارد',
+                },
+                {
+                  from: 10000000000,
+                  to: 20000000000,
+                  key: 'بین ۱۰ تا ۲۰ میلیارد',
+                },
+                { from: 20000000000, key: 'بالای ۲۰ میلیارد' },
+              ],
+            },
+          },
+        },
+      });
+
+      const suggestions: SearchSuggestion[] = [];
+
+      // Type cast the aggregation to our custom type
+      if (response.aggregations) {
+        // Use type assertion to handle the price_ranges aggregation
+        const priceRanges = response.aggregations[
+          'price_ranges'
+        ] as unknown as RangeAggregation;
+
+        if (priceRanges && Array.isArray(priceRanges.buckets)) {
+          for (const bucket of priceRanges.buckets) {
+            if (bucket.doc_count > 0) {
+              // Create suggestion with properly typed filter object
+              suggestions.push({
+                type: 'price_range',
+                text: bucket.key,
+                query: bucket.key,
+                count: bucket.doc_count,
+                filter: {
+                  field: 'price',
+                  // Use optional chaining with these properties
+                  ...(bucket.from !== undefined && { min: bucket.from }),
+                  ...(bucket.to !== undefined && { max: bucket.to }),
+                  value: '',
+                },
+              });
+            }
+          }
+        }
+      }
+
+      return suggestions;
+    } catch (error) {
+      console.error('Error getting price suggestions:', error);
+      return [];
+    }
   }
 }
 
