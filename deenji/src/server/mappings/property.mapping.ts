@@ -24,7 +24,15 @@ export const propertyMappings = {
     // Numeric fields
     price: { type: 'long' },
     price_per_meter: { type: 'long' },
-    bedrooms: { type: 'integer' },
+    bedrooms: {
+      type: 'integer',
+      fields: {
+        suggest: {
+          type: 'completion',
+          contexts: [{ name: 'property_type', type: 'category' }],
+        },
+      },
+    },
     bathrooms: { type: 'float' },
     area: { type: 'long' },
     land_area: { type: 'long' },
@@ -36,7 +44,18 @@ export const propertyMappings = {
     has_balcony: { type: 'boolean' },
 
     // Keyword fields (enumeration types)
-    property_type: { type: 'keyword' },
+    property_type: {
+      type: 'keyword',
+      fields: {
+        suggest: {
+          type: 'completion',
+          contexts: [
+            { name: 'location', type: 'category' },
+            { name: 'stage', type: 'category' },
+          ],
+        },
+      },
+    },
     bathroom_type: { type: 'keyword' },
     building_direction: { type: 'keyword' },
     cooling_system: { type: 'keyword' },
