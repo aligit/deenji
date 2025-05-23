@@ -10,3 +10,22 @@ getTestBed().initTestEnvironment(
   BrowserDynamicTestingModule,
   platformBrowserDynamicTesting()
 );
+
+// Mock environment variables for tests
+vi.mock('process', () => ({
+  env: {
+    VITE_ELASTICSEARCH_URL: 'http://localhost:9200',
+  },
+}));
+
+// Mock import.meta.env
+Object.defineProperty(globalThis, 'import', {
+  value: {
+    meta: {
+      env: {
+        VITE_ELASTICSEARCH_URL: 'http://localhost:9200',
+      },
+    },
+  },
+  writable: true,
+});

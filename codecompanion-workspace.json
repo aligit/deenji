@@ -1,99 +1,162 @@
 {
   "name": "Deenji Real Estate Platform",
   "version": "1.0.0",
-  "system_prompt": "You are assisting with Deenji, a real estate platform enhanced with LLMs that connects property buyers and agents. The platform offers powerful search tools, detailed property insights, and investment analytics. It's built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication. The platform supports multilingual interfaces with Persian/Farsi as the default language (RTL layout).",
+  "system_prompt": "You are assisting with Deenji, a real estate platform enhanced with LLMs that connects property buyers and agents. The platform offers powerful search tools, detailed property insights, and investment analytics. It's built with AnalogJS (Angular meta-framework), Supabase for authentication and data storage, and tRPC for type-safe API communication. The platform supports multilingual interfaces with Persian/Farsi as the default language (RTL layout). You have deep knowledge of Elasticsearch implementation patterns, real estate search requirements, and the specific technologies used in this project. Use tools like @files to request full file content if summaries are insufficient.",
   "vars": {
     "tech_stack": "AnalogJS, Supabase, tRPC, TailwindCSS, Spartan UI, Elasticsearch, MapBox/Neshan, Recharts",
     "default_lang": "Persian/Farsi with RTL layout",
-    "project_name": "Deenji"
+    "project_name": "Deenji",
+    "search_tech": "Elasticsearch with completion suggesters, search-as-you-type, and aggregation-based suggestions",
+    "backend_api": "tRPC with type-safe search endpoints",
+    "frontend_ui": "Angular components with Spartan UI and reactive search",
+    "db_type": "PostgreSQL (Supabase)"
   },
   "groups": [
     {
-      "name": "Project Overview & Requirements",
-      "system_prompt": "This section contains the key features, priorities, and development approach for the ${project_name} real estate platform. It provides context on user management, property search & discovery, property details & analytics, user tools, project priorities, and sprint planning.",
-      "data": ["overview_doc"]
+      "name": "Search Architecture & Requirements",
+      "system_prompt": "This group contains the search implementation requirements and architecture decisions for ${project_name}. The search system uses ${search_tech} to provide property discovery with completion suggesters, search-as-you-type, geospatial queries, and multilingual support for ${default_lang}. Focus on the technical requirements, user experience patterns, and integration with the existing ${tech_stack}. This includes advanced Elasticsearch features like completion suggestions, search-as-you-type fields, and dynamic aggregation-based suggestions.",
+      "data": [
+        "search_requirements",
+        "elasticsearch_architecture",
+        "search_compilation"
+      ]
     },
     {
-      "name": "Architecture Overview",
-      "system_prompt": "I've grouped key files that help understand the overall architecture of ${project_name}. This real estate platform uses ${tech_stack} with ${default_lang}.",
-      "data": ["arch_stack_doc"]
+      "name": "Search Backend Implementation",
+      "system_prompt": "This group focuses on the backend search implementation using ${backend_api}. It includes Elasticsearch integration with completion suggesters, search-as-you-type queries, aggregation-based dynamic suggestions, and tRPC endpoints for search operations. The implementation handles Persian/Arabic text search, geospatial queries, and complex property filtering with multi-stage suggestion flow.",
+      "data": [
+        "trpc_search_routes",
+        "elasticsearch_service",
+        "search_indexing",
+        "property_mapping",
+        "search_types",
+        "suggestion_service"
+      ]
     },
     {
-      "name": "Fullstack Overview",
-      "system_prompt": "I've grouped key files that help understand the overall architecture of ${project_name}. This real estate platform uses ${tech_stack} with ${default_lang}.",
-      "data": ["arch_stack_doc", "backend_doc", "frontend_doc"]
+      "name": "Search Testing & Performance",
+      "system_prompt": "This group includes comprehensive testing strategies for advanced search functionality including completion suggesters, search-as-you-type, and aggregation-based suggestions. It covers Vitest integration tests, performance optimization techniques, and monitoring search queries with Persian text support.",
+      "data": [
+        "search_tests",
+        "performance_config",
+        "search_analytics",
+        "suggester_tests"
+      ]
     },
     {
-      "name": "Authentication Flow",
-      "system_prompt": "The authentication in ${project_name} uses Supabase with a passwordless (magic link) authentication flow.",
-      "data": ["login_page", "confirm_page", "auth_guard", "auth_interceptor"]
+      "name": "Complete Search Implementation",
+      "system_prompt": "Complete context for implementing the full search system with all advanced Elasticsearch features. Includes requirements, architecture, backend implementation, and comprehensive testing for completion suggesters, search-as-you-type, and multi-stage search flow.",
+      "data": [
+        "search_requirements",
+        "elasticsearch_architecture",
+        "implementation_guide",
+        "trpc_search_routes",
+        "elasticsearch_service",
+        "suggestion_service",
+        "search_tests"
+      ]
+    },
+    {
+      "name": "Database Schema (PostgreSQL)",
+      "system_prompt": "This group provides the public schema for deenji. \nKey Tables & Columns Summary:\n- amenities(id,name,icon,created_at)\n-  profiles(id,username,full_name,avatar_url,website,phone,user_type,email_verified,updated_at)\n- properties(id,external_id,title,description,price,price_per_meter,type,bedrooms,bathrooms,area,year_built,location(POINT),address,city,district,floor_number,total_floors,units_per_floor,has_elevator,has_parking,has_storage,has_balcony,floor_material,bathroom_type,cooling_system,heating_system,hot_water_system,title_deed_type,building_direction,renovation_status,agency_name,agent_name,agent_id,investment_score,market_trend,neighborhood_fit_score,rent_to_price_ratio,attributes(jsonb),highlight_flags(jsonb),search_vector(tsvector),owner_id,created_at,updated_at)\n- property_amenities(property_id,amenity_id)\n- property_attribute_keys(id,name,display_name,data_type,is_searchable,is_filterable,sort_order,created_at)\n- property_attribute_values(id,property_id,attribute_key_id,text_value,numeric_value,boolean_value,created_at)\n- property_images(id,property_id,url,is_featured,sort_order,created_at)\n- property_price_history(id,property_id,price,recorded_at)\n- property_similar_properties(property_id,similar_property_external_id,similarity_score)\n- saved_properties(id,user_id,property_id,notes,created_at)\n- spatial_ref_sys (PostGIS internal)\n- user_settings(id,language,email_notifications,property_alerts,price_drop_alerts,dark_mode,created_at,updated_at)\nImportant RLS is in place. Key functions: handle_new_user, process_mongodb_property_attributes, insert_property_direct, search vector updates. Ask for specific DDL if column details (NOT NULL, defaults, constraints, exact types) are needed.",
+      "data": ["db_schema_overview"]
+    },
+    {
+      "name": "Elasticsearch Schema",
+      "system_prompt": "This group provides the Elasticsearch schema for ${project_name}. Key indices: `divar_properties` (main property search index, Persian analyzer, geo_point, nested attributes), `divar_suggestions` (for search-as-you-type), and a general `properties` index. Highlights use of Persian normalizers and standard tokenizers.",
+      "data": ["es_schema_full"]
+    },
+    {
+      "name": "External Data Sources & Integration",
+      "system_prompt": "This group covers how ${project_name} integrates with external data sources. The platform receives property data from external crawlers that scrape real estate websites like Divar.ir. Understanding the data flow from external sources helps with API design, data validation, and ensuring proper integration with the search and storage systems. The external crawler system uses Python with Crawl4AI, handles Persian text normalization, and processes property attributes, images, and location data before feeding into the ${project_name} platform via PostgreSQL and Elasticsearch.",
+      "data": ["external_integration_overview"]
     }
   ],
   "data": {
-    "overview_doc": {
+    "search_requirements": {
       "type": "file",
-      "path": "docs/overview",
-      "description": "Main project overview and key features documentation"
+      "path": "docs/search/requirements.md",
+      "description": "Multi-stage search reqs: property type → bedrooms → price; Persian text."
     },
-    "arch_stack_doc": {
+    "elasticsearch_architecture": {
       "type": "file",
-      "path": "docs/architecture/stack",
-      "description": "Technical stack overview and architecture decisions"
+      "path": "docs/search/elasticsearch-architecture.md",
+      "description": "ES arch: completion suggesters, search-as-you-type, Persian analyzers, aggregation-based suggestions."
     },
-    "backend_doc": {
+    "implementation_guide": {
       "type": "file",
-      "path": "docs/backend/trpc",
-      "description": "Technical stack overview and architecture decisions"
+      "path": "docs/search/implementation-guide.md",
+      "description": "Full impl guide: tRPC, suggestion services, search-as-you-type, Vitest tests."
     },
-    "frontend_doc": {
+    "trpc_search_routes": {
       "type": "file",
-      "path": "docs/frontend/analogjs",
-      "description": "Technical stack overview and architecture decisions"
+      "path": "deenji/src/server/api/routers/search.ts",
+      "description": "tRPC router: completion suggester endpoints, search-as-you-type, multi-stage search."
     },
-    "spartan_doc": {
+    "elasticsearch_service": {
       "type": "file",
-      "path": "docs/frontend/ui-components-spartan",
-      "description": "Technical stack overview and architecture decisions"
+      "path": "deenji/src/server/services/elasticsearch.service.ts",
+      "description": "ES service: completion suggestions, search-as-you-type, Persian text analysis."
     },
-    "app_config": {
+    "suggestion_service": {
       "type": "file",
-      "path": "deenji/src/app/app.config.ts",
-      "description": "Main application configuration including providers for HTTP, tRPC, routing, and internationalization"
+      "path": "deenji/src/server/services/suggestion.service.ts",
+      "description": "Suggestion service: completion, dynamic price/bedroom suggestions."
     },
-    "trpc_client": {
+    "search_indexing": {
       "type": "file",
-      "path": "deenji/src/trpc-client.ts",
-      "description": "tRPC client setup with authentication integration"
+      "path": "deenji/src/server/services/search-indexing.service.ts",
+      "description": "Service for indexing properties with completion/search-as-you-type fields."
     },
-    "supabase_service": {
+    "property_mapping": {
       "type": "file",
-      "path": "deenji/src/app/core/services/supabase.service.ts",
-      "description": "Service for interacting with Supabase authentication and database"
+      "path": "deenji/src/server/mappings/property.mapping.ts",
+      "description": "ES mapping: completion fields, search-as-you-type configs, Persian analyzers."
     },
-    "db_schema": {
+    "search_types": {
       "type": "file",
-      "path": "deenji/src/db.ts",
-      "description": "Database schema definitions using Drizzle ORM"
+      "path": "deenji/src/shared/types/search.types.ts",
+      "description": "TS types: completion, search-as-you-type, multi-stage search req/res."
     },
-    "login_page": {
+    "search_tests": {
       "type": "file",
-      "path": "deenji/src/app/pages/(auth)/login.page.ts",
-      "description": "Login page component with email input and OTP verification"
+      "path": "deenji/src/server/api/routers/__tests__/search.test.ts",
+      "description": "Vitest tests: multi-stage search, completion suggesters, search-as-you-type."
     },
-    "confirm_page": {
+    "suggester_tests": {
       "type": "file",
-      "path": "deenji/src/app/pages/(auth)/confirm.page.ts",
-      "description": "Confirmation page for magic link authentication"
+      "path": "deenji/src/server/services/__tests__/suggestion.test.ts",
+      "description": "Tests for completion suggester, context-aware & dynamic price suggestions."
     },
-    "auth_guard": {
+    "performance_config": {
       "type": "file",
-      "path": "deenji/src/app/core/guards/auth.guard.ts",
-      "description": "Authentication guard for protecting routes"
+      "path": "deenji/src/server/config/elasticsearch.config.ts",
+      "description": "ES perf config for completion suggesters & search-as-you-type."
     },
-    "auth_interceptor": {
+    "search_analytics": {
       "type": "file",
-      "path": "deenji/src/app/core/services/auth-interceptor.service.ts",
-      "description": "Interceptor for handling authentication errors from tRPC"
+      "path": "deenji/src/server/services/search-analytics.service.ts",
+      "description": "Analytics: suggester perf, search-as-you-type usage, Persian text search metrics."
+    },
+    "search_compilation": {
+      "type": "file",
+      "path": "docs/search/search-compilation.md",
+      "description": "Complete search implementation compilation document."
+    },
+    "db_schema_overview": {
+      "type": "file",
+      "path": "docs/db/schema_overview.md",
+      "description": "Brief pointer to DB Schema Overview. Main summary is in the group's system_prompt."
+    },
+    "es_schema_full": {
+      "type": "file",
+      "path": "docs/search/elasticsearch_schema.json",
+      "description": "ES: Full schema. `divar_properties` (property data, Persian analyzer, geo_point, nested attributes), `divar_suggestions` (search-as-you-type), `properties` (general index)."
+    },
+    "external_integration_overview": {
+      "type": "file",
+      "path": "docs/integration/external-data-sources.md",
+      "description": "Overview of how external crawlers integrate with the Deenji platform. Covers data flow from Divar.ir crawler, expected data formats, API endpoints for data ingestion, and validation rules."
     }
   }
 }
