@@ -45,12 +45,22 @@ export default class HomeComponent {
 
   public triggerRefresh$ = new Subject<void>();
   public notes$ = this.triggerRefresh$.pipe(
-    switchMap(() => this._trpc.note.list.query()),
+    switchMap(() => {
+      console.log('HomeComponent: Attempting to fetch notes...');
+      return this._trpc.note.list.query();
+    }),
     shareReplay(1)
   );
   public newNote = '';
 
   constructor() {
+    this.notes$.subscribe({
+      next: (notes) => console.log('HomeComponent: Notes received:', notes),
+      error: (error) =>
+        console.error('HomeComponent: Error fetching notes:', error),
+      complete: () => console.log('HomeComponent: Notes stream completed'),
+    });
+
     void waitFor(this.notes$);
     this.triggerRefresh$.next();
   }

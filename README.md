@@ -55,6 +55,18 @@ VITE_supabaseKey=your-supabase-anon-key
 bunx nx s deenji
 ```
 
+#### Create a component via nx
+
+```bash
+bunx nx generate @nx/angular:component \
+  --name=search-suggestion \
+  --path=deenji/src/app/pages/home/search-suggestion \
+  --standalone \
+  --inlineTemplate \
+  --inlineStyle \
+  --skipTests
+```
+
 App available at `http://localhost:4200`.
 
 ### 4. Run tests
