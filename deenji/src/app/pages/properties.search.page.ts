@@ -8,7 +8,6 @@ import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
 import {
   BrnSelectImports,
-  BrnSelectTriggerDirective,
   BrnSelectValueComponent,
   BrnSelectOptionDirective,
 } from '@spartan-ng/brain/select';
@@ -76,7 +75,6 @@ interface PropertyResult {
     HlmBadgeDirective,
     BrnSelectImports,
     HlmSelectImports,
-    BrnSelectTriggerDirective,
     BrnSelectValueComponent,
     BrnSelectOptionDirective,
     HlmSelectContentDirective,
@@ -359,13 +357,7 @@ interface PropertyResult {
                     <!-- Features -->
                     <div class="flex gap-2 mt-3">
                       @if (property.has_parking) {
-                      <span
-                        hlmBadge
-                        variant="outline"
-                        size="default"
-                        class="w-4 h-4"
-                        >پارکینگ</span
-                      >
+                      <span hlmBadge variant="outline">پارکینگ</span>
                       } @if (property.has_elevator) {
                       <span
                         hlmBadge
@@ -429,7 +421,6 @@ interface PropertyResult {
                   hlmBtn
                   variant="outline"
                   size="default"
-                  class="w-4 h-4"
                   [disabled]="currentPage() === 1"
                   (click)="goToPage(currentPage() - 1)"
                 >
@@ -452,7 +443,7 @@ interface PropertyResult {
                     [variant]="page === currentPage() ? 'default' : 'outline'"
                     size="default"
                     (click)="goToPage(page)"
-                    class="w-4 h-4 min-w-[2.5rem]"
+                    class="min-w-[2.5rem]"
                   >
                     {{ page }}
                   </button>
@@ -463,7 +454,6 @@ interface PropertyResult {
                   hlmBtn
                   variant="outline"
                   size="default"
-                  class="w-4 h-4"
                   [disabled]="currentPage() === totalPages()"
                   (click)="goToPage(currentPage() + 1)"
                 >
@@ -615,15 +605,15 @@ export default class PropertiesSearchPageComponent implements OnInit {
       maxPrice: this.searchParams.maxPrice,
       page: this.currentPage(),
       pageSize: this.pageSize,
-      sortBy: sortField as 'date' | 'price' | 'relevance', // Ensure this matches the expected type
+      sortBy: sortField as 'date' | 'price' | 'relevance',
       sortOrder: sortDirection === 'asc' ? 'asc' : 'desc',
     };
     this._trpc.property.search.query(searchQuery).subscribe({
       next: (data) => {
         this.searchResults.set({
-          results: data.results.map((item) => ({
+          results: data.results.map((item, index) => ({
             ...item,
-            id: item.id.toString(),
+            id: item.id?.toString() || `property-${index}`,
             type: item.property_type || '',
           })) as PropertyResult[],
           total: data.total,
