@@ -90,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-        auth: {
-          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-        },
-      }
+      auth: {
+        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+      },
+    }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-        tls: {
-          // In development, we might want to bypass certificate validation
-          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-        },
-      }
+      tls: {
+        // In development, we might want to bypass certificate validation
+        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+      },
+    }
     : {}),
 
   // General client configuration
@@ -377,13 +377,11 @@ export class ElasticsearchService {
     }
   }
 
-  /**
-   * Build Elasticsearch query from the search parameters
-   */
+  // In elasticsearch.service.ts, ensure buildPropertySearchQuery handles property_type:
+
   private buildPropertySearchQuery(
     query: PropertySearchQuery
   ): QueryDslQueryContainer {
-    // FIX: Initialize clauses as arrays
     const mustClauses: QueryDslQueryContainer[] = [];
     const filterClauses: QueryDslQueryContainer[] = [];
 
@@ -397,17 +395,15 @@ export class ElasticsearchService {
           prefix_length: 1,
         },
       });
-    } else {
-      // If no text query, add a match_all to ensure the must clause is valid
-      mustClauses.push({ match_all: {} });
     }
 
-    // Add price range filter
-    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
-      const rangeQuery: { gte?: number; lte?: number } = {}; // Renamed to avoid conflict
-      if (query.minPrice !== undefined) rangeQuery.gte = query.minPrice;
-      if (query.maxPrice !== undefined) rangeQuery.lte = query.maxPrice;
-      filterClauses.push({ range: { price: rangeQuery } });
+    // Add property type filter - ensure it's properly handled
+    if ('property_type' in query && query.property_type) {
+      filterClauses.push({
+        term: {
+          'property_type.keyword': query.property_type, // Use .keyword for exact match
+        },
+      });
     }
 
     // Add bedrooms filter
@@ -418,76 +414,25 @@ export class ElasticsearchService {
       filterClauses.push({ range: { bedrooms: rangeQuery } });
     }
 
-    // Add bathrooms filter
-    if (query.minBathrooms !== undefined || query.maxBathrooms !== undefined) {
+    // Add price range filter
+    if (query.minPrice !== undefined || query.maxPrice !== undefined) {
       const rangeQuery: { gte?: number; lte?: number } = {};
-      if (query.minBathrooms !== undefined) rangeQuery.gte = query.minBathrooms;
-      if (query.maxBathrooms !== undefined) rangeQuery.lte = query.maxBathrooms;
-      filterClauses.push({ range: { bathrooms: rangeQuery } });
+      if (query.minPrice !== undefined) rangeQuery.gte = query.minPrice;
+      if (query.maxPrice !== undefined) rangeQuery.lte = query.maxPrice;
+      filterClauses.push({ range: { price: rangeQuery } });
     }
 
-    // Add area filter
-    if (query.minArea !== undefined || query.maxArea !== undefined) {
-      const rangeQuery: { gte?: number; lte?: number } = {};
-      if (query.minArea !== undefined) rangeQuery.gte = query.minArea;
-      if (query.maxArea !== undefined) rangeQuery.lte = query.maxArea;
-      filterClauses.push({ range: { area: rangeQuery } });
-    }
-    // Add property type filter if provided
-    if ('property_type' in query && query.property_type) {
-      filterClauses.push({
-        term: { property_type: String(query.property_type) },
-      } as QueryDslQueryContainer);
-    }
-    // Add year built filter
-    if (query.minYearBuilt !== undefined || query.maxYearBuilt !== undefined) {
-      const rangeQuery: { gte?: number; lte?: number } = {};
-      if (query.minYearBuilt !== undefined) rangeQuery.gte = query.minYearBuilt;
-      if (query.maxYearBuilt !== undefined) rangeQuery.lte = query.maxYearBuilt;
-      filterClauses.push({ range: { year_built: rangeQuery } });
+    // Build the final query
+    if (mustClauses.length === 0) {
+      mustClauses.push({ match_all: {} });
     }
 
-    // Add amenities filter
-    if (query.amenities && query.amenities.length > 0) {
-      const amenityQueries: QueryDslQueryContainer[] = query.amenities.map(
-        (amenity) => ({
-          match: { amenities: amenity },
-        })
-      );
-      filterClauses.push(...amenityQueries);
-    }
-
-    // Add location filter if provided
-    if (query.location) {
-      filterClauses.push({
-        geo_distance: {
-          distance: `${query.location.distance}km`,
-          location: {
-            lat: query.location.lat,
-            lon: query.location.lon,
-          },
-        },
-      });
-    }
-
-    // If there are no filters and must only contains match_all, use a simpler query
-    if (
-      filterClauses.length === 0 &&
-      mustClauses.length === 1 &&
-      (mustClauses[0] as { match_all?: object })?.match_all // Safe check
-    ) {
-      return { match_all: {} };
-    }
-
-    // Construct the final boolean query
-    const boolQueryBody: QueryDslBoolQuery = {
-      must: mustClauses,
+    return {
+      bool: {
+        must: mustClauses,
+        ...(filterClauses.length > 0 && { filter: filterClauses }),
+      },
     };
-    if (filterClauses.length > 0) {
-      boolQueryBody.filter = filterClauses;
-    }
-
-    return { bool: boolQueryBody };
   }
 
   /**
@@ -507,26 +452,9 @@ export class ElasticsearchService {
       default:
         if (query.q) {
           sortArray.push({ _score: { order: 'desc' } });
-        } else {
-          sortArray.push({ id: { order: 'desc' } }); // Assuming 'id' is a sortable field
         }
-        break;
-    }
-
-    // Add secondary sort by id if not present in primary clauses
-    const hasIdSort = sortArray.some(
-      (clause) =>
-        typeof clause === 'object' && clause !== null && 'id' in clause
-    );
-    if (!hasIdSort && query.sortBy !== 'relevance') {
-      // Avoid double sorting by id if relevance already defaults to it
-      sortArray.push({ id: { order: 'desc' } });
-    } else if (query.sortBy === 'relevance' && !query.q && !hasIdSort) {
-      // Case where relevance defaults to id sort
-      // id sort is already there
-    } else if (!hasIdSort) {
-      // General fallback if id not primary and not implicit relevance
-      sortArray.push({ id: { order: 'desc' } });
+        // **no more** `id` sort
+        return sortArray;
     }
 
     return sortArray;

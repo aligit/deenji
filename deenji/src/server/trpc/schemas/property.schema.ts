@@ -70,9 +70,9 @@ export const searchSuggestionsQuerySchema = z.object({
 // Property search suggestion response type
 export const suggestionTypeSchema = z.enum([
   'location',
-  'property_type', // Added specific type for property_type suggestions
-  'bedrooms', // Added for bedroom suggestions
-  'price_range', // Added for price range suggestions
+  'property_type',
+  'bedrooms',
+  'price_range',
   'property',
   'filter',
   'combination',
