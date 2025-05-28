@@ -7,6 +7,7 @@ import {
 } from '../schemas/property.schema';
 import { elasticsearchService } from '../../services/elasticsearch.service';
 import { TRPCError } from '@trpc/server';
+import { db } from '../../../db';
 
 export const propertyRouter = router({
   // src/server/trpc/routers/property.ts

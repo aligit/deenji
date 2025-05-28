@@ -56,9 +56,9 @@ Backend implementation for multi-stage search functionality using tRPC and Elast
 
 ## Success Criteria
 
-- [ ] All search stages return correct results
-- [ ] Persian text search works accurately
-- [ ] Price range queries function properly
-- [ ] Bedroom filtering works correctly
-- [ ] Combined search maintains accuracy
-- [ ] All tests pass with Vitest
+- [ x ] All search stages return correct results
+- [ x ] Persian text search works accurately
+- [ x ] Price range queries function properly
+- [ x ] Bedroom filtering works correctly
+- [ x ] Combined search maintains accuracy
+- [ x ] All tests pass with Vitest

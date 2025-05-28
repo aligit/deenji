@@ -1,0 +1,1936 @@
+ v3.tailwindcss.com
+Utility-First Fundamentals - Tailwind CSS
+6–8 minutes
+Overview
+
+Traditionally, whenever you need to style something on the web, you write CSS.
+
+Using a traditional approach where custom designs require custom CSS
+
+<div class="chat-notification">
+  <div class="chat-notification-logo-wrapper">
+    <img class="chat-notification-logo" src="/img/logo.svg" alt="ChitChat Logo">
+  </div>
+  <div class="chat-notification-content">
+    <h4 class="chat-notification-title">ChitChat</h4>
+    <p class="chat-notification-message">You have a new message!</p>
+  </div>
+</div>
+
+<style>
+  .chat-notification {
+    display: flex;
+    align-items: center;
+    max-width: 24rem;
+    margin: 0 auto;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  }
+  .chat-notification-logo-wrapper {
+    flex-shrink: 0;
+  }
+  .chat-notification-logo {
+    height: 3rem;
+    width: 3rem;
+  }
+  .chat-notification-content {
+    margin-left: 1.5rem;
+  }
+  .chat-notification-title {
+    color: #1a202c;
+    font-size: 1.25rem;
+    line-height: 1.25;
+  }
+  .chat-notification-message {
+    color: #718096;
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+</style>
+
+With Tailwind, you style elements by applying pre-existing classes directly in your HTML.
+
+Using utility classes to build custom designs without writing CSS
+
+<div class="p-6 max-w-sm mx-auto bg-white rounded-xl shadow-lg flex items-center gap-x-4">
+  <div class="shrink-0">
+    <img class="size-12" src="/img/logo.svg" alt="ChitChat Logo">
+  </div>
+  <div>
+    <div class="text-xl font-medium text-black">ChitChat</div>
+    <p class="text-slate-500">You have a new message!</p>
+  </div>
+</div>
+
+In the example above, we’ve used:
+
+    Tailwind’s flexbox and padding utilities (flex, shrink-0, and p-6) to control the overall card layout
+    The max-width and margin utilities (max-w-sm and mx-auto) to constrain the card width and center it horizontally
+    The background color, border radius, and box-shadow utilities (bg-white, rounded-xl, and shadow-lg) to style the card’s appearance
+    The size utilities (size-12) to set the width and height of the logo image
+    The gap utilities (gap-x-4) to handle the spacing between the logo and the text
+    The font size, text color, and font-weight utilities (text-xl, text-black, font-medium, etc.) to style the card text
+
+This approach allows us to implement a completely custom component design without writing a single line of custom CSS.
+
+Now I know what you’re thinking, “this is an atrocity, what a horrible mess!” and you’re right, it’s kind of ugly. In fact it’s just about impossible to think this is a good idea the first time you see it — you have to actually try it.
+
+But once you’ve actually built something this way, you’ll quickly notice some really important benefits:
+
+    You aren’t wasting energy inventing class names. No more adding silly class names like sidebar-inner-wrapper just to be able to style something, and no more agonizing over the perfect abstract name for something that’s really just a flex container.
+    Your CSS stops growing. Using a traditional approach, your CSS files get bigger every time you add a new feature. With utilities, everything is reusable so you rarely need to write new CSS.
+    Making changes feels safer. CSS is global and you never know what you’re breaking when you make a change. Classes in your HTML are local, so you can change them without worrying about something else breaking.
+
+When you realize how productive you can be working exclusively in HTML with predefined utility classes, working any other way will feel like torture.
+Why not just use inline styles?
+
+A common reaction to this approach is wondering, “isn’t this just inline styles?” and in some ways it is — you’re applying styles directly to elements instead of assigning them a class name and then styling that class.
+
+But using utility classes has a few important advantages over inline styles:
+
+    Designing with constraints. Using inline styles, every value is a magic number. With utilities, you’re choosing styles from a predefined design system, which makes it much easier to build visually consistent UIs.
+    Responsive design. You can’t use media queries in inline styles, but you can use Tailwind’s responsive utilities to build fully responsive interfaces easily.
+    Hover, focus, and other states. Inline styles can’t target states like hover or focus, but Tailwind’s state variants make it easy to style those states with utility classes.
+
+v3.tailwindcss.com
+Responsive Design - Tailwind CSS
+6–7 minutes
+Overview
+
+Every utility class in Tailwind can be applied conditionally at different breakpoints, which makes it a piece of cake to build complex responsive interfaces without ever leaving your HTML.
+
+First, make sure you’ve added the viewport meta tag to the <head> of your document:
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+Then to add a utility but only have it take effect at a certain breakpoint, all you need to do is prefix the utility with the breakpoint name, followed by the : character:
+
+<!-- Width of 16 by default, 32 on medium screens, and 48 on large screens -->
+<img class="w-16 md:w-32 lg:w-48" src="...">
+
+There are five breakpoints by default, inspired by common device resolutions:
+Breakpoint prefix	Minimum width	CSS
+sm	640px	@media (min-width: 640px) { ... }
+md	768px	@media (min-width: 768px) { ... }
+lg	1024px	@media (min-width: 1024px) { ... }
+xl	1280px	@media (min-width: 1280px) { ... }
+2xl	1536px	@media (min-width: 1536px) { ... }
+
+This works for every utility class in the framework, which means you can change literally anything at a given breakpoint — even things like letter spacing or cursor styles.
+
+Here’s a simple example of a marketing page component that uses a stacked layout on small screens, and a side-by-side layout on larger screens:
+
+<div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl">
+  <div class="md:flex">
+    <div class="md:shrink-0">
+      <img class="h-48 w-full object-cover md:h-full md:w-48" src="/img/building.jpg" alt="Modern building architecture">
+    </div>
+    <div class="p-8">
+      <div class="uppercase tracking-wide text-sm text-indigo-500 font-semibold">Company retreats</div>
+      <a href="#" class="block mt-1 text-lg leading-tight font-medium text-black hover:underline">Incredible accommodation for your team</a>
+      <p class="mt-2 text-slate-500">Looking to take your team away on a retreat to enjoy awesome food and take in some sunshine? We have a list of places to do just that.</p>
+    </div>
+  </div>
+</div>
+
+Here’s how the example above works:
+
+    By default, the outer div is display: block, but by adding the md:flex utility, it becomes display: flex on medium screens and larger.
+    When the parent is a flex container, we want to make sure the image never shrinks, so we’ve added md:shrink-0 to prevent shrinking on medium screens and larger. Technically we could have just used shrink-0 since it would do nothing on smaller screens, but since it only matters on md screens, it’s a good idea to make that clear in the class name.
+    On small screens the image is automatically full width by default. On medium screens and up, we’ve constrained the width to a fixed size and ensured the image is full height using md:h-full md:w-48.
+
+We’ve only used one breakpoint in this example, but you could easily customize this component at other sizes using the sm, lg, xl, or 2xl responsive prefixes as well.
+Working mobile-first
+
+By default, Tailwind uses a mobile-first breakpoint system, similar to what you might be used to in other frameworks like Bootstrap.
+
+What this means is that unprefixed utilities (like uppercase) take effect on all screen sizes, while prefixed utilities (like md:uppercase) only take effect at the specified breakpoint and above.
+Targeting mobile screens
+
+Where this approach surprises people most often is that to style something for mobile, you need to use the unprefixed version of a utility, not the sm: prefixed version. Don’t think of sm: as meaning “on small screens”, think of it as “at the small breakpoint“.
+
+Don’t use sm: to target mobile devices
+
+<!-- This will only center text on screens 640px and wider, not on small screens -->
+<div class="sm:text-center"></div>
+
+Use unprefixed utilities to target mobile, and override them at larger breakpoints
+
+<!-- This will center text on mobile, and left align it on screens 640px and wider -->
+<div class="text-center sm:text-left"></div>
+
+For this reason, it’s often a good idea to implement the mobile layout for a design first, then layer on any changes that make sense for sm screens, followed by md screens, etc.
+Targeting a breakpoint range
+
+By default, styles applied by rules like md:flex will apply at that breakpoint and stay applied at larger breakpoints.
+
+If you’d like to apply a utility only when a specific breakpoint range is active, stack a responsive modifier like md with a max-* modifier to limit that style to a specific range:
+
+<div class="md:max-xl:flex">
+  <!-- ... -->
+</div>
+
+Tailwind generates a corresponding max-* modifier for each breakpoint, so out of the box the following modifiers are available:
+Modifier	Media query
+max-sm	@media not all and (min-width: 640px) { ... }
+max-md	@media not all and (min-width: 768px) { ... }
+max-lg	@media not all and (min-width: 1024px) { ... }
+max-xl	@media not all and (min-width: 1280px) { ... }
+max-2xl	@media not all and (min-width: 1536px) { ... }
+Targeting a single breakpoint
+
+To target a single breakpoint, target the range for that breakpoint by stacking a responsive modifier like md with the max-* modifier for the next breakpoint:
+
+<div class="md:max-lg:flex">
+  <!-- ... -->
+</div>
+
+Read about targeting breakpoint ranges to learn more.
+Using custom breakpoints
+Customizing your theme
+
+You can completely customize your breakpoints in your tailwind.config.js file:
+
+Learn more in the customizing breakpoints documentation.
+Arbitrary values
+
+If you need to use a one-off breakpoint that doesn’t make sense to include in your theme, use the min or max modifiers to generate a custom breakpoint on the fly using any arbitrary value.
+
+<div class="min-[320px]:text-center max-[600px]:bg-sky-300">
+  <!-- ... -->
+</div>
+
+Learn more about arbitrary value support in the arbitrary values documentation.
+
+
+
+v3.tailwindcss.com
+Handling Hover, Focus, and Other States - Tailwind CSS
+40–51 minutes
+
+Every utility class in Tailwind can be applied conditionally by adding a modifier to the beginning of the class name that describes the condition you want to target.
+
+For example, to apply the bg-sky-700 class on hover, use the hover:bg-sky-700 class:
+
+Hover over this button to see the background color change
+
+<button class="bg-sky-500 hover:bg-sky-700 ...">
+  Save changes
+</button>
+
+How does this compare to traditional CSS?
+
+Tailwind includes modifiers for just about everything you’ll ever need, including:
+
+    Pseudo-classes, like :hover, :focus, :first-child, and :required
+    Pseudo-elements, like ::before, ::after, ::placeholder, and ::selection
+    Media and feature queries, like responsive breakpoints, dark mode, and prefers-reduced-motion
+    Attribute selectors, like [dir="rtl"] and [open]
+
+These modifiers can even be stacked to target more specific situations, for example changing the background color in dark mode, at the medium breakpoint, on hover:
+
+<button class="dark:md:hover:bg-fuchsia-600 ...">
+  Save changes
+</button>
+
+In this guide you’ll learn about every modifier available in the framework, how to use them with your own custom classes, and even how to create your own.
+Pseudo-classes
+Hover, focus, and active
+
+Style elements on hover, focus, and active using the hover, focus, and active modifiers:
+
+Try interacting with this button to see the hover, focus, and active states
+
+<button class="bg-violet-500 hover:bg-violet-600 active:bg-violet-700 focus:outline-none focus:ring focus:ring-violet-300 ...">
+  Save changes
+</button>
+
+Tailwind also includes modifiers for other interactive states like :visited, :focus-within, :focus-visible, and more.
+
+See the pseudo-class reference for a complete list of available pseudo-class modifiers.
+First, last, odd, and even
+
+Style an element when it is the first-child or last-child using the first and last modifiers:
+
+<ul role="list" class="p-6 divide-y divide-slate-200">
+  {#each people as person}
+    <!-- Remove top/bottom padding when first/last child -->
+    <li class="flex py-4 first:pt-0 last:pb-0">
+      <img class="h-10 w-10 rounded-full" src="{person.imageUrl}" alt="" />
+      <div class="ml-3 overflow-hidden">
+        <p class="text-sm font-medium text-slate-900">{person.name}</p>
+        <p class="text-sm text-slate-500 truncate">{person.email}</p>
+      </div>
+    </li>
+  {/each}
+</ul>
+
+You can also style an element when it’s an odd or even child using the odd and even modifiers:
+Name 	Title 	Email
+Jane Cooper 	Regional Paradigm Technician 	jane.cooper@example.com
+Cody Fisher 	Product Directives Officer 	cody.fisher@example.com
+Leonard Krasner 	Senior Designer 	leonard.krasner@example.com
+Emily Selman 	VP, Hardware Engineering 	emily.selman@example.com
+Anna Roberts 	Chief Strategy Officer 	anna.roberts@example.com
+
+<table>
+  <!-- ... -->
+  <tbody>
+    {#each people as person}
+      <!-- Use a white background for odd rows, and slate-50 for even rows -->
+      <tr class="odd:bg-white even:bg-slate-50">
+        <td>{person.name}</td>
+        <td>{person.title}</td>
+        <td>{person.email}</td>
+      </tr>
+    {/each}
+  </tbody>
+</table>
+
+Tailwind also includes modifiers for other structural pseudo-classes like :only-child, :first-of-type, :empty, and more.
+
+See the pseudo-class reference for a complete list of available pseudo-class modifiers.
+Form states
+
+Style form elements in different states using modifiers like required, invalid, and disabled:
+
+Try making the email address valid to see the styles change
+
+<form>
+  <label class="block">
+    <span class="block text-sm font-medium text-slate-700">Username</span>
+    <!-- Using form state modifiers, the classes can be identical for every input -->
+    <input type="text" value="tbone" disabled class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400
+      focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500
+      disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none
+      invalid:border-pink-500 invalid:text-pink-600
+      focus:invalid:border-pink-500 focus:invalid:ring-pink-500
+    "/>
+  </label>
+  <!-- ... -->
+</form>
+
+Using modifiers for this sort of thing can reduce the amount of conditional logic in your templates, letting you use the same set of classes regardless of what state an input is in and letting the browser apply the right styles for you.
+
+Tailwind also includes modifiers for other form states like :read-only, :indeterminate, :checked, and more.
+
+See the pseudo-class reference for a complete list of available pseudo-class modifiers.
+Styling based on parent state (group-{modifier})
+
+When you need to style an element based on the state of some parent element, mark the parent with the group class, and use group-* modifiers like group-hover to style the target element:
+
+Hover over the card to see both text elements change color
+
+<a href="#" class="group block max-w-xs mx-auto rounded-lg p-6 bg-white ring-1 ring-slate-900/5 shadow-lg space-y-3 hover:bg-sky-500 hover:ring-sky-500">
+  <div class="flex items-center space-x-3">
+    <svg class="h-6 w-6 stroke-sky-500 group-hover:stroke-white" fill="none" viewBox="0 0 24 24"><!-- ... --></svg>
+    <h3 class="text-slate-900 group-hover:text-white text-sm font-semibold">New project</h3>
+  </div>
+  <p class="text-slate-500 group-hover:text-white text-sm">Create a new project from a variety of starting templates.</p>
+</a>
+
+This pattern works with every pseudo-class modifier, for example group-focus, group-active, or even group-odd.
+Differentiating nested groups
+
+When nesting groups, you can style something based on the state of a specific parent group by giving that parent a unique group name using a group/{name} class, and including that name in modifiers using classes like group-hover/{name}:
+
+<ul role="list">
+  {#each people as person}
+    <li class="group/item hover:bg-slate-100 ...">
+      <img src="{person.imageUrl}" alt="" />
+      <div>
+        <a href="{person.url}">{person.name}</a>
+        <p>{person.title}</p>
+      </div>
+      <a class="group/edit invisible hover:bg-slate-200 group-hover/item:visible ..." href="tel:{person.phone}">
+        <span class="group-hover/edit:text-gray-700 ...">Call</span>
+        <svg class="group-hover/edit:translate-x-0.5 group-hover/edit:text-slate-500 ...">
+          <!-- ... -->
+        </svg>
+      </a>
+    </li>
+  {/each}
+</ul>
+
+Groups can be named however you like and don’t need to be configured in any way — just name your groups directly in your markup and Tailwind will automatically generate the necessary CSS.
+Arbitrary groups
+
+You can create one-off group-* modifiers on the fly by providing your own selector as an arbitrary value between square brackets:
+
+<div class="group is-published">
+  <div class="hidden group-[.is-published]:block">
+    Published
+  </div>
+</div>
+
+For more control, you can use the & character to mark where .group should end up in the final selector relative to the selector you are passing in:
+
+<div class="group">
+  <div class="group-[:nth-of-type(3)_&]:block">
+    <!-- ... -->
+  </div>
+</div>
+
+Styling based on sibling state (peer-{modifier})
+
+When you need to style an element based on the state of a sibling element, mark the sibling with the peer class, and use peer-* modifiers like peer-invalid to style the target element:
+
+Try making the email address valid to see the warning disappear
+
+<form>
+  <label class="block">
+    <span class="block text-sm font-medium text-slate-700">Email</span>
+    <input type="email" class="peer ..."/>
+    <p class="mt-2 invisible peer-invalid:visible text-pink-600 text-sm">
+      Please provide a valid email address.
+    </p>
+  </label>
+</form>
+
+This makes it possible to do all sorts of neat tricks, like floating labels for example without any JS.
+
+This pattern works with every pseudo-class modifier, for example peer-focus, peer-required, and peer-disabled.
+
+It’s important to note that the peer marker can only be used on previous siblings because of how the subsequent-sibling combinator works in CSS.
+
+Won’t work, only previous siblings can be marked as peers
+
+<label>
+  <span class="peer-invalid:text-red-500 ...">Email</span>
+  <input type="email" class="peer ..."/>
+</label>
+
+Differentiating peers
+
+When using multiple peers, you can style something on the state of a specific peer by giving that peer a unique name using a peer/{name} class, and including that name in modifiers using classes like peer-checked/{name}:
+
+<fieldset>
+  <legend>Published status</legend>
+
+  <input id="draft" class="peer/draft" type="radio" name="status" checked />
+  <label for="draft" class="peer-checked/draft:text-sky-500">Draft</label>
+
+  <input id="published" class="peer/published" type="radio" name="status" />
+  <label for="published" class="peer-checked/published:text-sky-500">Published</label>
+
+  <div class="hidden peer-checked/draft:block">Drafts are only visible to administrators.</div>
+  <div class="hidden peer-checked/published:block">Your post will be publicly visible on your site.</div>
+</fieldset>
+
+Peers can be named however you like and don’t need to be configured in any way — just name your peers directly in your markup and Tailwind will automatically generate the necessary CSS.
+Arbitrary peers
+
+You can create one-off peer-* modifiers on the fly by providing your own selector as an arbitrary value between square brackets:
+
+<form>
+  <label for="email">Email:</label>
+  <input id="email" name="email" type="email" class="is-dirty peer" required />
+  <div class="peer-[.is-dirty]:peer-required:block hidden">This field is required.</div>
+  <!-- ... -->
+</form>
+
+For more control, you can use the & character to mark where .peer should end up in the final selector relative to the selector you are passing in:
+
+<div>
+  <input type="text" class="peer" />
+  <div class="hidden peer-[:nth-of-type(3)_&]:block">
+    <!-- ... -->
+  </div>
+</div>
+
+Styling direct children (*-{modifier})
+
+While it’s generally preferable to put utility classes directly on child elements, you can use the * modifier in situations where you need to style direct children that you don’t have control over.
+
+<div>
+  <h2>Categories<h2>
+  <ul class="*:rounded-full *:border *:border-sky-100 *:bg-sky-50 *:px-2 *:py-0.5 dark:text-sky-300 dark:*:border-sky-500/15 dark:*:bg-sky-500/10 ...">
+    <li>Sales</li>
+    <li>Marketing</li>
+    <li>SEO</li>
+    <!-- ... -->
+  </ul>
+</div>
+
+It’s important to note that overriding a style with a utility directly on the child itself won’t work due to the specificity of the generated child selector.
+
+Won’t work, children can’t override their own styling.
+
+<ul class="*:bg-sky-50 ...">
+  <li class="bg-red-50 ...">Sales</li>
+  <li>Marketing</li>
+  <li>SEO</li>
+  <!-- ... -->
+</ul>
+
+Styling based on descendants (has-{modifier})
+
+Use the has-* modifier to style an element based on the state or content of its descendants.
+
+<label class="has-[:checked]:bg-indigo-50 has-[:checked]:text-indigo-900 has-[:checked]:ring-indigo-200 ..">
+  <svg fill="currentColor">
+    <!-- ... -->
+  </svg>
+  Google Pay
+  <input type="radio" class="checked:border-indigo-500 ..." />
+</label>
+
+You can use has-* with a pseudo-class, like has-[:focus], to style an element based on the state of its descendants. You can also use element selectors, like has-[img] or has-[a], to style an element based on the content of its descendants.
+Styling based on the descendants of a group (group-has-{modifier})
+
+If you need to style an element based on the descendants of a parent element, you can mark the parent with the group class and use the group-has-* modifier to style the target element.
+
+<div class="group ...">
+  <img src="..." />
+  <h4>Spencer Sharp</h4>
+  <svg class="hidden group-has-[a]:block ...">
+    <!-- ... -->
+  </svg>
+  <p>Product Designer at <a href="...">planeteria.tech</a></p>
+</div>
+
+Styling based on the descendants of a peer (peer-has-{modifier})
+
+If you need to style an element based on the descendants of a sibling element, you can mark the sibling with the peer class and use the peer-has-* modifier to style the target element.
+
+<fieldset>
+  <legend>Today</legend>
+
+  <div>
+    <label class="peer ...">
+      <input type="checkbox" name="todo[1]" checked />
+      Create a to do list
+    </label>
+    <svg class="peer-has-[:checked]:hidden ...">
+      <!-- ... -->
+    </svg>
+  </div>
+
+  <!-- ... -->
+</fieldset>
+
+Pseudo-elements
+Before and after
+
+Style the ::before and ::after pseudo-elements using the before and after modifiers:
+
+<label class="block">
+  <span class="after:content-['*'] after:ml-0.5 after:text-red-500 block text-sm font-medium text-slate-700">
+    Email
+  </span>
+  <input type="email" name="email" class="mt-1 px-3 py-2 bg-white border shadow-sm border-slate-300 placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-sky-500 block w-full rounded-md sm:text-sm focus:ring-1" placeholder="you@example.com" />
+</label>
+
+When using these modifiers, Tailwind will automatically add content: '' by default so you don’t have to specify it unless you want a different value:
+
+<blockquote class="text-2xl font-semibold italic text-center text-slate-900">
+  When you look
+  <span class="before:block before:absolute before:-inset-1 before:-skew-y-3 before:bg-pink-500 relative inline-block">
+    <span class="relative text-white">annoyed</span>
+  </span>
+  all the time, people think that you're busy.
+</blockquote>
+
+It’s worth noting that you don’t really need ::before and ::after pseudo-elements for most things in Tailwind projects — it’s usually simpler to just use a real HTML element.
+
+For example, here’s the same design from above but using a <span> instead of the ::before pseudo-element, which is a little easier to read and is actually less code:
+
+<blockquote class="text-2xl font-semibold italic text-center text-slate-900">
+  When you look
+  <span class="relative">
+    <span class="block absolute -inset-1 -skew-y-3 bg-pink-500" aria-hidden="true"></span>
+    <span class="relative text-white">annoyed</span>
+  </span>
+  all the time, people think that you're busy.
+</blockquote>
+
+Save before and after for situations where it’s important that the content of the pseudo-element is not actually in the DOM and can’t be selected by the user.
+
+Note that if you’ve disabled our preflight base styles, the content property will not be set to an empty string by default, and you will need to include content-[''] any time you use the before and after modifiers.
+
+If you’ve disabled preflight make sure to set the content manually
+
+<div class="before:content-[''] before:block ...">
+  <!-- ... -->
+</div>
+
+Placeholder text
+
+Style the placeholder text of any input or textarea using the placeholder modifier:
+
+<label class="relative block">
+  <span class="sr-only">Search</span>
+  <span class="absolute inset-y-0 left-0 flex items-center pl-2">
+    <svg class="h-5 w-5 fill-slate-300" viewBox="0 0 20 20"><!-- ... --></svg>
+  </span>
+  <input class="placeholder:italic placeholder:text-slate-400 block bg-white w-full border border-slate-300 rounded-md py-2 pl-9 pr-3 shadow-sm focus:outline-none focus:border-sky-500 focus:ring-sky-500 focus:ring-1 sm:text-sm" placeholder="Search for anything..." type="text" name="search"/>
+</label>
+
+File input buttons
+
+Style the button in file inputs using the file modifier:
+
+<form class="flex items-center space-x-6">
+  <div class="shrink-0">
+    <img class="h-16 w-16 object-cover rounded-full" src="https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1361&q=80" alt="Current profile photo" />
+  </div>
+  <label class="block">
+    <span class="sr-only">Choose profile photo</span>
+    <input type="file" class="block w-full text-sm text-slate-500
+      file:mr-4 file:py-2 file:px-4
+      file:rounded-full file:border-0
+      file:text-sm file:font-semibold
+      file:bg-violet-50 file:text-violet-700
+      hover:file:bg-violet-100
+    "/>
+  </label>
+</form>
+
+Note that Tailwind’s border reset is not applied to file input buttons. This means that to add a border to a file input button, you need to explicitly set the border-style using a class like file:border-solid alongside any border-width utility:
+
+<input type="file" class="file:border file:border-solid ..." />
+
+List markers
+
+Style the counters or bullets in lists using the marker modifier:
+
+<ul role="list" class="marker:text-sky-400 list-disc pl-5 space-y-3 text-slate-500">
+  <li>5 cups chopped Porcini mushrooms</li>
+  <li>1/2 cup of olive oil</li>
+  <li>3lb of celery</li>
+</ul>
+
+We’ve designed the marker modifier to be inheritable, so although you can use it directly on an <li> element, you can also use it on a parent to avoid repeating yourself.
+Highlighted text
+
+Style the active text selection using the selection modifier:
+
+Try selecting some of this text with your mouse
+
+<div class="selection:bg-fuchsia-300 selection:text-fuchsia-900">
+  <p>
+    So I started to walk into the water. I won't lie to you boys, I was
+    terrified. But I pressed on, and as I made my way past the breakers
+    a strange calm came over me. I don't know if it was divine intervention
+    or the kinship of all living things but I tell you Jerry at that moment,
+    I <em>was</em> a marine biologist.
+  </p>
+</div>
+
+We’ve designed the selection modifier to be inheritable, so you can add it anywhere in the tree and it will be applied to all descendant elements.
+
+This makes it easy to set the selection color to match your brand across your entire site:
+
+<html>
+<head>
+  <!-- ... -->
+</head>
+<body class="selection:bg-pink-300">
+  <!-- ... -->
+</body>
+</html>
+
+First-line and first-letter
+
+Style the first line in a block of content using the first-line modifier, and the first letter using the first-letter modifier:
+
+<p class="first-line:uppercase first-line:tracking-widest
+  first-letter:text-7xl first-letter:font-bold first-letter:text-slate-900
+  first-letter:mr-3 first-letter:float-left
+">
+  Well, let me tell you something, funny boy. Y'know that little stamp, the one
+  that says "New York Public Library"? Well that may not mean anything to you,
+  but that means a lot to me. One whole hell of a lot.
+</p>
+
+Dialog backdrops
+
+Style the backdrop of a native <dialog> element using the backdrop modifier:
+
+<dialog class="backdrop:bg-gray-50">
+  <form method="dialog">
+    <!-- ... -->
+  </form>
+</dialog>
+
+If you’re using native <dialog> elements in your project, you may also want to read about styling open/closed states using the open modifier.
+Media and feature queries
+Responsive breakpoints
+
+To style an element at a specific breakpoint, use responsive modifiers like md and lg.
+
+For example, this will render a 3-column grid on mobile, a 4-column grid on medium-width screens, and a 6-column grid on large-width screens:
+
+<div class="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+  <!-- ... -->
+</div>
+
+Check out the Responsive Design documentation for an in-depth look at how these features work.
+Prefers color scheme
+
+The prefers-color-scheme media query tells you whether the user prefers a light theme or dark theme, and is usually configured at the operating system level.
+
+Use utilities with no modifier to target light mode, and use the dark modifier to provide overrides for dark mode:
+
+<div class="bg-white dark:bg-slate-900 rounded-lg px-6 py-8 ring-1 ring-slate-900/5 shadow-xl">
+  <div>
+    <span class="inline-flex items-center justify-center p-2 bg-indigo-500 rounded-md shadow-lg">
+      <svg class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><!-- ... --></svg>
+    </span>
+  </div>
+  <h3 class="text-slate-900 dark:text-white mt-5 text-base font-medium tracking-tight">Writes Upside-Down</h3>
+  <p class="text-slate-500 dark:text-slate-400 mt-2 text-sm">
+    The Zero Gravity Pen can be used to write in any orientation, including upside-down. It even works in outer space.
+  </p>
+</div>
+
+Check out the Dark Mode documentation for an in-depth look at how this feature works.
+Prefers reduced motion
+
+The prefers-reduced-motion media query tells you if the user has requested that you minimize non-essential motion.
+
+Use the motion-reduce modifier to conditionally add styles when the user has requested reduced motion:
+
+Try emulating `prefers-reduced-motion: reduce` in your developer tools to hide the spinner
+
+<button type="button" class="bg-indigo-500 ..." disabled>
+  <svg class="motion-reduce:hidden animate-spin ..." viewBox="0 0 24 24"><!-- ... --></svg>
+  Processing...
+</button>
+
+Tailwind also includes a motion-safe modifier that only adds styles when the user has not requested reduced motion. This can be useful when using the motion-reduce helper would mean having to “undo” a lot of styles:
+
+<!-- Using `motion-reduce` can mean lots of "undoing" styles -->
+<button class="hover:-translate-y-0.5 transition motion-reduce:hover:translate-y-0 motion-reduce:transition-none ...">
+  Save changes
+</button>
+
+<!-- Using `motion-safe` is less code in these situations -->
+<button class="motion-safe:hover:-translate-x-0.5 motion-safe:transition ...">
+  Save changes
+</button>
+
+Prefers contrast
+
+The prefers-contrast media query tells you if the user has requested more or less contrast.
+
+Use the contrast-more modifier to conditionally add styles when the user has requested more contrast:
+
+Try emulating `prefers-contrast: more` in your developer tools to see the changes
+
+<form>
+  <label class="block">
+    <span class="block text-sm font-medium text-slate-700">Social Security Number</span>
+    <input class="border-slate-200 placeholder-slate-400 contrast-more:border-slate-400 contrast-more:placeholder-slate-500"/>
+    <p class="mt-2 opacity-10 contrast-more:opacity-100 text-slate-600 text-sm">
+      We need this to steal your identity.
+    </p>
+  </label>
+</form>
+
+Tailwind also includes a contrast-less modifier you can use to conditionally add styles when the user has requested less contrast.
+Forced colors mode
+
+The forced-colors media query indicates if the user is using a forced colors mode. These modes override your site’s colors with a user defined palette for text, backgrounds, links and buttons.
+
+Use the forced-colors modifier to conditionally add styles when the user has enabled a forced color mode:
+
+Try emulating `forced-colors: active` in your developer tools to see the changes
+
+<form>
+  <legend> Choose a theme: </legend>
+  <label>
+    <input type="radio" class="forced-colors:appearance-auto appearance-none" />
+    <p class="forced-colors:block hidden">
+      Cyan
+    </p>
+    <div class="forced-colors:hidden h-6 w-6 rounded-full bg-cyan-200 ..."></div>
+    <div class="forced-colors:hidden h-6 w-6 rounded-full bg-cyan-500 ..."></div>
+  </label>
+  <!-- ... -->
+</form>
+
+Tailwind also includes a forced color adjust utilities to opt in and out of forced colors.
+Viewport orientation
+
+Use the portrait and landscape modifiers to conditionally add styles when the viewport is in a specific orientation:
+
+<div>
+  <div class="portrait:hidden">
+    <!-- ... -->
+  </div>
+  <div class="landscape:hidden">
+    <p>
+      This experience is designed to be viewed in landscape. Please rotate your
+      device to view the site.
+    </p>
+  </div>
+</div>
+
+Print styles
+
+Use the print modifier to conditionally add styles that only apply when the document is being printed:
+
+<div>
+  <article class="print:hidden">
+    <h1>My Secret Pizza Recipe</h1>
+    <p>This recipe is a secret, and must not be shared with anyone</p>
+    <!-- ... -->
+  </article>
+  <div class="hidden print:block">
+    Are you seriously trying to print this? It's secret!
+  </div>
+</div>
+
+Supports rules
+
+Use the supports-[...] modifier to style things based on whether a certain feature is supported in the user’s browser.
+
+<div class="flex supports-[display:grid]:grid ...">
+  <!-- ... -->
+</div>
+
+Under the hood the supports-[...] modifier generates @supports rules and takes anything you’d use with @supports (...) between the square brackets, like a property/value pair, and even expressions using and and or.
+
+For terseness, if you only need to check if a property is supported (and not a specific value), you can just specify the property name:
+
+<div class="bg-black/75 supports-[backdrop-filter]:bg-black/25 supports-[backdrop-filter]:backdrop-blur ...">
+  <!-- ... -->
+</div>
+
+You can configure shortcuts for common @supports rules you’re using in your project in the theme.supports section of your tailwind.config.js file:
+
+You can then use these custom supports-* modifiers in your project:
+
+<div class="supports-grid:grid">
+  <!-- ... -->
+</div>
+
+Attribute selectors
+ARIA states
+
+Use the aria-* modifier to conditionally style things based on ARIA attributes.
+
+For example, to apply the bg-sky-700 class when the aria-checked attribute is set to true, use the aria-checked:bg-sky-700 class:
+
+<div aria-checked="true" class="bg-gray-600 aria-checked:bg-sky-700">
+  <!-- ... -->
+</div>
+
+By default we’ve included modifiers for the most common boolean ARIA attributes:
+Modifier	CSS
+aria-busy	&[aria-busy=“true”]
+aria-checked	&[aria-checked=“true”]
+aria-disabled	&[aria-disabled=“true”]
+aria-expanded	&[aria-expanded=“true”]
+aria-hidden	&[aria-hidden=“true”]
+aria-pressed	&[aria-pressed=“true”]
+aria-readonly	&[aria-readonly=“true”]
+aria-required	&[aria-required=“true”]
+aria-selected	&[aria-selected=“true”]
+
+You can customize which aria-* modifiers are available by editing theme.aria or theme.extend.aria in your tailwind.config.js file:
+
+If you need to use a one-off aria modifier that doesn’t make sense to include in your theme, or for more complex ARIA attributes that take specific values, use square brackets to generate a property on the fly using any arbitrary value.
+Invoice #
+	Client 	Amount
+#100 	Pendant Publishing 	$2,000.00
+#101 	Kruger Industrial Smoothing 	$545.00
+#102 	J. Peterman 	$10,000.25
+
+<table>
+  <thead>
+    <tr>
+      <th
+        aria-sort="ascending"
+        class="aria-[sort=ascending]:bg-[url('/img/down-arrow.svg')] aria-[sort=descending]:bg-[url('/img/up-arrow.svg')]"
+      >
+        Invoice #
+      </th>
+      <!-- ... -->
+    </tr>
+  </thead>
+  <!-- ... -->
+</table>
+
+ARIA state modifiers can also target parent and sibling elements using the group-aria-* and peer-aria-* modifiers:
+
+<table>
+  <thead>
+    <tr>
+    <th aria-sort="ascending" class="group">
+      Invoice #
+      <svg class="group-aria-[sort=ascending]:rotate-0 group-aria-[sort=descending]:rotate-180"><!-- ... --></svg>
+    </th>
+    <!-- ... -->
+    </tr>
+  </thead>
+  <!-- ... -->
+</table>
+
+Data attributes
+
+Use the data-* modifier to conditionally apply styles based on data attributes.
+
+Since there are no standard data-* attributes by definition, by default we only support arbitrary values out of the box, for example:
+
+<!-- Will apply -->
+<div data-size="large" class="data-[size=large]:p-8">
+  <!-- ... -->
+</div>
+
+<!-- Will not apply -->
+<div data-size="medium" class="data-[size=large]:p-8">
+  <!-- ... -->
+</div>
+
+You can configure shortcuts for common data attribute selectors you’re using in your project in the theme.data section of your tailwind.config.js file:
+
+You can then use these custom data-* modifiers in your project:
+
+<div data-ui="checked active" class="data-checked:underline">
+  <!-- ... -->
+</div>
+
+RTL support
+
+Use the rtl and ltr modifiers to conditionally add styles in right-to-left and left-to-right modes respectively when building multi-directional layouts:
+
+<div class="group flex items-center">
+  <img class="shrink-0 h-12 w-12 rounded-full" src="..." alt="" />
+  <div class="ltr:ml-3 rtl:mr-3">
+    <p class="text-sm font-medium text-slate-700 group-hover:text-slate-900">...</p>
+    <p class="text-sm font-medium text-slate-500 group-hover:text-slate-700">...</p>
+  </div>
+</div>
+
+Note that the ltr modifier will not take effect unless the dir attribute is explicitly set to ltr, so if you are building a multi-directional site make sure to always set a direction, not just in rtl mode.
+
+Always set the direction, even if left-to-right is your default
+
+<html dir="ltr">
+  <!-- ... -->
+</html>
+
+Remember, these modifiers are only useful if you are building a site that needs to support both left-to-right and right-to-left layouts. If you’re building a site that only needs to support a single direction, you don’t need these modifiers — just apply the styles that make sense for your content.
+Open/closed state
+
+Use the open modifier to conditionally add styles when a <details> or <dialog> element is in an open state:
+
+Try toggling the disclosure to see the styles change
+
+<div class="max-w-lg mx-auto p-8">
+  <details class="open:bg-white dark:open:bg-slate-900 open:ring-1 open:ring-black/5 dark:open:ring-white/10 open:shadow-lg p-6 rounded-lg" open>
+    <summary class="text-sm leading-6 text-slate-900 dark:text-white font-semibold select-none">
+      Why do they call it Ovaltine?
+    </summary>
+    <div class="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-400">
+      <p>The mug is round. The jar is round. They should call it Roundtine.</p>
+    </div>
+  </details>
+</div>
+
+Custom modifiers
+Using arbitrary variants
+
+Just like arbitrary values let you use custom values with your utility classes, arbitrary variants let you write custom selector modifiers directly in your HTML.
+
+Arbitrary variants are just format strings that represent the selector, wrapped in square brackets. For example, this arbitrary modifier selects an element only when it is the third child:
+
+<ul role="list">
+  {#each items as item}
+    <li class="[&:nth-child(3)]:underline">{item}</li>
+  {/each}
+</ul>
+
+The format string is the same as what you’d use with the addVariant plugin API, with the & representing the selector being modified.
+
+Arbitrary variants can be stacked with built-in modifiers or with each other, just like the rest of the modifiers in Tailwind:
+
+<ul role="list">
+  {#each items as item}
+    <li class="lg:[&:nth-child(3)]:hover:underline">{item}</li>
+  {/each}
+</ul>
+
+If you need spaces in your selector, you can use an underscore. For example, this arbitrary modifier selects all p elements within the element where you’ve added the class:
+
+<div class="[&_p]:mt-4">
+  <p>Lorem ipsum...</p>
+  <ul>
+    <li>
+      <p>Lorem ipsum...</p>
+    </li>
+    <!-- ... -->
+  </ul>
+</div>
+
+You can also use at-rules like @media or @supports in arbitrary variants:
+
+<div class="flex [@supports(display:grid)]:grid">
+  <!-- ... -->
+</div>
+
+With at-rule custom modifiers the & placeholder isn’t necessary, just like when nesting with a preprocessor.
+
+You can even combine at-rules and regular selector modifiers by including the selector modifier within curly braces after the at-rule:
+
+<button type="button" class="[@media(any-hover:hover){&:hover}]:opacity-100">
+  <!-- ... -->
+</button>
+
+Creating a plugin
+
+If you find yourself using the same arbitrary modifier multiple times in your project, it might be worth extracting it to a plugin using the addVariant API:
+
+Learn more in the adding variant plugins documentation.
+Advanced topics
+Using with your own classes
+
+All of Tailwind’s modifiers are available to use with your own custom classes as long as you’ve defined them in one of Tailwind’s layers or added them using a plugin:
+Ordering stacked modifiers
+
+When stacking modifiers, they are applied from the inside-out, like nested function calls:
+
+// These modifiers:
+'dark:group-hover:focus:opacity-100'
+
+// ...are applied like this:
+dark(groupHover(focus('opacity-100')))
+
+For the most part this doesn’t actually matter, but there are a few situations where the order you use actually generates meaningfully different CSS.
+
+For example, if you have darkMode configured to class, combining the dark and group-hover modifiers generates a different result depending on the order you use:
+
+/* dark:group-hover:opacity-100 */
+.dark .group:hover .dark\:group-hover\:opacity-100 {
+  opacity: 1;
+}
+
+/* group-hover:dark:opacity-100 */
+.group:hover .dark .group-hover\:dark\:opacity-100 {
+  opacity: 1;
+}
+
+In the first example, the dark element needs to be a parent of the group element, but in the second example it’s reversed.
+
+Another place this is important is when using modifiers like prose-headings that are included with the official typography plugin:
+
+/* prose-headings:hover:underline */
+.prose-headings\:hover\:underline:hover :is(:where(h1, h2, h3, h4, th)) {
+  text-decoration: underline;
+}
+
+/* hover:prose-headings:underline */
+.hover\:prose-headings\:underline :is(:where(h1, h2, h3, h4, th)):hover {
+  text-decoration: underline;
+}
+
+In the first example, every single heading is underlined when you hover over the article itself, whereas in the second example each heading is only underlined when you hover over that heading.
+Appendix
+Quick reference
+
+A quick reference table of every single modifier included in Tailwind by default.
+Modifier	CSS
+hover	&:hover
+focus	&:focus
+focus-within	&:focus-within
+focus-visible	&:focus-visible
+active	&:active
+visited	&:visited
+target	&:target
+*	& > *
+has	&:has
+first	&:first-child
+last	&:last-child
+only	&:only-child
+odd	&:nth-child(odd)
+even	&:nth-child(even)
+first-of-type	&:first-of-type
+last-of-type	&:last-of-type
+only-of-type	&:only-of-type
+empty	&:empty
+disabled	&:disabled
+enabled	&:enabled
+checked	&:checked
+indeterminate	&:indeterminate
+default	&:default
+required	&:required
+valid	&:valid
+invalid	&:invalid
+in-range	&:in-range
+out-of-range	&:out-of-range
+placeholder-shown	&:placeholder-shown
+autofill	&:autofill
+read-only	&:read-only
+before	&::before
+after	&::after
+first-letter	&::first-letter
+first-line	&::first-line
+marker	&::marker
+selection	&::selection
+file	&::file-selector-button
+backdrop	&::backdrop
+placeholder	&::placeholder
+sm	@media (min-width: 640px)
+md	@media (min-width: 768px)
+lg	@media (min-width: 1024px)
+xl	@media (min-width: 1280px)
+2xl	@media (min-width: 1536px)
+min-[…]	@media (min-width: …)
+max-sm	@media not all and (min-width: 640px)
+max-md	@media not all and (min-width: 768px)
+max-lg	@media not all and (min-width: 1024px)
+max-xl	@media not all and (min-width: 1280px)
+max-2xl	@media not all and (min-width: 1536px)
+max-[…]	@media (max-width: …)
+dark	@media (prefers-color-scheme: dark)
+portrait	@media (orientation: portrait)
+landscape	@media (orientation: landscape)
+motion-safe	@media (prefers-reduced-motion: no-preference)
+motion-reduce	@media (prefers-reduced-motion: reduce)
+contrast-more	@media (prefers-contrast: more)
+contrast-less	@media (prefers-contrast: less)
+print	@media print
+supports-[…]	@supports (…)
+aria-checked	&[aria-checked=“true”]
+aria-disabled	&[aria-disabled=“true”]
+aria-expanded	&[aria-expanded=“true”]
+aria-hidden	&[aria-hidden=“true”]
+aria-pressed	&[aria-pressed=“true”]
+aria-readonly	&[aria-readonly=“true”]
+aria-required	&[aria-required=“true”]
+aria-selected	&[aria-selected=“true”]
+aria-[…]	&[aria-…]
+data-[…]	&[data-…]
+rtl	[dir=“rtl”] &
+ltr	[dir=“ltr”] &
+open	&[open]
+Pseudo-class reference
+
+This is a comprehensive list of examples for all the pseudo-class modifiers included in Tailwind to complement the pseudo-classes documentation at the beginning of this guide.
+hover (:hover)
+
+Style an element when the user hovers over it with the mouse cursor using the hover modifier:
+
+<div class="bg-black hover:bg-white ...">
+  <!-- ... -->
+</div>
+
+focus (:focus)
+
+Style an element when it has focus using the focus modifier:
+
+<input class="border-gray-300 focus:border-blue-400 ..." />
+
+focus-within (:focus-within)
+
+Style an element when it or one of its descendants has focus using the focus-within modifier:
+
+<div class="focus-within:shadow-lg ...">
+  <input type="text" />
+</div>
+
+focus-visible (:focus-visible)
+
+Style an element when it has been focused using the keyboard using the focus-visible modifier:
+
+<button class="focus:outline-none focus-visible:ring ...">
+  Submit
+</button>
+
+active (:active)
+
+Style an element when it is being pressed using the active modifier:
+
+<button class="bg-blue-500 active:bg-blue-600 ...">
+  Submit
+</button>
+
+visited (:visited)
+
+Style a link when it has already been visited using the visited modifier:
+
+<a href="https://seinfeldquotes.com" class="text-blue-600 visited:text-purple-600 ...">
+  Inspiration
+</a>
+
+target (:target)
+
+Style an element if its ID matches the current URL fragment using the target modifier:
+
+<div id="about" class="target:shadow-lg ...">
+  <!-- ... -->
+</div>
+
+first (:first-child)
+
+Style an element if it’s the first child using the first modifier:
+
+<ul>
+  {#each people as person}
+    <li class="py-4 first:pt-0 ...">
+      <!-- ... -->
+    </li>
+  {/each}
+</ul>
+
+last (:last-child)
+
+Style an element if it’s the last child using the last modifier:
+
+<ul>
+  {#each people as person}
+    <li class="py-4 last:pb-0 ...">
+      <!-- ... -->
+    </li>
+  {/each}
+</ul>
+
+only (:only-child)
+
+Style an element if it’s the only child using the only modifier:
+
+<ul>
+  {#each people as person}
+    <li class="py-4 only:py-0 ...">
+      <!-- ... -->
+    </li>
+  {/each}
+</ul>
+
+odd (:nth-child(odd))
+
+Style an element if it’s an oddly numbered child using the odd modifier:
+
+<table>
+  {#each people as person}
+    <tr class="bg-white odd:bg-gray-100 ...">
+      <!-- ... -->
+    </tr>
+  {/each}
+</table>
+
+even (:nth-child(even))
+
+Style an element if it’s an evenly numbered child using the even modifier:
+
+<table>
+  {#each people as person}
+    <tr class="bg-white even:bg-gray-100 ...">
+      <!-- ... -->
+    </tr>
+  {/each}
+</table>
+
+first-of-type (:first-of-type)
+
+Style an element if it’s the first child of its type using the first-of-type modifier:
+
+<nav>
+  <img src="/logo.svg" alt="Vandelay Industries" />
+  {#each links as link}
+    <a href="#" class="ml-2 first-of-type:ml-6 ...">
+      <!-- ... -->
+    </a>
+  {/each}
+</nav>
+
+last-of-type (:last-of-type)
+
+Style an element if it’s the last child of its type using the last-of-type modifier:
+
+<nav>
+  <img src="/logo.svg" alt="Vandelay Industries" />
+  {#each links as link}
+    <a href="#" class="mr-2 last-of-type:mr-6 ...">
+      <!-- ... -->
+    </a>
+  {/each}
+  <button>More</button>
+</nav>
+
+only-of-type (:only-of-type)
+
+Style an element if it’s the only child of its type using the only-of-type modifier:
+
+<nav>
+  <img src="/logo.svg" alt="Vandelay Industries" />
+  {#each links as link}
+    <a href="#" class="mx-2 only-of-type:mx-6 ...">
+      <!-- ... -->
+    </a>
+  {/each}
+  <button>More</button>
+</nav>
+
+empty (:empty)
+
+Style an element if it has no content using the empty modifier:
+
+<ul>
+  {#each people as person}
+    <li class="empty:hidden ...">{person.hobby}</li>
+  {/each}
+</ul>
+
+disabled (:disabled)
+
+Style an input when it’s disabled using the disabled modifier:
+
+<input class="disabled:opacity-75 ..." />
+
+enabled (:enabled)
+
+Style an input when it’s enabled using the enabled modifier, most helpful when you only want to apply another style when an element is not disabled:
+
+<input class="enabled:hover:border-gray-400 disabled:opacity-75 ..." />
+
+checked (:checked)
+
+Style a checkbox or radio button when it’s checked using the checked modifier:
+
+<input type="checkbox" class="appearance-none checked:bg-blue-500 ..." />
+
+indeterminate (:indeterminate)
+
+Style a checkbox or radio button in an indeterminate state using the indeterminate modifier:
+
+<input type="checkbox" class="appearance-none indeterminate:bg-gray-300 ..." />
+
+default (:default)
+
+Style an option, checkbox or radio button that was the default value when the page initially loaded using the default modifier:
+
+<input type="checkbox" class="default:ring-2 ..." />
+
+required (:required)
+
+Style an input when it’s required using the required modifier:
+
+<input class="required:border-red-500 ..." />
+
+valid (:valid)
+
+Style an input when it’s valid using the valid modifier:
+
+<input class="valid:border-green-500 ..." />
+
+invalid (:invalid)
+
+Style an input when it’s invalid using the invalid modifier:
+
+<input class="invalid:border-red-500 ..." />
+
+in-range (:in-range)
+
+Style an input when its value is within a specified range limit using the in-range modifier:
+
+<input min="1" max="5" class="in-range:border-green-500 ..." />
+
+out-of-range (:out-of-range)
+
+Style an input when its value is outside of a specified range limit using the out-of-range modifier:
+
+<input min="1" max="5" class="out-of-range:border-red-500 ..." />
+
+placeholder-shown (:placeholder-shown)
+
+Style an input when the placeholder is shown using the placeholder-shown modifier:
+
+<input class="placeholder-shown:border-gray-500 ..." placeholder="you@example.com" />
+
+autofill (:autofill)
+
+Style an input when it has been autofilled by the browser using the autofill modifier:
+
+<input class="autofill:bg-yellow-200 ..." />
+
+read-only (:read-only)
+
+Style an input when it is read-only using the read-only modifier:
+
+<input class="read-only:bg-gray-100 ..." />
+
+
+v3.tailwindcss.com
+Reusing Styles - Tailwind CSS
+9–11 minutes
+
+Tailwind encourages a utility-first workflow, where designs are implemented using only low-level utility classes. This is a powerful way to avoid premature abstraction and the pain points that come with it.
+
+But of course as a project grows, you’ll inevitably find yourself repeating common utility combinations to recreate the same design in many different places.
+
+For example, in the template below you can see the utility classes for each avatar image are repeated five separate times:
+
+<div>
+  <div class="flex items-center space-x-2 text-base">
+    <h4 class="font-semibold text-slate-900">Contributors</h4>
+    <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">204</span>
+  </div>
+  <div class="mt-3 flex -space-x-2 overflow-hidden">
+    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1491528323818-fdd1faba62cc?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1550525811-e5869dd03032?ixlib=rb-1.2.1&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.25&w=256&h=256&q=80" alt=""/>
+    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+    <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="https://images.unsplash.com/photo-1517365830460-955ce3ccd263?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80" alt=""/>
+  </div>
+  <div class="mt-3 text-sm font-medium">
+    <a href="#" class="text-blue-500">+ 198 others</a>
+  </div>
+</div>
+
+Don’t panic! In this guide, you’ll learn about different strategies for reusing styles in your project, as well as best practices for when to employ each one.
+Using editor and language features
+
+A lot of the time, duplication like this isn’t even a real problem because it’s all together in one place, or doesn’t even actually exist because you’re iterating over an array of items and only writing the markup once.
+
+If the styles you need to reuse only need to be reused within a single file, multi-cursor editing and loops are the simplest way to manage any duplication.
+Multi-cursor editing
+
+When duplication is localized to a group of elements in a single file, the easiest way to deal with it is to use multi-cursor editing to quickly select and edit the class list for each element at once:
+
+<nav class="flex justify-center space-x-4">
+  <a href="/dashboard" class="font-medium px-3 py-2 text-slate-700 rounded-lg hover:bg-slate-100 hover:text-slate-900">Home</a>
+  <a href="/team" class="font-medium px-3 py-2 text-slate-700 rounded-lg hover:bg-slate-100 hover:text-slate-900">Team</a>
+  <a href="/projects" class="font-medium px-3 py-2 text-slate-700 rounded-lg hover:bg-slate-100 hover:text-slate-900">Projects</a>
+  <a href="/reports" class="font-medium px-3 py-2 text-slate-700 rounded-lg hover:bg-slate-100 hover:text-slate-900">Reports</a>
+</nav>
+
+You’d be surprised at how often this ends up being the best solution. If you can quickly edit all of the duplicated class lists simultaneously, there’s no benefit to introducing any additional abstraction.
+Loops
+
+Before you assume you’re going to need to extract a component or create a custom class for something, make sure you’re actually using it more than once in your template.
+
+A lot of the time a design element that shows up more than once in the rendered page is only actually authored once because the actual markup is rendered in a loop.
+
+For example, the duplicate avatars at the beginning of this guide would almost certainly be rendered in a loop in a real project:
+
+<div>
+  <div class="flex items-center space-x-2 text-base">
+    <h4 class="font-semibold text-slate-900">Contributors</h4>
+    <span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">204</span>
+  </div>
+  <div class="mt-3 flex -space-x-2 overflow-hidden">
+    {#each contributors as user}
+      <img class="inline-block h-12 w-12 rounded-full ring-2 ring-white" src="{user.avatarUrl}" alt="{user.handle}"/>
+    {/each}
+  </div>
+  <div class="mt-3 text-sm font-medium">
+    <a href="#" class="text-blue-500">+ 198 others</a>
+  </div>
+</div>
+
+You could even rewrite the navigation example using a loop or map if you preferred as well:
+
+<nav className="flex sm:justify-center space-x-4">
+  {[
+    ['Home', '/dashboard'],
+    ['Team', '/team'],
+    ['Projects', '/projects'],
+    ['Reports', '/reports'],
+  ].map(([title, url]) => (
+    <a href={url} className="rounded-lg px-3 py-2 text-slate-700 font-medium hover:bg-slate-100 hover:text-slate-900">{title}</a>
+  ))}
+</nav>
+
+When elements are rendered in a loop like this, the actual class list is only written once so there’s no actual duplication problem to solve.
+Extracting components and partials
+
+If you need to reuse some styles across multiple files, the best strategy is to create a component if you’re using a front-end framework like React, Svelte, or Vue, or a template partial if you’re using a templating language like Blade, ERB, Twig, or Nunjucks.
+
+Now you can use this component in as many places as you like, while still having a single source of truth for the styles so they can easily be updated together in one place.
+Compared to CSS abstractions
+
+Unless a component is a single HTML element, the information needed to define it can’t be captured in CSS alone. For anything even remotely complex, the HTML structure is just as important as the CSS.
+
+Don’t rely on CSS classes to extract complex components
+
+<!-- Even with custom CSS, you still need to duplicate this HTML structure -->
+<div class="chat-notification">
+  <div class="chat-notification-logo-wrapper">
+    <img class="chat-notification-logo" src="/img/logo.svg" alt="ChitChat Logo">
+  </div>
+  <div class="chat-notification-content">
+    <div class="chat-notification-title">ChitChat</div>
+    <p class="chat-notification-message">You have a new message!</p>
+  </div>
+</div>
+
+<style>
+  .chat-notification { /* ... */ }
+  .chat-notification-logo-wrapper { /* ... */ }
+  .chat-notification-logo { /* ... */ }
+  .chat-notification-content { /* ... */ }
+  .chat-notification-title { /* ... */ }
+  .chat-notification-message { /* ... */ }
+</style>
+
+Even if you create classes for the different elements in a component like this, you still have to duplicate the HTML every time you want to use this component. Sure you can update the font-size for every instance in a single place, but what if you need to turn the title into a link?
+
+Components and template partials solve this problem much better than CSS-only abstractions because a component can encapsulate the HTML and the styles. Changing the font-size for every instance is just as easy as it is with CSS, but now you can turn all of the titles into links in a single place too.
+
+Create a template partial or JavaScript component
+
+When you create components and template partials like this, there’s no reason to use anything other than utility classes because you already have a single source of truth for the styles.
+
+If you’re using a traditional templating language like ERB or Twig, creating a template partial for something as small as a button can feel like overkill compared to a simple CSS class like btn.
+
+While it’s highly recommended that you create proper template partials for more complex components, you can use Tailwind’s @apply directive to extract repeated utility patterns to custom CSS classes when a template partial feels heavy-handed.
+
+Here’s what a btn-primary class might look like using @apply to compose it from existing utilities:
+
+Learn more about @apply and @layer in the Functions & Directives documentation.
+Avoiding premature abstraction
+
+Whatever you do, don’t use @apply just to make things look “cleaner”. Yes, HTML templates littered with Tailwind classes are kind of ugly. Making changes in a project that has tons of custom CSS is worse.
+
+If you start using @apply for everything, you are basically just writing CSS again and throwing away all of the workflow and maintainability advantages Tailwind gives you, for example:
+
+    You have to think up class names all the time — nothing will slow you down or drain your energy like coming up with a class name for something that doesn’t deserve to be named.
+    You have to jump between multiple files to make changes — which is a way bigger workflow killer than you’d think before co-locating everything together.
+    Changing styles is scarier — CSS is global, are you sure you can change the min-width value in that class without breaking something in another part of the site?
+    Your CSS bundle will be bigger — oof.
+
+If you’re going to use @apply, use it for very small, highly reusable things like buttons and form controls — and even then only if you’re not using a framework like React where a component would be a better choice.
+
+
+
+v3.tailwindcss.com
+Adding Custom Styles - Tailwind CSS
+11–14 minutes
+
+Often the biggest challenge when working with a framework is figuring out what you’re supposed to do when there’s something you need that the framework doesn’t handle for you.
+
+Tailwind has been designed from the ground up to be extensible and customizable, so that no matter what you’re building you never feel like you’re fighting the framework.
+
+This guide covers topics like customizing your design tokens, how to break out of those constraints when necessary, adding your own custom CSS, and extending the framework with plugins.
+Customizing your theme
+
+If you want to change things like your color palette, spacing scale, typography scale, or breakpoints, add your customizations to the theme section of your tailwind.config.js file:
+
+Learn more about customizing your theme in the Theme Configuration documentation.
+Using arbitrary values
+
+While you can usually build the bulk of a well-crafted design using a constrained set of design tokens, once in a while you need to break out of those constraints to get things pixel-perfect.
+
+When you find yourself really needing something like top: 117px to get a background image in just the right spot, use Tailwind’s square bracket notation to generate a class on the fly with any arbitrary value:
+
+<div class="top-[117px]">
+  <!-- ... -->
+</div>
+
+This is basically like inline styles, with the major benefit that you can combine it with interactive modifiers like hover and responsive modifiers like lg:
+
+<div class="top-[117px] lg:top-[344px]">
+  <!-- ... -->
+</div>
+
+This works for everything in the framework, including things like background colors, font sizes, pseudo-element content, and more:
+
+<div class="bg-[#bada55] text-[22px] before:content-['Festivus']">
+  <!-- ... -->
+</div>
+
+It’s even possible to use the theme function to reference the design tokens in your tailwind.config.js file:
+
+<div class="grid grid-cols-[fit-content(theme(spacing.32))]">
+  <!-- ... -->
+</div>
+
+When using a CSS variable as an arbitrary value, wrapping your variable in var(...) isn’t needed — just providing the actual variable name is enough:
+
+<div class="bg-[--my-color]">
+  <!-- ... -->
+</div>
+
+Arbitrary properties
+
+If you ever need to use a CSS property that Tailwind doesn’t include a utility for out of the box, you can also use square bracket notation to write completely arbitrary CSS:
+
+<div class="[mask-type:luminance]">
+  <!-- ... -->
+</div>
+
+This is really like inline styles, but again with the benefit that you can use modifiers:
+
+<div class="[mask-type:luminance] hover:[mask-type:alpha]">
+  <!-- ... -->
+</div>
+
+This can be useful for things like CSS variables as well, especially when they need to change under different conditions:
+
+<div class="[--scroll-offset:56px] lg:[--scroll-offset:44px]">
+  <!-- ... -->
+</div>
+
+Arbitrary variants
+
+Arbitrary variants are like arbitrary values but for doing on-the-fly selector modification, like you can with built-in pseudo-class variants like hover:{utility} or responsive variants like md:{utility} but using square bracket notation directly in your HTML.
+
+<ul role="list">
+  {#each items as item}
+    <li class="lg:[&:nth-child(3)]:hover:underline">{item}</li>
+  {/each}
+</ul>
+
+Learn more in the arbitrary variants documentation.
+Handling whitespace
+
+When an arbitrary value needs to contain a space, use an underscore (_) instead and Tailwind will automatically convert it to a space at build-time:
+
+<div class="grid grid-cols-[1fr_500px_2fr]">
+  <!-- ... -->
+</div>
+
+In situations where underscores are common but spaces are invalid, Tailwind will preserve the underscore instead of converting it to a space, for example in URLs:
+
+<div class="bg-[url('/what_a_rush.png')]">
+  <!-- ... -->
+</div>
+
+In the rare case that you actually need to use an underscore but it’s ambiguous because a space is valid as well, escape the underscore with a backslash and Tailwind won’t convert it to a space:
+
+<div class="before:content-['hello\_world']">
+  <!-- ... -->
+</div>
+
+If you’re using something like JSX where the backslash is stripped from the rendered HTML, use String.raw() so the backslash isn’t treated as a JavaScript escape character:
+
+<div className={String.raw`before:content-['hello\_world']`}>
+  <!-- ... -->
+</div>
+
+Resolving ambiguities
+
+Many utilities in Tailwind share a common namespace but map to different CSS properties. For example text-lg and text-black both share the text- namespace, but one is for font-size and the other is for color.
+
+When using arbitrary values, Tailwind can generally handle this ambiguity automatically based on the value you pass in:
+
+<!-- Will generate a font-size utility -->
+<div class="text-[22px]">...</div>
+
+<!-- Will generate a color utility -->
+<div class="text-[#bada55]">...</div>
+
+Sometimes it really is ambiguous though, for example when using CSS variables:
+
+<div class="text-[var(--my-var)]">...</div>
+
+In these situations, you can “hint” the underlying type to Tailwind by adding a CSS data type before the value:
+
+<!-- Will generate a font-size utility -->
+<div class="text-[length:var(--my-var)]">...</div>
+
+<!-- Will generate a color utility -->
+<div class="text-[color:var(--my-var)]">...</div>
+
+Using CSS and @layer
+
+When you need to add truly custom CSS rules to a Tailwind project, the easiest approach is to just add the custom CSS to your stylesheet:
+
+For more power, you can also use the @layer directive to add styles to Tailwind’s base, components, and utilities layers:
+Why does Tailwind group styles into “layers”?
+
+The @layer directive helps you control declaration order by automatically relocating your styles to the corresponding @tailwind directive, and also enables features like modifiers and tree-shaking for your own custom CSS.
+Adding base styles
+
+If you just want to set some defaults for the page (like the text color, background color, or font family), the easiest option is just adding some classes to the html or body elements:
+
+<!doctype html>
+<html lang="en" class="text-gray-900 bg-gray-100 font-serif">
+  <!-- ... -->
+</html>
+
+This keeps your base styling decisions in your markup alongside all of your other styles, instead of hiding them in a separate file.
+
+If you want to add your own default base styles for specific HTML elements, use the @layer directive to add those styles to Tailwind’s base layer:
+
+Use the theme function or @apply directive when adding custom base styles if you want to refer to any of the values defined in your theme.
+Adding component classes
+
+Use the components layer for any more complicated classes you want to add to your project that you’d still like to be able to override with utility classes.
+
+Traditionally these would be classes like card, btn, badge — that kind of thing.
+
+By defining component classes in the components layer, you can still use utility classes to override them when necessary:
+
+<!-- Will look like a card, but with square corners -->
+<div class="card rounded-none">
+  <!-- ... -->
+</div>
+
+Using Tailwind you probably don’t need these types of classes as often as you think. Read our guide on Reusing Styles for our recommendations.
+
+The components layer is also a good place to put custom styles for any third-party components you’re using:
+
+Use the theme function or @apply directive when adding custom component styles if you want to refer to any of the values defined in your theme.
+Adding custom utilities
+
+Add any of your own custom utility classes to Tailwind’s utilities layer:
+
+This can be useful when there’s a CSS feature you’d like to use in your project that Tailwind doesn’t include utilities for out of the box.
+Using modifiers with custom CSS
+
+Any custom styles you add to Tailwind with @layer will automatically support Tailwind’s modifier syntax for handling things like hover states, responsive breakpoints, dark mode, and more.
+
+Learn more about how these modifiers work in the Hover, Focus, and Other States documentation.
+Removing unused custom CSS
+
+Any custom styles you add to the base, components, or utilities layers will only be included in your compiled CSS if those styles are actually used in your HTML.
+
+If you want to add some custom CSS that should always be included, add it to your stylesheet without using the @layer directive:
+
+Make sure to put your custom styles where they need to go to get the precedence behavior you want. In the example above, we’ve added the .card class before @tailwind utilities to make sure utilities can still override it.
+Using multiple CSS files
+
+If you are writing a lot of CSS and organizing it into multiple files, make sure those files are combined into a single stylesheet before processing them with Tailwind, or you’ll see errors about using @layer without the corresponding @tailwind directive.
+
+The easiest way to do this is using the postcss-import plugin:
+
+Learn more in our build-time imports documentation.
+Layers and per-component CSS
+
+Component frameworks like Vue and Svelte support adding per-component styles within a <style> block that lives in each component file.
+
+While you can use features like @apply and theme inside component styles like this, the @layer directive will not work and you’ll see an error about @layer being used without a matching @tailwind directive:
+
+Don’t use @layer in component styles
+
+This is because under-the-hood, frameworks like Vue and Svelte are processing every single <style> block independently, and running your PostCSS plugin chain against each one in isolation.
+
+That means if you have 10 components that each have a <style> block, Tailwind is being run 10 separate times, and each run has zero knowledge about the other runs. Because of this, Tailwind can’t take the styles you define in a @layer and move them to the corresponding @tailwind directive, because as far as Tailwind can tell there is no @tailwind directive to move it to.
+
+One solution to this is to simply not use @layer inside your component styles:
+
+Add your styles without using @layer
+
+You lose the ability to control the precedence of your styles, but unfortunately that’s totally out of our control because of how these tools work.
+
+Our recommendation is that you just don’t use component styles like this at all and instead use Tailwind the way it’s intended to be used — as a single global stylesheet where you use the classes directly in your HTML:
+
+Use Tailwind’s utilities instead of component styles
+Writing plugins
+
+You can also add custom styles to your project using Tailwind’s plugin system instead of using a CSS file:
+
+Learn more about writing your own plugins in the Plugins documentation.
+
+
+v3.tailwindcss.com
+Functions & Directives - Tailwind CSS
+7–9 minutes
+
+Directives are custom Tailwind-specific at-rules you can use in your CSS that offer special functionality for Tailwind CSS projects.
+@tailwind
+
+Use the @tailwind directive to insert Tailwind’s base, components, utilities and variants styles into your CSS.
+
+/**
+ * This injects Tailwind's base styles and any base styles registered by
+ * plugins.
+ */
+@tailwind base;
+
+/**
+ * This injects Tailwind's component classes and any component classes
+ * registered by plugins.
+ */
+@tailwind components;
+
+/**
+ * This injects Tailwind's utility classes and any utility classes registered
+ * by plugins.
+ */
+@tailwind utilities;
+
+/**
+ * Use this directive to control where Tailwind injects the hover, focus,
+ * responsive, dark mode, and other variants of each class.
+ *
+ * If omitted, Tailwind will append these classes to the very end of
+ * your stylesheet by default.
+ */
+@tailwind variants;
+
+@layer
+
+Use the @layer directive to tell Tailwind which “bucket” a set of custom styles belong to. Valid layers are base, components, and utilities.
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1 {
+    @apply text-2xl;
+  }
+  h2 {
+    @apply text-xl;
+  }
+}
+
+@layer components {
+  .btn-blue {
+    @apply bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded;
+  }
+}
+
+@layer utilities {
+  .filter-none {
+    filter: none;
+  }
+  .filter-grayscale {
+    filter: grayscale(100%);
+  }
+}
+
+Tailwind will automatically move the CSS within any @layer directive to the same place as the corresponding @tailwind rule, so you don’t have to worry about authoring your CSS in a specific order to avoid specificity issues.
+
+Any custom CSS added to a layer will only be included in the final build if that CSS is actually used in your HTML, just like all of the classes built in to Tailwind by default.
+
+Wrapping any custom CSS with @layer also makes it possible to use modifiers with those rules, like hover: and focus: or responsive modifiers like md: and lg:.
+@apply
+
+Use @apply to inline any existing utility classes into your own custom CSS.
+
+This is useful when you need to write custom CSS (like to override the styles in a third-party library) but still want to work with your design tokens and use the same syntax you’re used to using in your HTML.
+
+.select2-dropdown {
+  @apply rounded-b-lg shadow-md;
+}
+.select2-search {
+  @apply border border-gray-300 rounded;
+}
+.select2-results__group {
+  @apply text-lg font-bold text-gray-900;
+}
+
+Any rules inlined with @apply will have !important removed by default to avoid specificity issues:
+
+/* Input */
+.foo {
+  color: blue !important;
+}
+
+.bar {
+  @apply foo;
+}
+
+/* Output */
+.foo {
+  color: blue !important;
+}
+
+.bar {
+  color: blue;
+}
+
+If you’d like to @apply an existing class and make it !important, simply add !important to the end of the declaration:
+
+/* Input */
+.btn {
+  @apply font-bold py-2 px-4 rounded !important;
+}
+
+/* Output */
+.btn {
+  font-weight: 700 !important;
+  padding-top: .5rem !important;
+  padding-bottom: .5rem !important;
+  padding-right: 1rem !important;
+  padding-left: 1rem !important;
+  border-radius: .25rem !important;
+}
+
+Note that if you’re using Sass/SCSS, you’ll need to use Sass’ interpolation feature to get this to work:
+
+.btn {
+  @apply font-bold py-2 px-4 rounded #{!important};
+}
+
+Using @apply with per-component CSS
+
+Component frameworks like Vue and Svelte support adding per-component styles within a <style> block that lives in each component file.
+
+If you try to @apply a custom class you’ve defined in your global CSS in one of these per-component <style> blocks, you’ll get an error about the class not existing:
+
+This is because under-the-hood, frameworks like Vue and Svelte are processing every single <style> block independently, and running your PostCSS plugin chain against each one in isolation.
+
+That means if you have 10 components that each have a <style> block, Tailwind is being run 10 separate times, and each run has zero knowledge about the other runs. Because of this, when you try to @apply card in Card.svelte it fails, because Tailwind has no idea that the card class exists since Svelte processed Card.svelte and main.css in total isolation from each other.
+
+The solution to this problem is to define any custom styles you want to @apply in your components using the plugin system instead:
+
+This way any file processed by Tailwind that uses this config file will have access to those styles.
+
+Honestly though the best solution is to just not do weird stuff like this at all. Use Tailwind’s utilities directly in your markup the way they are intended to be used, and don’t abuse the @apply feature to do things like this and you will have a much better experience.
+@config
+
+Use the @config directive to specify which config file Tailwind should use when compiling that CSS file. This is useful for projects that need to use different configuration files for different CSS entry points.
+
+@config "./tailwind.site.config.js";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+The path you provide to the @config directive is relative to that CSS file, and will take precedence over a path defined in your PostCSS configuration or in the Tailwind CLI.
+
+Note that if you’re using postcss-import, your @import statements need to come before @config for things to work correctly, as postcss-import is strict about following the CSS spec which requires @import statements to precede any other rules in the file.
+
+Don’t put @config before your @import statements
+
+Put your @import statements before the @config directive
+Functions
+
+Tailwind adds a few custom functions you can use in your CSS to access Tailwind-specific values. These functions are evaluated at build-time, and are replaced by static values in your final CSS.
+theme()
+
+Use the theme() function to access your Tailwind config values using dot notation.
+
+.content-area {
+  height: calc(100vh - theme(spacing.12));
+}
+
+If you need to access a value that contains a dot (like the 2.5 value in the spacing scale), you can use square bracket notation:
+
+.content-area {
+  height: calc(100vh - theme(spacing[2.5]));
+}
+
+Since Tailwind uses a nested object syntax to define its default color palette, make sure to use dot notation to access the nested colors.
+
+Don’t use the dash syntax when accessing nested color values
+
+.btn-blue {
+  background-color: theme(colors.blue-500);
+}
+
+Use dot notation to access nested color values
+
+.btn-blue {
+  background-color: theme(colors.blue.500);
+}
+
+To adjust the opacity of a color retrieved with theme, use a slash followed by the opacity value you want to use:
+
+.btn-blue {
+  background-color: theme(colors.blue.500 / 75%);
+}
+
+screen()
+
+The screen function allows you to create media queries that reference your breakpoints by name instead of duplicating their values in your own CSS.
+
+@media screen(sm) {
+  /* ... */
+}
+
+This will resolve to the underlying screen value at build-time, generating a regular media query that matches specified breakpoint:
+
+@media (min-width: 640px) {
+  /* ... */
+}
+
