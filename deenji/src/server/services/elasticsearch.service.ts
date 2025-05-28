@@ -90,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-      auth: {
-        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-      },
-    }
+        auth: {
+          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+        },
+      }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-      tls: {
-        // In development, we might want to bypass certificate validation
-        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-      },
-    }
+        tls: {
+          // In development, we might want to bypass certificate validation
+          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+        },
+      }
     : {}),
 
   // General client configuration
@@ -198,6 +198,16 @@ export class ElasticsearchService {
           amenities: source.amenities,
           location: source.location,
           year_built: source.year_built,
+          property_type: source.property_type, // Add this line
+          images: source.image_urls ?? [],
+          district: source.district,
+          city: source.city,
+          address: source.address,
+          has_elevator: source.has_elevator,
+          has_parking: source.has_parking,
+          has_storage: source.has_storage,
+          has_balcony: source.has_balcony,
+          investment_score: source.investment_score,
         };
       });
 
@@ -270,9 +280,22 @@ export class ElasticsearchService {
         bathrooms: source.bathrooms,
         area: source.area,
         description: source.description,
-        amenities: source.amenities,
         location: source.location,
         year_built: source.year_built,
+        type: source.property_type,
+        images: source.image_urls ?? [],
+
+        // …and any others you need
+        // address: src.address,
+        // city: src.city,
+        // district: src.district,
+        // has_elevator: src.has_elevator,
+        // has_parking: src.has_parking,
+        // has_storage: src.has_storage,
+        // has_balcony: src.has_balcony,
+        // investment_score: src.investment_score,
+        // created_at: src.created_at,
+        // updated_at: src.updated_at,
       };
     } catch (error) {
       console.error(`Error fetching property with ID ${id}:`, error);

@@ -7,7 +7,7 @@ import {
   AggregationsHistogramAggregate,
 } from '@elastic/elasticsearch/lib/api/types';
 
-// Define ElasticsearchSource type for object returned from _source
+// src/server/types/elasticsearch.types.ts
 export interface ElasticsearchSource {
   id: string | number;
   title: string;
@@ -22,6 +22,19 @@ export interface ElasticsearchSource {
     lon: number;
   };
   year_built?: number;
+  // Add these missing fields:
+  property_type?: string;
+  district?: string;
+  city?: string;
+  address?: string;
+  has_elevator?: boolean;
+  has_parking?: boolean;
+  has_storage?: boolean;
+  has_balcony?: boolean;
+  investment_score?: number;
+  price_per_meter?: number;
+  external_id?: string;
+  image_urls?: string[];
 }
 
 export interface RangeBucket {

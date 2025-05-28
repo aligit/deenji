@@ -1,4 +1,3 @@
-// src/server/trpc/schemas/property.schema.ts
 import { z } from 'zod';
 
 // Define property type enum to support Persian values
@@ -8,9 +7,89 @@ export const propertyTypeEnum = z
     'ویلا', // Villa
     'خانه', // House
     'زمین', // Land
-    // Allow other values for flexibility
   ])
   .or(z.string());
+
+// Property image schema
+export const propertyImageSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+  is_featured: z.boolean().optional(),
+  sort_order: z.number().optional(),
+});
+
+// Property details schema - matching the database structure
+export const propertySchema = z.object({
+  id: z.number(),
+  external_id: z.string().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  price: z.number(),
+  price_per_meter: z.number().optional(),
+  type: propertyTypeEnum.optional(),
+  bedrooms: z.number().int().optional(),
+  bathrooms: z.number().int().optional(),
+  area: z.number().optional(),
+  year_built: z.number().int().optional(),
+
+  // Location data
+  location: z
+    .object({
+      lat: z.number(),
+      lon: z.number(),
+    })
+    .optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  district: z.string().optional(),
+
+  // Additional information
+  floor_number: z.number().int().optional(),
+  total_floors: z.number().int().optional(),
+  units_per_floor: z.number().int().optional(),
+
+  // Property features
+  has_elevator: z.boolean().optional(),
+  has_parking: z.boolean().optional(),
+  has_storage: z.boolean().optional(),
+  has_balcony: z.boolean().optional(),
+
+  // Interior details
+  floor_material: z.string().optional(),
+  bathroom_type: z.string().optional(),
+  cooling_system: z.string().optional(),
+  heating_system: z.string().optional(),
+  hot_water_system: z.string().optional(),
+
+  // Document information
+  title_deed_type: z.string().optional(),
+  building_direction: z.string().optional(),
+  renovation_status: z.string().optional(),
+
+  // Real estate agency data
+  agency_name: z.string().optional(),
+  agent_name: z.string().optional(),
+  agent_id: z.string().uuid().optional(),
+
+  // Analytics data
+  investment_score: z.number().int().min(0).max(100).optional(),
+  market_trend: z.enum(['Rising', 'Stable', 'Declining']).optional(),
+  neighborhood_fit_score: z.number().optional(),
+  rent_to_price_ratio: z.number().optional(),
+
+  // Dynamic attributes and highlights
+  attributes: z.record(z.any()).optional(),
+  highlight_flags: z.array(z.string()).optional(),
+
+  // Images relation
+  images: z.array(z.string()).optional(),
+  // images: z.array(propertyImageSchema).optional(),
+
+  // User tracking
+  owner_id: z.string().uuid().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
 
 // Property search query schema
 export const propertySearchQuerySchema = z.object({
@@ -18,7 +97,7 @@ export const propertySearchQuerySchema = z.object({
   page: z.number().int().positive().optional().default(1),
   pageSize: z.number().int().positive().optional().default(10),
   sortBy: z
-    .enum(['price', 'date', 'relevance'])
+    .enum(['price', 'date', 'relevance', 'area', 'created_at'])
     .optional()
     .default('relevance'),
   sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
@@ -91,36 +170,6 @@ export const searchSuggestionSchema = z.object({
     })
     .optional(),
   context: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
-});
-
-// Property details schema
-export const propertySchema = z.object({
-  id: z.number(),
-  title: z.string(),
-  price: z.number(),
-  property_type: propertyTypeEnum.optional(), // Added property_type
-  bedrooms: z.number().int().optional(),
-  bathrooms: z.number().int().optional(),
-  area: z.number().optional(),
-  description: z.string().optional(),
-  amenities: z.array(z.string()).optional(),
-  location: z
-    .object({
-      lat: z.number(),
-      lon: z.number(),
-    })
-    .optional(),
-  year_built: z.number().int().optional(),
-  // Additional fields from your DB schema
-  address: z.string().optional(),
-  city: z.string().optional(),
-  district: z.string().optional(),
-  floor_number: z.number().int().optional(),
-  total_floors: z.number().int().optional(),
-  has_elevator: z.boolean().optional(),
-  has_parking: z.boolean().optional(),
-  has_storage: z.boolean().optional(),
-  has_balcony: z.boolean().optional(),
 });
 
 // Export types derived from schemas

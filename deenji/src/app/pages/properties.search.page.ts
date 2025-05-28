@@ -47,7 +47,7 @@ interface PropertyResult {
   description?: string;
   price: number;
   price_per_meter?: number;
-  type: string;
+  property_type: string;
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
@@ -60,8 +60,13 @@ interface PropertyResult {
   has_storage?: boolean;
   has_balcony?: boolean;
   investment_score?: number;
-  images?: { url: string; is_featured: boolean }[];
+  images?: string[];
+  location?: {
+    lat: number;
+    lon: number;
+  };
   created_at?: string;
+  updated_at?: string;
 }
 
 @Component({
@@ -237,7 +242,7 @@ interface PropertyResult {
                   <div class="relative w-48 h-36 bg-gray-200 flex-shrink-0">
                     @if (property.images && property.images.length > 0) {
                     <img
-                      [src]="property.images[0].url"
+                      [src]="property.images[0]"
                       [alt]="property.title"
                       class="w-full h-full object-cover"
                       loading="lazy"
@@ -608,24 +613,26 @@ export default class PropertiesSearchPageComponent implements OnInit {
       sortBy: sortField as 'date' | 'price' | 'relevance',
       sortOrder: sortDirection === 'asc' ? 'asc' : 'desc',
     };
+
     this._trpc.property.search.query(searchQuery).subscribe({
       next: (data) => {
-        this.searchResults.set({
-          results: data.results.map((item, index) => ({
-            ...item,
-            id: item.id?.toString() || `property-${index}`,
-            type: item.property_type || '',
-          })) as PropertyResult[],
-          total: data.total,
-        });
+        console.log('Search results:', data);
+
+        const results: PropertyResult[] = data.results.map((item) => ({
+          ...item,
+          id: item.id != null ? item.id.toString() : '',
+          property_type: item.type ?? '',
+          // now images is already string[], so just use it
+          images: item.images ?? [],
+        }));
+
+        this.searchResults.set({ results, total: data.total });
       },
       error: (err) => {
         console.error('Search error:', err);
         this.error.set('خطا در جستجوی املاک. لطفاً دوباره تلاش کنید.');
       },
-      complete: () => {
-        this.loading.set(false);
-      },
+      complete: () => this.loading.set(false),
     });
   }
 
