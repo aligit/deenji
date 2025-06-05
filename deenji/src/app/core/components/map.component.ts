@@ -5,32 +5,30 @@ import {
   EventEmitter,
   OnChanges,
   SimpleChanges,
+  OnInit,
+  ViewChild,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
-  GoogleMap,
   GoogleMapsModule,
   MapMarker,
   MapInfoWindow,
 } from '@angular/google-maps';
 import { signal } from '@angular/core';
 
-interface PropertyLocation {
-  lat: number;
-  lon: number;
-}
-
 interface PropertyMarker {
   id: string;
-  position: { lat: number; lng: number };
+  position: google.maps.LatLngLiteral;
   title: string;
 }
 
 @Component({
   selector: 'app-map',
+  standalone: true,
   imports: [CommonModule, GoogleMapsModule],
   template: `
     <div class="map-container h-full w-full">
+      @if (apiLoaded) {
       <google-map
         [center]="center"
         [zoom]="zoom"
@@ -41,6 +39,7 @@ interface PropertyMarker {
       >
         @for (marker of markers(); track marker.id) {
         <map-marker
+          #markerElem
           [position]="marker.position"
           [title]="marker.title"
           [options]="getMarkerOptions(marker.id)"
@@ -48,7 +47,7 @@ interface PropertyMarker {
         ></map-marker>
         }
 
-        <map-info-window>
+        <map-info-window #infoWindow>
           <div dir="rtl" class="info-content">
             <h3 class="text-base font-semibold">
               {{ selectedProperty?.title }}
@@ -69,6 +68,11 @@ interface PropertyMarker {
           </div>
         </map-info-window>
       </google-map>
+      } @else {
+      <div class="flex items-center justify-center h-full">
+        <p class="text-gray-500">در حال بارگذاری نقشه...</p>
+      </div>
+      }
     </div>
   `,
   styles: `
@@ -87,41 +91,81 @@ interface PropertyMarker {
     }
   `,
 })
-export class MapComponent implements OnChanges {
+export class MapComponent implements OnInit, OnChanges {
+  @ViewChild('infoWindow') infoWindow!: MapInfoWindow;
+
   @Input() properties: any[] = [];
   @Input() highlightedPropertyId: string | null = null;
-
   @Output() markerClick = new EventEmitter<string>();
 
   markers = signal<PropertyMarker[]>([]);
   selectedProperty: any = null;
+  apiLoaded = false;
 
   // Default center (District 5, Tehran)
   center: google.maps.LatLngLiteral = { lat: 35.7219, lng: 51.389 };
-  zoom = 14;
+  zoom = 14.568499456622654;
 
-  // Map options
-  options: google.maps.MapOptions = {
-    mapTypeControl: false,
-    fullscreenControl: false,
-    streetViewControl: false,
-    zoomControl: true,
-    zoomControlOptions: {
-      position: google.maps.ControlPosition.RIGHT_TOP,
-    },
-  };
+  // Initialize options as empty object, will be set in ngOnInit
+  options: google.maps.MapOptions = {};
 
-  // Reference to the info window
-  infoWindow = new google.maps.InfoWindow();
+  ngOnInit() {
+    // Check if Google Maps is loaded
+    if (typeof google !== 'undefined' && google.maps) {
+      this.initializeMap();
+    } else {
+      // If not loaded, wait for it
+      this.waitForGoogleMaps();
+    }
+  }
+
+  private waitForGoogleMaps() {
+    const checkInterval = setInterval(() => {
+      if (typeof google !== 'undefined' && google.maps) {
+        clearInterval(checkInterval);
+        this.initializeMap();
+      }
+    }, 100);
+
+    // Timeout after 10 seconds
+    setTimeout(() => {
+      clearInterval(checkInterval);
+      if (!this.apiLoaded) {
+        console.error('Google Maps failed to load');
+      }
+    }, 10000);
+  }
+
+  private initializeMap() {
+    // Now it's safe to use google.maps
+    this.options = {
+      mapTypeControl: false,
+      fullscreenControl: false,
+      streetViewControl: false,
+      zoomControl: true,
+      zoomControlOptions: {
+        position: google.maps.ControlPosition.RIGHT_TOP,
+      },
+    };
+
+    this.apiLoaded = true;
+
+    // Update markers if properties are already loaded
+    if (this.properties.length > 0) {
+      this.updateMarkers();
+    }
+  }
 
   ngOnChanges(changes: SimpleChanges) {
-    // When properties change, update markers
-    if (changes['properties']) {
+    if (changes['properties'] && this.apiLoaded) {
       this.updateMarkers();
     }
 
-    // When highlighted property changes, handle marker highlight
-    if (changes['highlightedPropertyId'] && this.highlightedPropertyId) {
+    if (
+      changes['highlightedPropertyId'] &&
+      this.highlightedPropertyId &&
+      this.apiLoaded
+    ) {
       this.centerOnPropertyId(this.highlightedPropertyId);
     }
   }
@@ -154,14 +198,10 @@ export class MapComponent implements OnChanges {
   }
 
   openInfoWindow(marker: PropertyMarker) {
-    // Find property details
     const property = this.properties.find((p) => p.id === marker.id);
     if (!property) return;
 
-    // Set the selected property
     this.selectedProperty = property;
-
-    // Emit event to parent component
     this.markerClick.emit(marker.id);
   }
 
@@ -195,15 +235,20 @@ export class MapComponent implements OnChanges {
   getMarkerOptions(markerId: string): google.maps.MarkerOptions {
     const isHighlighted = markerId === this.highlightedPropertyId;
 
-    return {
-      animation: isHighlighted ? google.maps.Animation.BOUNCE : null,
+    // Always return a valid MarkerOptions object
+    const options: google.maps.MarkerOptions = {
+      animation: isHighlighted ? google.maps.Animation.BOUNCE : undefined,
       opacity: isHighlighted ? 1 : 0.8,
-      icon: isHighlighted
-        ? {
-          url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-          scaledSize: new google.maps.Size(40, 40),
-        }
-        : undefined,
     };
+
+    // Only add custom icon if highlighted
+    if (isHighlighted && this.apiLoaded) {
+      options.icon = {
+        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
+        scaledSize: { width: 40, height: 40 } as any, // Cast to any to avoid type issues
+      };
+    }
+
+    return options;
   }
 }

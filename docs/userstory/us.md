@@ -21,7 +21,7 @@ After running a search or applying filters, the Results page splits into two pan
    - Shows up to 20 property cards per page (image, title, price, key facts).
    - “Load More” button for additional pages (no infinite scroll for now).
 
-2. **Map Panel** (left side – interactive, Mapbox GL)
+2. **Map Panel** (left side – interactive, Google Maps)
    - Automatically **centers and zooms** (≥ 14) on the first property returned by the search.
    - Drops a pin for **every property on the current page** (≤ 20 pins).
    - No clustering or auto-fit logic; map remains focused unless user pans/zooms manually.
@@ -66,17 +66,6 @@ After running a search or applying filters, the Results page splits into two pan
 
 - [ ] Adjusting filters refreshes list and pins in real time; map recenters on the new first result.
 - [ ] Switching to page N replaces pins with that page’s items and recenters on its first result.
-
-## Technical Notes
-
-| Topic               | Decision                                                                                            |
-| ------------------- | --------------------------------------------------------------------------------------------------- |
-| **Library**         | `mapbox-gl@^2` + `ngx-mapbox-gl` (Angular wrapper).                                                 |
-| **Map load hook**   | Use `(mapLoad)` to grab the `Map` instance and store it in a service.                               |
-| **Centering logic** | `map.flyTo({ center: [lng, lat], zoom: Math.max(14, map.getZoom()), speed: 1.2, essential: true })` |
-| **Marker code**     | Loop through search results, create `new mapboxgl.Marker().setLngLat([...]).addTo(map)`.            |
-| **Styling**         | Tailwind/Grid or CSS Flexbox; ensure map div has `height: 100%` and flex-grow.                      |
-| **Data**            | Search API already returns coordinates; no extra ES call for pins.                                  |
 
 ## Priority
 

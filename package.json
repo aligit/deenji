@@ -89,6 +89,7 @@
     "@swc/core": "~1.5.7",
     "@swc/helpers": "~0.5.11",
     "@types/bun": "^1.2.6",
+    "@types/google.maps": "^3.58.1",
     "@types/jest": "^29.5.12",
     "@types/mongodb": "^4.0.7",
     "@types/node": "18.16.9",

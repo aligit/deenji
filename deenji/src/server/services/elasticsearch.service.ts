@@ -90,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-      auth: {
-        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-      },
-    }
+        auth: {
+          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+        },
+      }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-      tls: {
-        // In development, we might want to bypass certificate validation
-        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-      },
-    }
+        tls: {
+          // In development, we might want to bypass certificate validation
+          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+        },
+      }
     : {}),
 
   // General client configuration
@@ -195,13 +195,16 @@ export class ElasticsearchService {
           bathrooms: source.bathrooms,
           area: source.area,
           description: source.description,
-          amenities: source.amenities,
-          location: coords ? { lat: coords.lat, lon: coords.lon } : undefined,
-          year_built: source.year_built,
+          location: source.location?.coordinates
+            ? {
+                lat: source.location.coordinates.lat,
+                lon: source.location.coordinates.lon,
+              }
+            : undefined,
           property_type: source.property_type,
           images: source.image_urls ?? [],
-          district: source.district,
-          city: source.city,
+          district: source.district || source.location?.district,
+          city: source.city || source.location?.city,
           address: source.address,
           has_elevator: source.has_elevator,
           has_parking: source.has_parking,
@@ -280,7 +283,12 @@ export class ElasticsearchService {
         bathrooms: source.bathrooms,
         area: source.area,
         description: source.description,
-        location: source.location,
+        location: source.location?.coordinates
+          ? {
+              lat: source.location.coordinates.lat,
+              lon: source.location.coordinates.lon,
+            }
+          : undefined,
         year_built: source.year_built,
         type: source.property_type,
         images: source.image_urls ?? [],

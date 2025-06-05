@@ -7,6 +7,16 @@ import {
   AggregationsHistogramAggregate,
 } from '@elastic/elasticsearch/lib/api/types';
 
+export interface ElasticsearchLocation {
+  neighborhood?: string;
+  district?: string;
+  city?: string;
+  coordinates?: {
+    lat: number;
+    lon: number;
+  };
+}
+
 // src/server/types/elasticsearch.types.ts
 export interface ElasticsearchSource {
   id: string | number;
@@ -17,15 +27,7 @@ export interface ElasticsearchSource {
   area?: number;
   description?: string;
   amenities?: string[];
-  location?: {
-    city?: string;
-    district?: string;
-    neighborhood?: string;
-    coordinates?: {
-      lat: number;
-      lon: number;
-    };
-  };
+  location?: ElasticsearchLocation;
   year_built?: number;
   // Add these missing fields:
   property_type?: string;
