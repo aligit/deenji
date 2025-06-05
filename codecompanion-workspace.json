@@ -82,7 +82,8 @@
         "remove_config_system_prompt": true
       },
       "data": [
-        "userstory"
+        "userstory",
+        "frontend_ui_components"
       ]
     }
   ],
@@ -170,6 +171,11 @@
     "external_integration_overview": {
       "type": "file",
       "path": "docs/integration/external-data-sources.md",
+      "description": "Overview of how external crawlers integrate with the Deenji platform. Covers data flow from Divar.ir crawler, expected data formats, API endpoints for data ingestion, and validation rules."
+    },
+    "frontend_ui_components": {
+      "type": "file",
+      "path": "docs/frontend/ui-components-spartan",
       "description": "Overview of how external crawlers integrate with the Deenji platform. Covers data flow from Divar.ir crawler, expected data formats, API endpoints for data ingestion, and validation rules."
     }
   }
