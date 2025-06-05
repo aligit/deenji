@@ -18,8 +18,13 @@ export interface ElasticsearchSource {
   description?: string;
   amenities?: string[];
   location?: {
-    lat: number;
-    lon: number;
+    city?: string;
+    district?: string;
+    neighborhood?: string;
+    coordinates?: {
+      lat: number;
+      lon: number;
+    };
   };
   year_built?: number;
   // Add these missing fields:

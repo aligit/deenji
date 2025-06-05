@@ -90,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-        auth: {
-          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-        },
-      }
+      auth: {
+        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+      },
+    }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-        tls: {
-          // In development, we might want to bypass certificate validation
-          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-        },
-      }
+      tls: {
+        // In development, we might want to bypass certificate validation
+        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+      },
+    }
     : {}),
 
   // General client configuration
@@ -196,9 +196,9 @@ export class ElasticsearchService {
           area: source.area,
           description: source.description,
           amenities: source.amenities,
-          location: source.location,
+          location: coords ? { lat: coords.lat, lon: coords.lon } : undefined,
           year_built: source.year_built,
-          property_type: source.property_type, // Add this line
+          property_type: source.property_type,
           images: source.image_urls ?? [],
           district: source.district,
           city: source.city,
