@@ -29,8 +29,7 @@
         "elasticsearch_service",
         "search_indexing",
         "property_mapping",
-        "search_types",
-        "suggestion_service"
+        "search_types"
       ]
     },
     {
@@ -52,24 +51,40 @@
         "implementation_guide",
         "trpc_search_routes",
         "elasticsearch_service",
-        "suggestion_service",
         "search_tests"
       ]
     },
     {
       "name": "Database Schema (PostgreSQL)",
       "system_prompt": "This group provides the public schema for deenji. \nKey Tables & Columns Summary:\n- amenities(id,name,icon,created_at)\n-  profiles(id,username,full_name,avatar_url,website,phone,user_type,email_verified,updated_at)\n- properties(id,external_id,title,description,price,price_per_meter,type,bedrooms,bathrooms,area,year_built,location(POINT),address,city,district,floor_number,total_floors,units_per_floor,has_elevator,has_parking,has_storage,has_balcony,floor_material,bathroom_type,cooling_system,heating_system,hot_water_system,title_deed_type,building_direction,renovation_status,agency_name,agent_name,agent_id,investment_score,market_trend,neighborhood_fit_score,rent_to_price_ratio,attributes(jsonb),highlight_flags(jsonb),search_vector(tsvector),owner_id,created_at,updated_at)\n- property_amenities(property_id,amenity_id)\n- property_attribute_keys(id,name,display_name,data_type,is_searchable,is_filterable,sort_order,created_at)\n- property_attribute_values(id,property_id,attribute_key_id,text_value,numeric_value,boolean_value,created_at)\n- property_images(id,property_id,url,is_featured,sort_order,created_at)\n- property_price_history(id,property_id,price,recorded_at)\n- property_similar_properties(property_id,similar_property_external_id,similarity_score)\n- saved_properties(id,user_id,property_id,notes,created_at)\n- spatial_ref_sys (PostGIS internal)\n- user_settings(id,language,email_notifications,property_alerts,price_drop_alerts,dark_mode,created_at,updated_at)\nImportant RLS is in place. Key functions: handle_new_user, process_mongodb_property_attributes, insert_property_direct, search vector updates. Ask for specific DDL if column details (NOT NULL, defaults, constraints, exact types) are needed.",
-      "data": ["db_schema_overview"]
+      "data": [
+        "db_schema_overview"
+      ]
     },
     {
       "name": "Elasticsearch Schema",
       "system_prompt": "This group provides the Elasticsearch schema for ${project_name}. Key indices: `divar_properties` (main property search index, Persian analyzer, geo_point, nested attributes), `divar_suggestions` (for search-as-you-type), and a general `properties` index. Highlights use of Persian normalizers and standard tokenizers.",
-      "data": ["es_schema_full"]
+      "data": [
+        "es_schema_full"
+      ]
     },
     {
       "name": "External Data Sources & Integration",
       "system_prompt": "This group covers how ${project_name} integrates with external data sources. The platform receives property data from external crawlers that scrape real estate websites like Divar.ir. Understanding the data flow from external sources helps with API design, data validation, and ensuring proper integration with the search and storage systems. The external crawler system uses Python with Crawl4AI, handles Persian text normalization, and processes property attributes, images, and location data before feeding into the ${project_name} platform via PostgreSQL and Elasticsearch.",
-      "data": ["external_integration_overview"]
+      "data": [
+        "external_integration_overview"
+      ]
+    },
+    {
+      "name": "Side-by-Side Map & List View MVP",
+      "system_prompt": "Group files under \"${group_name}\" to implement the MVP “Side-by-Side Map & List View.” Key requirements:\n1. List Panel: scrollable cards (≤20 per page).\n2. Map Panel (Mapbox GL via ngx-mapbox-gl): on each search/filter/page, flyTo([first.lng, first.lat], zoom ≥ 14) and drop one marker per result. No clustering or fit-bounds.\n3. Sync: pin ↔ card highlighting and flyTo on click.\n4. Empty state: if 0 results, show District 5 at zoom 14 with no pins.\n5. Performance: initial map < 1 s, flyTo ≤ 800 ms (≥ 30 fps).\n6. Accessibility: Persian aria-labels on markers; keyboard navigation between list and map.\n\nBelow are the files:\n\n${group_files}",
+      "opts": {
+        "remove_config_system_prompt": true
+      },
+      "data": [
+        "userstory",
+        "frontend_ui_components"
+      ]
     }
   ],
   "data": {
@@ -77,6 +92,11 @@
       "type": "file",
       "path": "docs/search/requirements.md",
       "description": "Multi-stage search reqs: property type → bedrooms → price; Persian text."
+    },
+    "userstory": {
+      "type": "file",
+      "path": "docs/userstory/us.md",
+      "description": "User story to work on containing requirements"
     },
     "elasticsearch_architecture": {
       "type": "file",
@@ -97,11 +117,6 @@
       "type": "file",
       "path": "deenji/src/server/services/elasticsearch.service.ts",
       "description": "ES service: completion suggestions, search-as-you-type, Persian text analysis."
-    },
-    "suggestion_service": {
-      "type": "file",
-      "path": "deenji/src/server/services/suggestion.service.ts",
-      "description": "Suggestion service: completion, dynamic price/bedroom suggestions."
     },
     "search_indexing": {
       "type": "file",
@@ -156,6 +171,11 @@
     "external_integration_overview": {
       "type": "file",
       "path": "docs/integration/external-data-sources.md",
+      "description": "Overview of how external crawlers integrate with the Deenji platform. Covers data flow from Divar.ir crawler, expected data formats, API endpoints for data ingestion, and validation rules."
+    },
+    "frontend_ui_components": {
+      "type": "file",
+      "path": "docs/frontend/ui-components-spartan",
       "description": "Overview of how external crawlers integrate with the Deenji platform. Covers data flow from Divar.ir crawler, expected data formats, API endpoints for data ingestion, and validation rules."
     }
   }

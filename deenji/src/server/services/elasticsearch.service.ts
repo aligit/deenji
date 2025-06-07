@@ -195,13 +195,16 @@ export class ElasticsearchService {
           bathrooms: source.bathrooms,
           area: source.area,
           description: source.description,
-          amenities: source.amenities,
-          location: source.location,
-          year_built: source.year_built,
-          property_type: source.property_type, // Add this line
+          location: source.location?.coordinates
+            ? {
+                lat: source.location.coordinates.lat,
+                lon: source.location.coordinates.lon,
+              }
+            : undefined,
+          property_type: source.property_type,
           images: source.image_urls ?? [],
-          district: source.district,
-          city: source.city,
+          district: source.district || source.location?.district,
+          city: source.city || source.location?.city,
           address: source.address,
           has_elevator: source.has_elevator,
           has_parking: source.has_parking,
@@ -280,7 +283,12 @@ export class ElasticsearchService {
         bathrooms: source.bathrooms,
         area: source.area,
         description: source.description,
-        location: source.location,
+        location: source.location?.coordinates
+          ? {
+              lat: source.location.coordinates.lat,
+              lon: source.location.coordinates.lon,
+            }
+          : undefined,
         year_built: source.year_built,
         type: source.property_type,
         images: source.image_urls ?? [],

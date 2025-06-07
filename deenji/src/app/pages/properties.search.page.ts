@@ -40,6 +40,9 @@ import {
 import { FormsModule } from '@angular/forms';
 import { PropertySearchQuery } from '../../server/trpc/schemas/property.schema';
 
+import { MapComponent } from '../core/components/map.component';
+import { MapService } from '../core/services/map.service';
+
 interface PropertyResult {
   id: string;
   external_id?: string;
@@ -65,6 +68,9 @@ interface PropertyResult {
     lat: number;
     lon: number;
   };
+  // Add these fields for the map component
+  latitude?: string;
+  longitude?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -89,6 +95,7 @@ interface PropertyResult {
     HlmTooltipTriggerDirective,
     BrnTooltipContentDirective,
     HlmIconDirective,
+    MapComponent,
   ],
   providers: [
     provideIcons({
@@ -104,6 +111,8 @@ interface PropertyResult {
       lucideFilter,
       lucideX,
     }),
+
+    MapService,
   ],
   template: `
     <div class="flex h-screen pt-16" dir="rtl">
@@ -233,9 +242,12 @@ interface PropertyResult {
             @for (property of searchResults()!.results; track property.id) {
             <hlm-tooltip>
               <div
+                id="property-card-{{ property.id }}"
                 hlmTooltipTrigger
                 hlmCard
                 class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+                (mouseenter)="onCardHover(property)"
+                (click)="onCardClick(property)"
               >
                 <div class="flex">
                   <!-- Property Image -->
@@ -500,19 +512,33 @@ interface PropertyResult {
         </div>
       </div>
 
-      <!-- Map Section (Placeholder) -->
       <div class="w-1/2 relative bg-gray-100">
-        <div class="absolute inset-0 flex items-center justify-center">
-          <div class="text-center">
+        <app-map
+          [properties]="mappedProperties()"
+          [highlightedPropertyId]="
+            mapService.highlightedPropertyId() ?? undefined
+          "
+          (markerClick)="onMarkerClick($event)"
+        ></app-map>
+
+        <!-- Empty state overlay -->
+        @if (searchResults() && searchResults()!.results.length === 0) {
+        <div
+          class="absolute inset-0 flex items-center justify-center bg-white/70"
+        >
+          <div class="text-center p-6 bg-white rounded-lg shadow-md">
             <ng-icon
               hlm
               name="lucideMapPin"
               size="lg"
               class="text-gray-400 mb-4"
             />
-            <p class="text-gray-500 text-lg">نقشه در حال بارگذاری...</p>
+            <p class="text-gray-500 text-lg">
+              هیچ ملکی برای نمایش در نقشه وجود ندارد
+            </p>
           </div>
         </div>
+        }
       </div>
     </div>
   `,
@@ -531,11 +557,12 @@ export default class PropertiesSearchPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private _trpc = injectTrpcClient();
+  public mapService = inject(MapService);
   Math = Math;
 
   // Signals
   loading = signal(true);
-  error = signal<string | null>(null);
+  error = signal<string | undefined>(undefined);
   searchResults = signal<{ results: PropertyResult[]; total: number } | null>(
     null
   );
@@ -574,6 +601,19 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return pages;
   });
 
+  // In mappedProperties computed signal
+  mappedProperties = computed(() => {
+    const results = this.searchResults();
+    if (!results || !results.results || results.results.length === 0) return [];
+
+    return results.results.map((property) => ({
+      ...property,
+      // Ensure we have valid latitude/longitude strings
+      latitude: property.location?.lat?.toString() || '',
+      longitude: property.location?.lon?.toString() || '',
+    }));
+  });
+
   searchParams: Partial<PropertySearchQuery> = {};
 
   ngOnInit() {
@@ -598,7 +638,7 @@ export default class PropertiesSearchPageComponent implements OnInit {
 
   executeSearch() {
     this.loading.set(true);
-    this.error.set(null);
+    this.error.set(undefined);
 
     const [sortField, sortDirection] = this.sortBy().split('-');
 
@@ -697,5 +737,54 @@ export default class PropertiesSearchPageComponent implements OnInit {
       return `تا ${this.formatPrice(this.searchParams.maxPrice)}`;
     }
     return 'همه قیمت‌ها';
+  }
+
+  // Handle marker click from map - now receives the marker object
+  onMarkerClick(marker: any) {
+    if (marker && marker.id) {
+      // Highlight the property in the list
+      this.mapService.highlightProperty(marker.id);
+
+      // Scroll the property card into view
+      this.scrollCardIntoView(marker.id);
+    }
+  }
+
+  // Update onPropertyCardClick method to implement two-way sync
+  onPropertyCardClick(propertyId: string) {
+    // Highlight the property
+    this.mapService.highlightProperty(propertyId);
+
+    // Find the property and tell the map to center on it
+    const property = this.mappedProperties().find((p) => p.id === propertyId);
+    if (property) {
+      // You'll need to implement a method in the map component to center on a property
+      // This could be done through a service or by exposing a method
+    }
+  }
+
+  // Scroll property card into view
+  scrollCardIntoView(propertyId: string) {
+    setTimeout(() => {
+      const card = document.getElementById(`property-card-${propertyId}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 100);
+  }
+
+  // Handle property card hover
+  onCardHover(property: PropertyResult) {
+    this.mapService.highlightProperty(property.id);
+  }
+
+  // Handle property card click
+  onCardClick(property: PropertyResult) {
+    this.mapService.highlightProperty(property.id);
+
+    // If you have location data, center map on this property
+    if (property.location?.lat && property.location?.lon) {
+      // Any additional map centering logic if needed
+    }
   }
 }
