@@ -1,0 +1,98 @@
+Here’s a **concise version of the `ng-gallery` documentation** suitable for use with an LLM:
+
+---
+
+### **Ng-Gallery Quick Guide**
+
+#### **Installation**
+
+```bash
+npm i ng-gallery @angular/cdk
+# Optional for drag support:
+npm i hammerjs
+```
+
+Add to `src/polyfills.ts`:
+
+```ts
+import 'hammerjs';
+```
+
+---
+
+#### **Packages**
+
+* `ng-gallery`: `<gallery>` component + `Gallery` service
+* `ng-gallery/lightbox`: `Lightbox` service + `[lightbox]` directive
+* `[gallerize]`: Auto-add images to lightbox
+
+---
+
+#### **Setup**
+
+Import `GalleryModule` (Angular ≥ 15):
+
+```ts
+import { GalleryModule } from 'ng-gallery';
+
+@Component({
+  standalone: true,
+  imports: [GalleryModule]
+})
+```
+
+Set global config (optional):
+
+```ts
+import { GALLERY_CONFIG } from 'ng-gallery';
+
+providers: [
+  { provide: GALLERY_CONFIG, useValue: { autoHeight: true, imageSize: 'cover' } }
+]
+```
+
+---
+
+### **Gallery Usage**
+
+Basic setup:
+
+```ts
+images = [ new ImageItem({ src: 'url', thumb: 'thumb' }) ];
+
+<gallery [items]="images"></gallery>
+```
+
+---
+
+### **Lightbox Usage**
+
+Install `LightboxModule` and load items:
+
+```ts
+<LightboxModule>
+<div *ngFor="let item of items; let i = index" [lightbox]="i">
+  <img [src]="item.data.thumbnail" />
+</div>
+```
+
+Programmatic open:
+
+```ts
+this.lightbox.open(index, 'galleryId', { panelClass: 'fullscreen' });
+```
+
+Use unique `galleryId` if multiple galleries.
+
+---
+
+### **Key Imports**
+
+```ts
+import { Gallery, GalleryItem, ImageItem } from 'ng-gallery';
+import { Lightbox } from 'ng-gallery/lightbox';
+```
+
+---
+
+This version is streamlined for clarity and structure—ideal for programmatic use or quick developer reference. Let me know if you need a JSON or YAML format too.

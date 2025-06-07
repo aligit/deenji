@@ -55,6 +55,7 @@
     "marked-mangle": "1.1.10",
     "mermaid": "^10.2.4",
     "mongodb": "^6.15.0",
+    "ng-gallery": "^12.0.0",
     "postgres": "^3.4.5",
     "prismjs": "^1.29.0",
     "rxjs": "~7.8.0",

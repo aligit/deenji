@@ -148,9 +148,6 @@ export class ElasticsearchService {
       throw error;
     }
   }
-  /**
-   * Search for properties with the given query parameters
-   */
   async searchProperties(query: PropertySearchQuery): Promise<{
     results: Property[];
     total: number;
@@ -177,18 +174,21 @@ export class ElasticsearchService {
           aggs: this.buildAggregations(),
         },
         {
-          // Request specific options
-          requestTimeout: 30000, // 30 second timeout
-          maxRetries: 3, // Retry up to 3 times
-          ignore: [404], // Don't throw on 404
+          requestTimeout: 30000,
+          maxRetries: 3,
+          ignore: [404],
         }
       );
 
       // Map results to Property type
       const results = response.hits.hits.map((hit) => {
         const source = hit._source as ElasticsearchSource;
+
+        // FIXED: Ensure id is never undefined by providing a fallback empty string
+        const propertyId = hit._id || source.external_id || '';
+
         return {
-          id: typeof source.id === 'string' ? parseInt(source.id) : source.id,
+          id: propertyId,
           title: source.title,
           price: source.price || 0,
           bedrooms: source.bedrooms,
@@ -225,13 +225,12 @@ export class ElasticsearchService {
         page: query.page,
         pageSize: query.pageSize,
         totalPages,
-        // FIX: Cast to unknown first for aggregations
         aggregations:
           response.aggregations as unknown as PropertySearchAggregations,
       };
     } catch (error) {
       console.error('Error searching properties:', error);
-      // Properly handle known Elasticsearch errors
+      // Error handling remains the same
       if (error instanceof errors.ConnectionError) {
         throw new Error(
           'Could not connect to Elasticsearch. Please try again later.'
@@ -241,7 +240,6 @@ export class ElasticsearchService {
           'The search request timed out. Please try a more specific search.'
         );
       } else if (error instanceof errors.ResponseError) {
-        // Handle response errors (4xx, 5xx)
         const statusCode = (error as errors.ResponseError).statusCode || 500;
         if (statusCode === 400) {
           throw new Error(
@@ -254,61 +252,201 @@ export class ElasticsearchService {
       throw error;
     }
   }
-
-  /**
-   * Get a single property by ID
-   */
-  async getPropertyById(id: number): Promise<Property | null> {
+  // Update to the getPropertyById method in elasticsearch.service.ts
+  async getPropertyById(id: string | number): Promise<Property | null> {
     try {
-      const response: SearchResponse<ElasticsearchSource> = await client.search(
-        {
-          index: INDEX,
-          query: {
-            term: { id: id },
+      // Convert id to string and log for debugging
+      const idStr = id.toString();
+      console.log(
+        `[ElasticsearchService] Searching for property with ID: "${idStr}" (${typeof id})`
+      );
+
+      // Create a more flexible query that tries multiple ways to match the property
+      const searchQuery = {
+        index: INDEX,
+        query: {
+          bool: {
+            should: [
+              // Try to match on _id
+              { term: { _id: idStr } },
+              // Try to match on external_id
+              { term: { external_id: idStr } },
+              // Try to match on _id field in _source (if exists)
+              { term: { id: idStr } },
+            ],
+            minimum_should_match: 1,
           },
-          size: 1,
-        }
+        },
+        size: 1,
+      };
+
+      console.log(
+        `[ElasticsearchService] Query:`,
+        JSON.stringify(searchQuery, null, 2)
+      );
+
+      const response = await client.search(searchQuery);
+
+      // Log response for debugging
+      console.log(
+        `[ElasticsearchService] Response hits:`,
+        response.hits.total,
+        'Found:',
+        response.hits.hits.length > 0
       );
 
       if (response.hits.hits.length === 0) {
-        return null;
+        console.log(
+          `[ElasticsearchService] No property found with ID: "${idStr}"`
+        );
+
+        // Fallback query - try a more lenient match (wildcard)
+        console.log(
+          `[ElasticsearchService] Trying fallback query with wildcard...`
+        );
+        const fallbackResponse = await client.search({
+          index: INDEX,
+          query: {
+            bool: {
+              should: [
+                // Try a prefix match on _id
+                { prefix: { _id: idStr } },
+                // Try a prefix match on external_id
+                { prefix: { external_id: idStr } },
+              ],
+              minimum_should_match: 1,
+            },
+          },
+          size: 1,
+        });
+
+        if (fallbackResponse.hits.hits.length === 0) {
+          console.log(
+            `[ElasticsearchService] No property found with fallback query`
+          );
+          return null;
+        }
+
+        console.log(
+          `[ElasticsearchService] Found property with fallback query!`
+        );
+        const hit = fallbackResponse.hits.hits[0];
+        console.log(
+          `[ElasticsearchService] Found property with _id: "${hit._id}"`
+        );
+
+        // Use the fallback hit for processing
+        const source = hit._source as ElasticsearchSource;
+        const propertyId = hit._id || source.external_id || '';
+
+        // Return properly mapped property
+        return this.mapElasticsearchSourceToProperty(source, propertyId);
       }
 
-      const source = response.hits.hits[0]._source as ElasticsearchSource;
-      return {
-        id: typeof source.id === 'string' ? parseInt(source.id) : source.id,
-        title: source.title,
-        price: source.price || 0,
-        bedrooms: source.bedrooms,
-        bathrooms: source.bathrooms,
-        area: source.area,
-        description: source.description,
-        location: source.location?.coordinates
-          ? {
-              lat: source.location.coordinates.lat,
-              lon: source.location.coordinates.lon,
-            }
-          : undefined,
-        year_built: source.year_built,
-        type: source.property_type,
-        images: source.image_urls ?? [],
+      const hit = response.hits.hits[0];
+      console.log(
+        `[ElasticsearchService] Found property with _id: "${hit._id}"`
+      );
 
-        // …and any others you need
-        // address: src.address,
-        // city: src.city,
-        // district: src.district,
-        // has_elevator: src.has_elevator,
-        // has_parking: src.has_parking,
-        // has_storage: src.has_storage,
-        // has_balcony: src.has_balcony,
-        // investment_score: src.investment_score,
-        // created_at: src.created_at,
-        // updated_at: src.updated_at,
-      };
+      const source = hit._source as ElasticsearchSource;
+      const propertyId = hit._id || source.external_id || '';
+
+      // Return properly mapped property
+      return this.mapElasticsearchSourceToProperty(source, propertyId);
     } catch (error) {
-      console.error(`Error fetching property with ID ${id}:`, error);
+      console.error(
+        `[ElasticsearchService] Error fetching property with ID ${id}:`,
+        error
+      );
       throw error;
     }
+  }
+
+  /**
+   * Helper method to map Elasticsearch source to Property interface
+   */
+  private mapElasticsearchSourceToProperty(
+    source: ElasticsearchSource,
+    propertyId: string
+  ): Property {
+    console.log(`[ElasticsearchService] Mapping property with source:`, source);
+
+    return {
+      id: propertyId,
+      external_id: source.external_id,
+      title: source.title,
+      description: source.description,
+      price: source.price || 0,
+      price_per_meter: source.price_per_meter,
+      property_type: source.property_type,
+      bedrooms: source.bedrooms,
+      bathrooms: source.bathrooms,
+      area: source.area,
+      year_built: source.year_built,
+
+      // Location mapping
+      location: source.location?.coordinates
+        ? {
+            lat: source.location.coordinates.lat,
+            lon: source.location.coordinates.lon,
+          }
+        : undefined,
+      address: source.address,
+      city: source.city || source.location?.city,
+      district: source.district || source.location?.district,
+
+      // Building details
+      floor_number: source.floor_number,
+      total_floors: source.total_floors,
+      units_per_floor: source.units_per_floor,
+
+      // Property features
+      has_elevator: source.has_elevator,
+      has_parking: source.has_parking,
+      has_storage: source.has_storage,
+      has_balcony: source.has_balcony,
+
+      // Interior details
+      floor_material: source.floor_material,
+      bathroom_type: source.bathroom_type,
+      cooling_system: source.cooling_system,
+      heating_system: source.heating_system,
+      hot_water_system: source.hot_water_system,
+
+      // Legal documentation
+      title_deed_type: source.title_deed_type,
+      building_direction: source.building_direction,
+      renovation_status: source.renovation_status,
+
+      // Agent information
+      agency_name: source.agency_name,
+      agent_name: source.agent_name,
+      agent_id: source.agent_id,
+
+      // Analytics
+      investment_score: source.investment_score,
+      market_trend: source.market_trend as
+        | 'Rising'
+        | 'Stable'
+        | 'Declining'
+        | undefined,
+      neighborhood_fit_score: source.neighborhood_fit_score,
+      rent_to_price_ratio: source.rent_to_price_ratio,
+
+      // Dynamic data
+      attributes: source.attributes,
+      highlight_flags: source.highlight_flags,
+
+      // FIXED: Map image_urls from Elasticsearch to images for frontend
+      images: source.image_urls || [],
+
+      // Timestamps
+      created_at: source.created_at,
+      updated_at: source.updated_at,
+
+      // Additional fields that might be needed
+      floor_info: (source as any).floor_info, // Add this as it's in your Elasticsearch response
+    };
   }
 
   /**
@@ -1230,6 +1368,67 @@ export class ElasticsearchService {
       console.error('Error getting price suggestions:', error);
       return [];
     }
+  }
+
+  /**
+   * Debug function to verify Elasticsearch connection and index
+   */
+  async verifyConnection(): Promise<boolean> {
+    try {
+      console.log(
+        `[ElasticsearchService] Verifying connection to Elasticsearch...`
+      );
+      const health = await client.cluster.health();
+      console.log(`[ElasticsearchService] Cluster health:`, health);
+
+      console.log(
+        `[ElasticsearchService] Checking if index ${INDEX} exists...`
+      );
+      const indexExists = await client.indices.exists({ index: INDEX });
+      console.log(`[ElasticsearchService] Index ${INDEX} exists:`, indexExists);
+
+      if (indexExists) {
+        console.log(`[ElasticsearchService] Getting index stats...`);
+        const stats = await client.indices.stats({ index: INDEX });
+        console.log(`[ElasticsearchService] Index stats:`, stats);
+
+        console.log(`[ElasticsearchService] Checking document count...`);
+        const count = await client.count({ index: INDEX });
+        console.log(`[ElasticsearchService] Document count:`, count);
+
+        // Get a sample document
+        console.log(`[ElasticsearchService] Getting a sample document...`);
+        const sample = await client.search({
+          index: INDEX,
+          size: 1,
+        });
+
+        if (sample.hits.hits.length > 0) {
+          const hit = sample.hits.hits[0];
+          console.log(`[ElasticsearchService] Sample document _id:`, hit._id);
+          const source = hit._source as ElasticsearchSource;
+          console.log(
+            `[ElasticsearchService] Sample document external_id:`,
+            source.external_id
+          );
+        } else {
+          console.log(`[ElasticsearchService] No documents found in index`);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(
+        `[ElasticsearchService] Error verifying connection:`,
+        error
+      );
+      return false;
+    }
+  }
+
+  // Add this to the router or service initialization
+  async init() {
+    await this.verifyConnection();
   }
 }
 

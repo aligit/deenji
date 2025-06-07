@@ -1,0 +1,791 @@
+// src/app/pages/properties.page.ts
+
+import { Component } from '@angular/core';
+import { RouterOutlet } from '@angular/router';
+
+@Component({
+  standalone: true,
+  imports: [RouterOutlet],
+  template: ` <router-outlet></router-outlet> `,
+})
+export default class PropertiesComponent { }
+
+-------------
+
+// src/app/pages/properties/(properties-list).page.ts
+
+import { Component, inject } from '@angular/core';
+import { CommonModule, ViewportScroller } from '@angular/common';
+import { MatCardModule } from '@angular/material/card';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDividerModule } from '@angular/material/divider';
+import { RouterLink } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { Category, PropertyResponse } from './models';
+import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatListModule } from '@angular/material/list';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { map, shareReplay } from 'rxjs';
+import { MatIconModule } from '@angular/material/icon';
+
+@Component({
+  selector: 'app-properties-list',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatCardModule,
+    MatButtonModule,
+    MatDividerModule,
+    RouterLink,
+    MatSidenavModule,
+    MatListModule,
+    MatIconModule,
+  ],
+  template: `
+    <mat-sidenav-container class="properties-container">
+      <mat-sidenav
+        mode="side"
+        [opened]="!(isHandset$ | async)"
+        class="categories-nav"
+      >
+        <mat-nav-list>
+          @for (category of categories; track category.id) {
+            <a
+              mat-list-item
+              (click)="scrollToCategory(category)"
+              [class.active]="activeCategory === category.id"
+            >
+              {{ category.name }}
+            </a>
+          }
+        </mat-nav-list>
+      </mat-sidenav>
+      <mat-sidenav-content>
+        @if (categories) {
+          <div class="properties-content">
+            @for (category of categories; track category.id) {
+              <section [id]="category.id">
+                <h2>{{ category.name }}</h2>
+                <div class="property-grid">
+                  @for (
+                    property of category.properties;
+                    track property.propertyId
+                  ) {
+                    <mat-card appearance="outlined" class="property-card">
+                      <img
+                        mat-card-image
+                        [src]="property.coverImage"
+                        [alt]="property.title"
+                        class="property-image"
+                      />
+                      <mat-card-content>
+                        <h3>{{ property.title }}</h3>
+                        <div class="property-features">
+                          <div class="feature">
+                            <mat-icon svgIcon="square_foot"></mat-icon>
+                            <span>{{ property.plotArea }} متر مربع</span>
+                          </div>
+                          <div class="feature">
+                            <mat-icon svgIcon="foundation"></mat-icon>
+                            <span>{{ property.plotArea }} متر مربع</span>
+                          </div>
+                          <div class="feature">
+                            <mat-icon svgIcon="bed"></mat-icon>
+                            <span>{{ property.bedrooms }} خواب</span>
+                          </div>
+                          <div class="feature">
+                            <mat-icon svgIcon="bathtub"></mat-icon>
+                            <span>{{ property.bathrooms }} سرویس</span>
+                          </div>
+                          @if (property.landscape) {
+                            <div class="feature">
+                              <mat-icon svgIcon="landscape"></mat-icon>
+                              <span>دارای باغچه</span>
+                            </div>
+                          }
+                        </div>
+                        <p class="price">
+                          قیمت:
+                          {{ property.price }}
+                          تومان
+                        </p>
+                      </mat-card-content>
+                      <mat-card-actions>
+                        <a
+                          mat-button
+                          color="primary"
+                          [routerLink]="['/properties', property.propertyId]"
+                        >جزئیات بیشتر</a>
+                      </mat-card-actions>
+                    </mat-card>
+                  }
+                </div>
+              </section>
+              @if (!$last) {
+                <mat-divider></mat-divider>
+              }
+            }
+          </div>
+        }
+      </mat-sidenav-content>
+    </mat-sidenav-container>
+  `,
+  styles: [
+    `
+      .property-features {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin: 16px 0;
+      }
+
+      .feature {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: var(--mat-text-secondary-color);
+
+        mat-icon {
+          width: 20px;
+          height: 20px;
+        }
+      }
+
+      .price {
+        margin-top: 16px;
+        font-weight: 500;
+      }
+      .properties-container {
+        height: calc(100vh - 64px);
+        overflow: hidden;
+      }
+
+      .properties-content {
+        padding: 24px 32px;
+        overflow-y: auto;
+      }
+
+      .categories-nav {
+        width: 280px;
+        padding: 24px 0;
+        border-radius: 0;
+
+        mat-nav-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          margin-top: 24px;
+        }
+      }
+
+      section {
+        margin-bottom: 48px;
+        scroll-margin-top: 80px;
+      }
+
+      .property-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 24px;
+        margin: 24px 0;
+      }
+
+      .property-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border-radius: 16px;
+        transition: transform 0.2s ease-in-out;
+
+        &:hover {
+          transform: translateY(-4px);
+        }
+      }
+
+      .property-image {
+        object-fit: cover;
+        height: 200px;
+        width: 100%;
+        border-radius: 16px 16px 0 0;
+      }
+
+      mat-card-content {
+        flex-grow: 1;
+        padding: 16px;
+      }
+
+      mat-card-actions {
+        padding: 8px 16px 16px;
+      }
+
+      mat-divider {
+        margin: 48px 0;
+      }
+
+      @media (max-width: 1024px) {
+        .property-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+      }
+
+      @media (max-width: 600px) {
+        .properties-content {
+          padding: 16px;
+        }
+
+        .property-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    `,
+  ],
+})
+export default class PropertiesListComponent {
+  private http = inject(HttpClient);
+  private viewportScroller = inject(ViewportScroller);
+  private breakpointObserver = inject(BreakpointObserver);
+  categories: Category[] = [];
+  activeCategory: string = '';
+  isHandset$ = this.breakpointObserver.observe(Breakpoints.Handset).pipe(
+    map((result) => result.matches),
+    shareReplay(),
+  );
+
+  ngOnInit() {
+    this.http.get<PropertyResponse>('/data/property-listings.json').subscribe({
+      next: (response) => {
+        this.categories = response.categories;
+      },
+      error: (error) => { },
+    });
+  }
+  ngAfterViewInit() {
+    // Set up intersection observer to detect which category is in view
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            this.activeCategory = entry.target.id;
+          }
+        });
+      },
+      {
+        rootMargin: '-20% 0px -80% 0px', // Adjust these values to control when the active state changes
+      },
+    );
+
+    // Observe all category sections
+    this.categories.forEach((category) => {
+      const element = document.getElementById(category.id);
+      if (element) observer.observe(element);
+    });
+  }
+
+  scrollToCategory(category: Category): void {
+    const element = document.getElementById(category.id);
+    element?.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+-------------
+
+
+// src/app/pages/properties/[propertyId].page.ts
+
+
+import { Component, inject } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatDialogModule } from '@angular/material/dialog';
+import { HttpClient } from '@angular/common/http';
+import { PropertyResponse } from './models';
+import { map, switchMap } from 'rxjs/operators';
+import { ActivatedRoute } from '@angular/router';
+import { MatCardModule } from '@angular/material/card';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { GalleryModule, Gallery, GalleryItem, ImageItem } from 'ng-gallery';
+import { Lightbox, LightboxModule } from 'ng-gallery/lightbox';
+import { MatChipsModule } from '@angular/material/chips';
+import { MatTooltipModule } from '@angular/material/tooltip';
+
+@Component({
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatGridListModule,
+    MatIconModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatCardModule,
+    MatDividerModule,
+    MatProgressSpinnerModule,
+    LightboxModule,
+    GalleryModule,
+    MatChipsModule,
+    MatTooltipModule,
+  ],
+  template: `
+    @if (property$ | async; as property) {
+      <div class="property-details">
+        <div class="image-gallery">
+          <mat-grid-list cols="2" rowHeight="400px" gutterSize="16">
+            <mat-grid-tile colspan="1" rowspan="1">
+              <img
+                [src]="property.coverImage"
+                [alt]="property.title"
+                class="main-image"
+              />
+            </mat-grid-tile>
+            <mat-grid-tile colspan="1" rowspan="1">
+              <div class="thumbnail-grid">
+                @for (image of property.images.slice(0, 4); track image; let i = $index) {
+                  <div
+                    class="thumbnail"
+                    [class.see-all]="i === 3"
+                  >
+                    <img (click)="openInFullScreen(4)" [src]="image" [alt]="property.title + ' image ' + i" />
+                    @if (i === 3) {
+                      <div [lightbox]="i" [gallery]="galleryId" class="see-all-overlay">
+                        <span>See all photos</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </mat-grid-tile>
+          </mat-grid-list>
+        </div>
+
+        <div class="property-content">
+          <mat-card appearance="outlined" class="main-info-card">
+            <mat-card-content>
+              <h1>{{ property.title }}</h1>
+              <p class="location">
+                <mat-icon>location_on</mat-icon>
+                {{ property.location }}
+              </p>
+
+              <mat-divider></mat-divider>
+
+              <!-- Property Highlights -->
+              @if (property.propertyHighlightFlags?.length) {
+                <div class="highlights-section">
+                  <h2>ویژگی‌های برجسته</h2>
+                  <div class="highlights-chips">
+                    @for (flag of property.propertyHighlightFlags; track flag) {
+                      <mat-chip-option selected>{{ flag }}</mat-chip-option>
+                    }
+                  </div>
+                </div>
+                <mat-divider></mat-divider>
+              }
+
+              <!-- Property Features -->
+              <div class="property-features">
+                <div class="feature">
+                  <mat-icon svgIcon="square_foot"></mat-icon>
+                  <span>{{ property.plotArea }} متر مربع زمین</span>
+                </div>
+                <div class="feature">
+                  <mat-icon svgIcon="foundation"></mat-icon>
+                  <span>{{ property.builtArea }} متر مربع بنا</span>
+                </div>
+                @if (property.propertyInvestmentScore) {
+                  <div class="feature score-feature"
+                       [matTooltip]="'امتیاز سرمایه‌گذاری'">
+                    <mat-icon>trending_up</mat-icon>
+                    <span>{{ property.propertyInvestmentScore }} / 100</span>
+                  </div>
+                }
+                @if (property.neighborhoodFitScore) {
+                  <div class="feature score-feature"
+                       [matTooltip]="'امتیاز محله'">
+                    <mat-icon>location_city</mat-icon>
+                    <span>{{ property.neighborhoodFitScore }} / 5</span>
+                  </div>
+                }
+              </div>
+
+              <mat-divider></mat-divider>
+
+              <!-- Market Trends -->
+              @if (property.marketTrendPrediction) {
+                <div class="market-trends">
+                  <h2>تحلیل بازار</h2>
+                  <div class="trend-info">
+                    <div class="trend-item">
+                      <mat-icon [class]="property.marketTrendPrediction.toLowerCase()">
+                        {{ property.marketTrendPrediction === 'Rising' ? 'trending_up' : 'trending_flat' }}
+                      </mat-icon>
+                      <span>{{ property.marketTrendPrediction }}</span>
+                    </div>
+                    @if (property.rp) {
+                      <div class="trend-item">
+                        <mat-icon>analytics</mat-icon>
+                        <span>نسبت قیمت به اجاره: {{ property.rp }}</span>
+                      </div>
+                    }
+                  </div>
+                </div>
+                <mat-divider></mat-divider>
+              }
+
+              <!-- Price Section -->
+              <div class="price-section">
+                <h2>قیمت</h2>
+                <p class="price">{{ property.price | number }} تومان</p>
+                @if (property.priceTrend?.length) {
+                  <div class="price-trend">
+                    <span class="trend-label">روند قیمت:</span>
+                    <div class="trend-values">
+                      @for (price of property.priceTrend; track price) {
+                        <span>{{ price | number }}</span>
+                        @if (!$last) {
+                          <mat-icon>arrow_forward</mat-icon>
+                        }
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Description -->
+              <mat-divider></mat-divider>
+              <div class="description-section">
+                <h2>توضیحات</h2>
+                <p>{{ property.description }}</p>
+              </div>
+
+              @if (property.agent) {
+                <mat-divider></mat-divider>
+                <div class="agent-section">
+                  <h2>مشاور املاک</h2>
+                  <div class="agent-info">
+                    <img
+                      [src]="property.agent.avatar"
+                      [alt]="property.agent.name"
+                      class="agent-avatar"
+                    />
+                    <span>{{ property.agent.name }}</span>
+                  </div>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+    } @else {
+      <div class="loading">
+        <mat-spinner></mat-spinner>
+      </div>
+    }
+  `,
+  styles: [
+    `
+      .property-details {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 16px;
+      }
+
+      .image-gallery {
+        margin-bottom: 24px;
+      }
+
+      .main-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        cursor: pointer;
+      }
+
+      .thumbnail-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 8px;
+        width: 100%;
+        height: 100%;
+      }
+
+      .thumbnail {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: all 0.3s ease;
+        }
+
+        &.see-all {
+          .see-all-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(
+              rgba(0, 0, 0, 0.3),
+              rgba(0, 0, 0, 0.7)
+            );
+            backdrop-filter: blur(2px);
+            z-index: 1;
+            transition: all 0.3s ease;
+
+            span {
+              color: white;
+              font: var(--mat-title-small-font);
+              background: rgba(255, 255, 255, 0.15);
+              padding: 12px 24px;
+              border-radius: 32px;
+              transform: translateY(0);
+              transition: all 0.3s ease;
+              border: 1px solid rgba(255, 255, 255, 0.2);
+              text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            }
+
+            &:hover {
+              background: linear-gradient(
+                rgba(0, 0, 0, 0.4),
+                rgba(0, 0, 0, 0.8)
+              );
+
+              span {
+                transform: translateY(-2px);
+                background: rgba(255, 255, 255, 0.2);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+              }
+
+              & + img {
+                transform: scale(1.05);
+              }
+            }
+          }
+
+          img {
+            filter: brightness(0.9);
+            transition: all 0.3s ease;
+          }
+        }
+      }
+
+      .property-content {
+        max-width: 800px;
+        margin: 0 auto;
+
+        h1 {
+          font: var(--mat-headline-large-font);
+          margin-bottom: 16px;
+        }
+
+        .location {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          color: var(--mat-text-secondary-color);
+          margin-bottom: 24px;
+        }
+
+        .property-features {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 24px;
+          padding: 24px 0;
+        }
+
+        .feature {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          mat-icon {
+            color: var(--mat-text-secondary-color);
+          }
+        }
+
+        .price-section {
+          padding: 24px 0;
+
+          h2 {
+            font: var(--mat-title-large-font);
+            margin-bottom: 8px;
+          }
+
+          .price {
+            font: var(--mat-headline-medium-font);
+            color: var(--mat-primary-color);
+          }
+        }
+
+        .agent-section {
+          padding: 24px 0;
+
+          h2 {
+            font: var(--mat-title-large-font);
+            margin-bottom: 16px;
+          }
+
+          .agent-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+
+            .agent-avatar {
+              width: 48px;
+              height: 48px;
+              border-radius: 50%;
+              object-fit: cover;
+            }
+          }
+        }
+      }
+
+      .loading {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 400px;
+      }
+
+      .highlights-section {
+        padding: 24px 0;
+
+        h2 {
+          font: var(--mat-title-large-font);
+          margin-bottom: 16px;
+        }
+
+        .highlights-chips {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+      }
+
+      .market-trends {
+        padding: 24px 0;
+
+        h2 {
+          font: var(--mat-title-large-font);
+          margin-bottom: 16px;
+        }
+
+        .trend-info {
+          display: flex;
+          gap: 24px;
+          flex-wrap: wrap;
+        }
+
+        .trend-item {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+
+          mat-icon {
+            &.rising {
+              color: var(--mat-success-color);
+            }
+          }
+        }
+      }
+
+      .price-trend {
+        margin-top: 16px;
+
+        .trend-label {
+          display: block;
+          margin-bottom: 8px;
+          color: var(--mat-text-secondary-color);
+        }
+
+          .trend-values {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+
+            span {
+              font: var(--mat-body-large-font);
+            }
+
+            mat-icon {
+              color: var(--mat-text-secondary-color);
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
+            }
+          }
+      }
+
+      .description-section {
+        padding: 24px 0;
+
+        h2 {
+          font: var(--mat-title-large-font);
+          margin-bottom: 16px;
+        }
+
+        p {
+          line-height: 1.6;
+          color: var(--mat-text-secondary-color);
+        }
+      }
+
+      .score-feature {
+        mat-icon {
+          color: var(--mat-primary-color);
+        }
+      }
+    `,
+  ],
+})
+export default class PropertyDetailsComponent {
+  propertyImages: string[] = [];
+  galleryId = 'propertyLightbox';
+  items!: GalleryItem[];
+
+  public gallery = inject(Gallery);
+  private http = inject(HttpClient);
+  private route = inject(ActivatedRoute);
+  private lightbox = inject(Lightbox);
+
+  property$ = this.route.params.pipe(
+    switchMap((params) =>
+      this.http.get<PropertyResponse>('/data/property-listings.json').pipe(
+        map((response) => {
+          const propertyId = params['propertyId'];
+          return response.categories.find(category =>
+            category.properties.some(property => property.propertyId === propertyId)
+          )?.properties.find(property => property.propertyId === propertyId);
+        })
+      )
+    )
+  );
+
+  ngOnInit() {
+    this.property$.subscribe(property => {
+      if (property) {
+        this.propertyImages = property.images;
+        this.items = this.propertyImages.map(image => new ImageItem({ src: image, thumb: image }));
+        const galleryRef = this.gallery.ref(this.galleryId);
+        galleryRef.load(this.items);
+      }
+    });
+  }
+
+  openInFullScreen(index: number) {
+    this.lightbox.open(index, this.galleryId, {
+      panelClass: 'fullscreen'
+    });
+  }
+}
