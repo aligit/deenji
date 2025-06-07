@@ -10,6 +10,7 @@ export class MapService {
 
   // Method to highlight a property
   highlightProperty(propertyId: string | null) {
+    console.log('Highlighting property:', propertyId);
     this.highlightedPropertyId.set(propertyId);
   }
 }

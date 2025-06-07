@@ -68,6 +68,9 @@ interface PropertyResult {
     lat: number;
     lon: number;
   };
+  // Add these fields for the map component
+  latitude?: string;
+  longitude?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -511,8 +514,10 @@ interface PropertyResult {
 
       <div class="w-1/2 relative bg-gray-100">
         <app-map
-          [properties]="searchResults()?.results || []"
-          [highlightedPropertyId]="mapService.highlightedPropertyId()"
+          [properties]="mappedProperties()"
+          [highlightedPropertyId]="
+            mapService.highlightedPropertyId() ?? undefined
+          "
           (markerClick)="onMarkerClick($event)"
         ></app-map>
 
@@ -557,7 +562,7 @@ export default class PropertiesSearchPageComponent implements OnInit {
 
   // Signals
   loading = signal(true);
-  error = signal<string | null>(null);
+  error = signal<string | undefined>(undefined);
   searchResults = signal<{ results: PropertyResult[]; total: number } | null>(
     null
   );
@@ -596,6 +601,19 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return pages;
   });
 
+  // In mappedProperties computed signal
+  mappedProperties = computed(() => {
+    const results = this.searchResults();
+    if (!results || !results.results || results.results.length === 0) return [];
+
+    return results.results.map((property) => ({
+      ...property,
+      // Ensure we have valid latitude/longitude strings
+      latitude: property.location?.lat?.toString() || '',
+      longitude: property.location?.lon?.toString() || '',
+    }));
+  });
+
   searchParams: Partial<PropertySearchQuery> = {};
 
   ngOnInit() {
@@ -620,7 +638,7 @@ export default class PropertiesSearchPageComponent implements OnInit {
 
   executeSearch() {
     this.loading.set(true);
-    this.error.set(null);
+    this.error.set(undefined);
 
     const [sortField, sortDirection] = this.sortBy().split('-');
 
@@ -721,13 +739,28 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return 'همه قیمت‌ها';
   }
 
-  // Handle marker click from map
-  onMarkerClick(propertyId: string) {
+  // Handle marker click from map - now receives the marker object
+  onMarkerClick(marker: any) {
+    if (marker && marker.id) {
+      // Highlight the property in the list
+      this.mapService.highlightProperty(marker.id);
+
+      // Scroll the property card into view
+      this.scrollCardIntoView(marker.id);
+    }
+  }
+
+  // Update onPropertyCardClick method to implement two-way sync
+  onPropertyCardClick(propertyId: string) {
     // Highlight the property
     this.mapService.highlightProperty(propertyId);
 
-    // Scroll to the property card
-    this.scrollCardIntoView(propertyId);
+    // Find the property and tell the map to center on it
+    const property = this.mappedProperties().find((p) => p.id === propertyId);
+    if (property) {
+      // You'll need to implement a method in the map component to center on a property
+      // This could be done through a service or by exposing a method
+    }
   }
 
   // Scroll property card into view

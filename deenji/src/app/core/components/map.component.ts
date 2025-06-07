@@ -1,254 +1,359 @@
 import {
   Component,
   Input,
-  Output,
-  EventEmitter,
+  OnInit,
   OnChanges,
   SimpleChanges,
-  OnInit,
   ViewChild,
+  signal,
 } from '@angular/core';
+import { GoogleMap, MapMarker, MapInfoWindow } from '@angular/google-maps';
 import { CommonModule } from '@angular/common';
-import {
-  GoogleMapsModule,
-  MapMarker,
-  MapInfoWindow,
-} from '@angular/google-maps';
-import { signal } from '@angular/core';
 
-interface PropertyMarker {
-  id: string;
-  position: google.maps.LatLngLiteral;
-  title: string;
+// Create a simple enum to replace the missing import
+enum PropertyFormStatus {
+  SOLD = 'SOLD',
+  AVAILABLE = 'AVAILABLE',
 }
 
 @Component({
   selector: 'app-map',
   standalone: true,
-  imports: [CommonModule, GoogleMapsModule],
+  imports: [CommonModule, GoogleMap, MapMarker, MapInfoWindow],
   template: `
-    <div class="map-container h-full w-full">
-      @if (apiLoaded) {
-      <google-map
-        [center]="center"
-        [zoom]="zoom"
-        [options]="options"
-        height="100%"
-        width="100%"
-        (mapClick)="closeInfoWindow()"
-      >
-        @for (marker of markers(); track marker.id) {
-        <map-marker
-          #markerElem
-          [position]="marker.position"
-          [title]="marker.title"
-          [options]="getMarkerOptions(marker.id)"
-          (mapClick)="openInfoWindow(marker)"
-        ></map-marker>
-        }
-
-        <map-info-window #infoWindow>
-          <div dir="rtl" class="info-content">
-            <h3 class="text-base font-semibold">
-              {{ selectedProperty?.title }}
-            </h3>
-            <p class="text-sm font-bold text-primary-600">
-              {{ formatPrice(selectedProperty?.price || 0) }} تومان
-            </p>
-            @if (selectedProperty?.bedrooms) {
-            <p class="text-xs">{{ selectedProperty.bedrooms }} خواب</p>
-            } @if (selectedProperty?.area) {
-            <p class="text-xs">{{ selectedProperty.area }} متر</p>
-            }
-            <a
-              href="/properties/{{ selectedProperty?.id }}"
-              class="text-xs text-blue-600 mt-2 block"
-              >مشاهده جزئیات</a
-            >
-          </div>
-        </map-info-window>
-      </google-map>
-      } @else {
-      <div class="flex items-center justify-center h-full">
-        <p class="text-gray-500">در حال بارگذاری نقشه...</p>
-      </div>
+    <google-map
+      [height]="height()"
+      [width]="width()"
+      [center]="center"
+      [zoom]="14"
+      [options]="mapOptions"
+      (mapClick)="onMapClick($event)"
+      (mapInitialized)="onMapInitialized($event)"
+    >
+      @for (marker of markers(); track marker.id || $index) {
+      <map-marker
+        [position]="marker.position"
+        [options]="marker.options"
+        [title]="marker.title"
+        (mapClick)="onMarkerClick(marker)"
+        #markerRef
+      />
       }
-    </div>
-  `,
-  styles: `
-    .map-container {
-      min-height: 400px;
-    }
 
-    :host {
-      display: block;
-      height: 100%;
-    }
-
-    .info-content {
-      padding: 8px;
-      max-width: 200px;
-    }
+      <map-info-window [position]="infoWindowPosition()" #infoWindow>
+        @if (selectedProperty()) {
+        <div class="info-window-content">
+          <h3>{{ selectedProperty()!.title }}</h3>
+          <p>{{ formatPrice(selectedProperty()!.price) }} تومان</p>
+          @if (selectedProperty()!.bedrooms) {
+          <p>{{ selectedProperty()!.bedrooms }} خواب</p>
+          } @if (selectedProperty()!.area) {
+          <p>{{ selectedProperty()!.area }} متر</p>
+          }
+          <button (click)="viewPropertyDetails(selectedProperty()!.id)">
+            مشاهده جزئیات
+          </button>
+        </div>
+        }
+      </map-info-window>
+    </google-map>
   `,
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100%;
+        width: 100%;
+      }
+
+      .info-window-content {
+        padding: 10px;
+        max-width: 200px;
+      }
+
+      .info-window-content h3 {
+        margin: 0 0 5px 0;
+        font-size: 16px;
+      }
+
+      .info-window-content p {
+        margin: 0 0 10px 0;
+        font-size: 14px;
+      }
+
+      .info-window-content button {
+        background-color: #4285f4;
+        color: white;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      .info-window-content button:hover {
+        background-color: #357ae8;
+      }
+
+      ::ng-deep .gm-style .gm-style-iw-c {
+        padding: 0;
+      }
+
+      ::ng-deep .gm-style .gm-style-iw-d {
+        overflow: hidden !important;
+      }
+    `,
+  ],
 })
 export class MapComponent implements OnInit, OnChanges {
-  @ViewChild('infoWindow') infoWindow!: MapInfoWindow;
+  @ViewChild(MapInfoWindow) infoWindow!: MapInfoWindow;
+  @ViewChild(GoogleMap) map!: GoogleMap;
 
   @Input() properties: any[] = [];
-  @Input() highlightedPropertyId: string | null = null;
-  @Output() markerClick = new EventEmitter<string>();
+  @Input() selectedPropertyId?: string;
+  @Input() showCurrentLocation = false;
+  @Input() enablePropertyCreation = false;
+  @Input() highlightedPropertyId?: string;
 
-  markers = signal<PropertyMarker[]>([]);
-  selectedProperty: any = null;
-  apiLoaded = false;
+  // Map dimensions
+  height = signal('100%');
+  width = signal('100%');
 
-  // Default center (District 5, Tehran)
+  // Map state
+  // Centered on District 5
   center: google.maps.LatLngLiteral = { lat: 35.7219, lng: 51.389 };
-  zoom = 14.568499456622654;
+  public fixedZoom = 14;
 
-  // Initialize options as empty object, will be set in ngOnInit
-  options: google.maps.MapOptions = {};
-
-  ngOnInit() {
-    // Check if Google Maps is loaded
-    if (typeof google !== 'undefined' && google.maps) {
-      this.initializeMap();
-    } else {
-      // If not loaded, wait for it
-      this.waitForGoogleMaps();
-    }
-  }
-
-  private waitForGoogleMaps() {
-    const checkInterval = setInterval(() => {
-      if (typeof google !== 'undefined' && google.maps) {
-        clearInterval(checkInterval);
-        this.initializeMap();
-      }
-    }, 100);
-
-    // Timeout after 10 seconds
-    setTimeout(() => {
-      clearInterval(checkInterval);
-      if (!this.apiLoaded) {
-        console.error('Google Maps failed to load');
-      }
-    }, 10000);
-  }
-
-  private initializeMap() {
-    // Now it's safe to use google.maps
-    this.options = {
-      mapTypeControl: false,
-      fullscreenControl: false,
-      streetViewControl: false,
-      zoomControl: true,
-      zoomControlOptions: {
-        position: google.maps.ControlPosition.RIGHT_TOP,
+  // Map options with fixed zoom
+  mapOptions: google.maps.MapOptions = {
+    mapTypeControl: false,
+    fullscreenControl: false,
+    streetViewControl: false,
+    zoomControl: true,
+    scrollwheel: true,
+    gestureHandling: 'cooperative',
+    disableDoubleClickZoom: false,
+    mapTypeId: 'roadmap',
+    restriction: {
+      latLngBounds: {
+        north: 35.82235,
+        south: 35.699129,
+        east: 51.342,
+        west: 51.24944,
       },
-    };
+      strictBounds: false,
+    },
+    minZoom: 12,
+    maxZoom: 18,
+  };
 
-    this.apiLoaded = true;
+  // Google Maps instance
+  mapInstance?: google.maps.Map;
 
-    // Update markers if properties are already loaded
+  // Markers
+  markers = signal<any[]>([]);
+
+  // Info window state
+  selectedProperty = signal<any>(null);
+  infoWindowPosition = signal<google.maps.LatLngLiteral>({ lat: 0, lng: 0 });
+
+  ngOnInit(): void {
     if (this.properties.length > 0) {
       this.updateMarkers();
     }
+
+    // If there's a selected property, center on it
+    if (this.selectedPropertyId) {
+      this.centerOnProperty(this.selectedPropertyId);
+    }
   }
 
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes['properties'] && this.apiLoaded) {
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['properties']) {
       this.updateMarkers();
     }
 
-    if (
-      changes['highlightedPropertyId'] &&
-      this.highlightedPropertyId &&
-      this.apiLoaded
-    ) {
-      this.centerOnPropertyId(this.highlightedPropertyId);
+    if (changes['selectedPropertyId'] && this.selectedPropertyId) {
+      this.centerOnProperty(this.selectedPropertyId);
+    }
+
+    if (changes['highlightedPropertyId'] && this.highlightedPropertyId) {
+      const property = this.properties.find(
+        (p) => p.id === this.highlightedPropertyId
+      );
+      if (property) {
+        this.selectedProperty.set(property);
+      }
     }
   }
 
-  updateMarkers() {
-    if (this.properties.length === 0) {
+  onMapInitialized(map: google.maps.Map): void {
+    this.mapInstance = map;
+  }
+
+  onMapClick(event: google.maps.MapMouseEvent): void {
+    if (this.enablePropertyCreation && event.latLng) {
+      // Instead of using PropertyFormService, just log the location
+      console.log('Create property at:', {
+        lat: event.latLng.lat(),
+        lng: event.latLng.lng(),
+      });
+
+      // Add a temporary marker at the clicked location
+      this.addTemporaryMarker(event.latLng.lat(), event.latLng.lng());
+    }
+  }
+
+  onMarkerClick(marker: any): void {
+    this.selectedProperty.set(marker.property);
+    this.infoWindowPosition.set(marker.position);
+    this.infoWindow.open();
+
+    // Emit an event to highlight the corresponding list item
+    // You can use a service or event emitter to communicate with the list component
+  }
+
+  viewPropertyDetails(propertyId: string): void {
+    // Navigate to property details page
+    // This would typically use the Router service
+    console.log('View property details:', propertyId);
+  }
+
+  private updateMarkers(): void {
+    if (!this.properties || this.properties.length === 0) {
       this.markers.set([]);
       return;
     }
 
-    // Create markers for each property
-    const newMarkers: PropertyMarker[] = this.properties
-      .filter((p) => p.location?.lat && p.location?.lon)
+    // Add logging to debug coordinates
+    console.log('Updating markers with properties:', this.properties);
+
+    const newMarkers = this.properties
+      .filter((property) => {
+        // Make sure we have valid coordinates
+        const hasValidLat =
+          property.latitude && !isNaN(parseFloat(property.latitude));
+        const hasValidLng =
+          property.longitude && !isNaN(parseFloat(property.longitude));
+        return hasValidLat && hasValidLng;
+      })
       .map((property) => ({
         id: property.id,
         position: {
-          lat: property.location.lat,
-          lng: property.location.lon,
+          lat: parseFloat(property.latitude),
+          lng: parseFloat(property.longitude),
         },
         title: property.title,
+        property: property,
+        options: {
+          animation: google.maps.Animation.DROP,
+          icon: this.getMarkerIcon(property),
+        },
       }));
 
+    console.log('Created markers:', newMarkers);
     this.markers.set(newMarkers);
 
-    // Center on first result if available
+    // Center map on first property if available (per user story)
     if (newMarkers.length > 0) {
-      this.center = newMarkers[0].position;
-      this.zoom = 14;
+      this.centerOnFirstProperty(newMarkers[0]);
     }
   }
 
-  openInfoWindow(marker: PropertyMarker) {
-    const property = this.properties.find((p) => p.id === marker.id);
-    if (!property) return;
+  private centerOnFirstProperty(marker: any): void {
+    if (this.mapInstance) {
+      // Center on the marker
+      this.mapInstance.panTo(marker.position);
 
-    this.selectedProperty = property;
-    this.markerClick.emit(marker.id);
+      // Only set zoom if it's too low (per user story: zoom ≥ 14)
+      const currentZoom = this.mapInstance.getZoom() || 14;
+      if (currentZoom < 14) {
+        this.mapInstance.setZoom(14);
+      }
+
+      // Optionally open info window for first marker
+      this.selectedProperty.set(marker.property);
+      this.infoWindowPosition.set(marker.position);
+      this.infoWindow.open();
+    }
   }
 
-  closeInfoWindow() {
-    this.selectedProperty = null;
+  private centerOnProperty(propertyId: string): void {
+    const property = this.properties.find((p) => p.id === propertyId);
+    if (property && property.latitude && property.longitude) {
+      this.center = {
+        lat: parseFloat(property.latitude),
+        lng: parseFloat(property.longitude),
+      };
+
+      // If map is initialized, pan to the new center
+      if (this.mapInstance) {
+        this.mapInstance.panTo(this.center);
+      }
+    }
   }
 
+  private getMarkerIcon(property: any): google.maps.Symbol {
+    // Customize marker icon based on property status
+    const color =
+      property.status === PropertyFormStatus.SOLD ? '#FF0000' : '#00FF00';
+
+    return {
+      fillColor: color,
+      fillOpacity: 0.8,
+      strokeColor: 'white',
+      strokeWeight: 2,
+      scale: 8,
+      // Use Symbol instead of path
+      path: google.maps.SymbolPath.CIRCLE,
+    };
+  }
+
+  // Public methods for external control
+
+  public panToLocation(lat: number, lng: number): void {
+    this.center = { lat, lng };
+    if (this.mapInstance) {
+      this.mapInstance.panTo(this.center);
+    }
+  }
+
+  public addTemporaryMarker(lat: number, lng: number): void {
+    const tempMarker = {
+      id: 'temp-' + Date.now(),
+      position: { lat, lng },
+      title: 'New Property Location',
+      property: null,
+      options: {
+        animation: google.maps.Animation.BOUNCE,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 10,
+          fillColor: '#FFA500',
+          fillOpacity: 0.8,
+          strokeColor: 'white',
+          strokeWeight: 2,
+        },
+      },
+    };
+
+    this.markers.update((markers) => [...markers, tempMarker]);
+  }
+
+  public removeTemporaryMarkers(): void {
+    this.markers.update((markers) =>
+      markers.filter((m) => !m.id.startsWith('temp-'))
+    );
+  }
+  // In the map component
   formatPrice(price: number): string {
+    if (!price) return '';
+
     if (price >= 1_000_000_000) {
       return `${(price / 1_000_000_000).toFixed(1)} میلیارد`;
     } else if (price >= 1_000_000) {
       return `${(price / 1_000_000).toFixed(0)} میلیون`;
     }
     return price.toLocaleString('fa-IR');
-  }
-
-  centerOnPropertyId(propertyId: string) {
-    const marker = this.markers().find((m) => m.id === propertyId);
-    if (marker) {
-      this.center = marker.position;
-      this.zoom = 16; // Zoom in a bit more to highlight
-
-      // Find and select the property
-      const property = this.properties.find((p) => p.id === propertyId);
-      if (property) {
-        this.selectedProperty = property;
-      }
-    }
-  }
-
-  getMarkerOptions(markerId: string): google.maps.MarkerOptions {
-    const isHighlighted = markerId === this.highlightedPropertyId;
-
-    // Always return a valid MarkerOptions object
-    const options: google.maps.MarkerOptions = {
-      animation: isHighlighted ? google.maps.Animation.BOUNCE : undefined,
-      opacity: isHighlighted ? 1 : 0.8,
-    };
-
-    // Only add custom icon if highlighted
-    if (isHighlighted && this.apiLoaded) {
-      options.icon = {
-        url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-        scaledSize: { width: 40, height: 40 } as any, // Cast to any to avoid type issues
-      };
-    }
-
-    return options;
   }
 }
