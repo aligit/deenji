@@ -2,11 +2,9 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { switchMap, map, catchError, of, firstValueFrom } from 'rxjs';
+import { firstValueFrom } from 'rxjs';
 
 import { injectTrpcClient } from '../../../trpc-client';
-import { Property } from '../../../server/trpc/schemas/property.schema';
 
 // UI Components
 import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
@@ -49,11 +47,12 @@ import {
   lucideRuler,
 } from '@ng-icons/lucide';
 
-// Gallery components
-import { GalleryModule, Gallery, GalleryItem, ImageItem } from 'ng-gallery';
-import { Lightbox, LightboxModule } from 'ng-gallery/lightbox';
+import { GalleryModule } from 'ng-gallery';
+import { LightboxModule } from 'ng-gallery/lightbox';
 
 import { SimilarPropertiesComponent } from '../../core/components/similar-properties.component';
+import { PropertyValueIndicatorComponent } from '../../core/components/property-value-indicator.component';
+import { PriceTrendChartComponent } from '../../core/components/price-trend-chart.component';
 import { PropertyDetail } from '../../core/types/property.types';
 
 @Component({
@@ -72,6 +71,8 @@ import { PropertyDetail } from '../../core/types/property.types';
     LightboxModule,
     SimilarPropertiesComponent,
     RouterLink,
+    PropertyValueIndicatorComponent,
+    PriceTrendChartComponent,
   ],
   providers: [
     provideIcons({
@@ -358,6 +359,32 @@ import { PropertyDetail } from '../../core/types/property.types';
                   }
                 </div>
               </div>
+              }
+
+              <!-- Property Value Indicator -->
+              @if(estimatedValue()){
+
+              <div hlmCard class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                  ارزش ملک
+                </h3>
+                <app-property-value-indicator
+                  [data]="estimatedValue()"
+                ></app-property-value-indicator>
+              </div>
+              }
+
+              <!-- Price Trend Chart -->
+              @if(priceHistory().length > 0){
+              <div hlmCard class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                  تاریخچه قیمت
+                </h3>
+                <app-price-trend-chart
+                  [priceHistory]="priceHistory()"
+                ></app-price-trend-chart>
+              </div>
+
               }
 
               <!-- Investment Score -->
@@ -709,6 +736,13 @@ export default class PropertyDetailsPage implements OnInit {
   error = signal<string | null>(null);
   showImageModal = signal<boolean>(false);
   currentImageIndex = signal<number>(0);
+  estimatedValue = signal<{
+    estimatedValue: number;
+    priceRangeMin: number;
+    priceRangeMax: number;
+    rentEstimate: number;
+  } | null>(null);
+  priceHistory = signal<{ date: string; price: number }[]>([]);
 
   async ngOnInit() {
     this.route.paramMap.subscribe((params) => {
@@ -733,7 +767,17 @@ export default class PropertyDetailsPage implements OnInit {
       this.loading.set(true);
       this.error.set(null);
 
-      console.log(`Loading property details for ID: ${propertyId}`);
+      //TODO: suggested by LLM w/o knowledge of my codebase
+      const [propertyData, estimatedValueData, priceHistoryData] =
+        await Promise.all([
+          firstValueFrom(this.trpc.property.getById.query({ id: propertyId })),
+          firstValueFrom(
+            this.trpc.property.getEstimatedValue.query({ id: propertyId })
+          ),
+          firstValueFrom(
+            this.trpc.property.getPriceHistory.query({ id: propertyId })
+          ),
+        ]);
 
       // Get raw property data from API
       const apiProperty: any = await firstValueFrom(
@@ -805,6 +849,8 @@ export default class PropertyDetailsPage implements OnInit {
 
       // Update property signal
       this.property.set(propertyDetail);
+      this.estimatedValue.set(estimatedValueData);
+      this.priceHistory.set(priceHistoryData);
       this.loading.set(false);
     } catch (err) {
       console.error(`Error loading property with ID "${propertyId}":`, err);

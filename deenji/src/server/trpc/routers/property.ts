@@ -263,4 +263,40 @@ export const propertyRouter = router({
         return { suggestions: [] };
       }
     }),
+
+  getEstimatedValue: publicProcedure
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      // Base value for randomization (in billions)
+      const baseValue = Math.floor(Math.random() * 20 + 5) * 1000000000; // 5B to 25B
+      const variance = baseValue * 0.1; // 10% variance for range
+
+      return {
+        estimatedValue: baseValue,
+        priceRangeMin: baseValue - variance,
+        priceRangeMax: baseValue + variance,
+        rentEstimate: Math.floor(baseValue * 0.005), // 0.5% of value as monthly rent
+      };
+    }),
+
+  // New endpoint: Get Price History
+  getPriceHistory: publicProcedure
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      const currentYear = 1402; // Persian year for demo
+      const basePrice = Math.floor(Math.random() * 15 + 5) * 1000000000; // 5B to 20B starting point
+      const history = [];
+
+      for (let year = 1400; year <= currentYear; year++) {
+        for (let month = 1; month <= 12; month += 6) {
+          // Every 6 months
+          if (year === currentYear && month > 1) break; // Stop at 1402/01
+          const date = `${year}/${month.toString().padStart(2, '0')}`;
+          const growthFactor = (year - 1400 + month / 12) * 0.15; // 15% annual growth
+          const price = Math.floor(basePrice * (1 + growthFactor));
+          history.push({ date, price });
+        }
+      }
+      return history;
+    }),
 });
