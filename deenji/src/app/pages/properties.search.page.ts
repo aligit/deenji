@@ -1,7 +1,8 @@
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+// deenji/src/app/pages/properties.search.page.ts
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 
 import { injectTrpcClient } from '../../trpc-client';
@@ -16,9 +17,12 @@ import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
 import { HlmCheckboxComponent } from '@spartan-ng/ui-checkbox-helm';
 import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
 import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
-
-// Fix 1: Import HlmSelectImports only once from the correct module
 import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import { BrnTooltipContentDirective } from '@spartan-ng/brain/tooltip';
+import {
+  HlmTooltipComponent,
+  HlmTooltipTriggerDirective,
+} from '@spartan-ng/ui-tooltip-helm';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -33,17 +37,21 @@ import {
   lucideChevronDown,
   lucideX,
   lucideSettings,
-  lucideMap,
-  lucideList,
+  lucideChevronLeft,
+  lucideChevronRight,
+  lucideHeart,
+  lucideShare2,
 } from '@ng-icons/lucide';
 
 // Components
 import { MapComponent } from '../core/components/map.component';
 import { MapService } from '../core/services/map.service';
 
+type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
+
 interface SearchParams {
   q?: string;
-  property_type?: string; // Changed from propertyTypes to property_type to match API
+  property_type?: string;
   bedrooms?: number;
   minPrice?: number;
   maxPrice?: number;
@@ -69,9 +77,6 @@ interface SearchParams {
   };
 }
 
-// Fix 2: Update type assertion to match exactly what the API expects
-type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
-
 @Component({
   standalone: true,
   imports: [
@@ -86,7 +91,10 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
     HlmCheckboxComponent,
     HlmSkeletonComponent,
     HlmSpinnerComponent,
-    HlmSelectImports, // Only imported once
+    HlmSelectImports,
+    HlmTooltipComponent,
+    HlmTooltipTriggerDirective,
+    BrnTooltipContentDirective,
     MapComponent,
   ],
   providers: [
@@ -101,8 +109,10 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
       lucideChevronDown,
       lucideX,
       lucideSettings,
-      lucideMap,
-      lucideList,
+      lucideChevronLeft,
+      lucideChevronRight,
+      lucideHeart,
+      lucideShare2,
     }),
   ],
   template: `
@@ -131,14 +141,6 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                 <ng-icon name="lucideFilter" size="16" class="ml-2" />
                 فیلترها
               </button>
-              <button hlmBtn variant="outline" (click)="toggleViewMode()">
-                <ng-icon
-                  [name]="viewMode() === 'list' ? 'lucideMap' : 'lucideList'"
-                  size="16"
-                  class="ml-2"
-                />
-                {{ viewMode() === 'list' ? 'نمایش نقشه' : 'نمایش لیست' }}
-              </button>
             </div>
 
             <!-- Results Summary and Sort -->
@@ -165,14 +167,15 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
         </div>
       </div>
 
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div class="flex gap-6">
-          <!-- Filters Sidebar -->
+      <!-- Main Content: Side-by-Side Layout -->
+      <div class="flex h-[calc(100vh-144px)]">
+        <!-- List Panel - Left Side -->
+        <div class="w-1/2 overflow-y-auto p-4">
+          <!-- Filters Sidebar (Collapsed by Default) -->
           @if (showFilters()) {
-          <div class="w-80 space-y-6">
+          <div class="mb-6">
             <div hlmCard class="p-6">
               <h3 class="font-semibold text-gray-900 mb-4">فیلترها</h3>
-
               <!-- Price Range -->
               <div class="space-y-4 mb-6">
                 <h4 class="font-medium text-gray-800">محدوده قیمت</h4>
@@ -247,7 +250,6 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
               <!-- Property Features -->
               <div class="space-y-4 mb-6">
                 <h4 class="font-medium text-gray-800">امکانات</h4>
-
                 <label class="flex items-center space-x-2" hlmLabel>
                   <hlm-checkbox
                     class="ml-2"
@@ -256,7 +258,6 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                   />
                   <span>آسانسور</span>
                 </label>
-
                 <label class="flex items-center space-x-2" hlmLabel>
                   <hlm-checkbox
                     class="ml-2"
@@ -265,7 +266,6 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                   />
                   <span>پارکینگ</span>
                 </label>
-
                 <label class="flex items-center space-x-2" hlmLabel>
                   <hlm-checkbox
                     class="ml-2"
@@ -274,7 +274,6 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                   />
                   <span>انباری</span>
                 </label>
-
                 <label class="flex items-center space-x-2" hlmLabel>
                   <hlm-checkbox
                     class="ml-2"
@@ -284,69 +283,37 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                   <span>بالکن</span>
                 </label>
               </div>
-
-              <!-- Property Types -->
-              <div class="space-y-4">
-                <h4 class="font-medium text-gray-800">نوع ملک</h4>
-
-                <label class="flex items-center space-x-2" hlmLabel>
-                  <hlm-checkbox
-                    class="ml-2"
-                    [checked]="isPropertyTypeSelected('apartment')"
-                    (checkedChange)="onPropertyTypeChange('apartment', $event)"
-                  />
-                  <span>آپارتمان</span>
-                </label>
-
-                <label class="flex items-center space-x-2" hlmLabel>
-                  <hlm-checkbox
-                    class="ml-2"
-                    [checked]="isPropertyTypeSelected('house')"
-                    (checkedChange)="onPropertyTypeChange('house', $event)"
-                  />
-                  <span>خانه</span>
-                </label>
-
-                <label class="flex items-center space-x-2" hlmLabel>
-                  <hlm-checkbox
-                    class="ml-2"
-                    [checked]="isPropertyTypeSelected('villa')"
-                    (checkedChange)="onPropertyTypeChange('villa', $event)"
-                  />
-                  <span>ویلا</span>
-                </label>
-              </div>
             </div>
           </div>
           }
 
-          <!-- Main Content Area -->
-          <div class="flex-1">
-            @if (viewMode() === 'list') {
-            <!-- List View -->
-            @if (loading()) {
-            <!-- Loading State -->
-            <div class="space-y-4">
-              @for (item of [1,2,3,4,5]; track item) {
-              <div hlmCard class="p-6">
-                <div class="flex gap-4">
-                  <hlm-skeleton class="w-48 h-32 rounded-lg" />
-                  <div class="flex-1 space-y-3">
-                    <hlm-skeleton class="h-6 w-3/4" />
-                    <hlm-skeleton class="h-4 w-1/2" />
-                    <hlm-skeleton class="h-4 w-1/3" />
-                  </div>
+          <!-- Property List -->
+          @if (loading()) {
+          <!-- Loading State -->
+          <div class="space-y-4">
+            @for (item of [1,2,3,4,5]; track item) {
+            <div hlmCard class="p-6">
+              <div class="flex gap-4">
+                <hlm-skeleton class="w-48 h-32 rounded-lg" />
+                <div class="flex-1 space-y-3">
+                  <hlm-skeleton class="h-6 w-3/4" />
+                  <hlm-skeleton class="h-4 w-1/2" />
+                  <hlm-skeleton class="h-4 w-1/3" />
                 </div>
               </div>
-              }
             </div>
-            } @else if (mappedProperties().length > 0) {
-            <!-- Property List -->
-            <div class="space-y-4">
-              @for (property of mappedProperties(); track property.id) {
+            }
+          </div>
+          } @else if (mappedProperties().length > 0) {
+          <!-- Property Cards -->
+          <div class="space-y-4">
+            @for (property of mappedProperties(); track property.id) {
+            <hlm-tooltip>
               <div
+                id="property-card-{{ property.id }}"
+                hlmTooltipTrigger
                 hlmCard
-                class="overflow-hidden hover:shadow-md transition-all duration-200 cursor-pointer"
+                class="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
                 [class.ring-2]="
                   mapService.highlightedPropertyId() === property.id
                 "
@@ -354,18 +321,18 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                   mapService.highlightedPropertyId() === property.id
                 "
                 [attr.data-property-id]="property.id"
+                (mouseenter)="onCardHover(property)"
                 (click)="onCardClick(property)"
               >
-                <div class="flex gap-4 p-6">
+                <div class="flex">
                   <!-- Property Image -->
-                  <div
-                    class="w-48 h-32 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0"
-                  >
+                  <div class="relative w-48 h-36 bg-gray-200 flex-shrink-0">
                     @if (property.images && property.images.length > 0) {
                     <img
                       [src]="property.images[0]"
                       [alt]="property.title"
                       class="w-full h-full object-cover"
+                      loading="lazy"
                     />
                     } @else {
                     <div class="w-full h-full flex items-center justify-center">
@@ -376,14 +343,52 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                       />
                     </div>
                     }
+
+                    <!-- Investment Score Badge -->
+                    @if (property.investment_score) {
+                    <div class="absolute top-2 right-2">
+                      <span
+                        hlmBadge
+                        variant="secondary"
+                        class="bg-green-600 text-white"
+                      >
+                        امتیاز: {{ property.investment_score }}
+                      </span>
+                    </div>
+                    }
+
+                    <!-- Favorite Button -->
+                    <button
+                      class="absolute top-2 left-2 p-1.5 bg-white/80 rounded-full hover:bg-white transition-colors"
+                    >
+                      <ng-icon
+                        name="lucideHeart"
+                        size="16"
+                        class="text-gray-600"
+                      />
+                    </button>
                   </div>
 
                   <!-- Property Details -->
-                  <div class="flex-1">
-                    <h3 class="font-semibold text-lg text-gray-900 mb-2">
-                      {{ property.title }}
-                    </h3>
+                  <div class="flex-1 p-4">
+                    <div class="flex justify-between items-start mb-2">
+                      <h3
+                        class="text-lg font-semibold text-gray-900 line-clamp-1"
+                      >
+                        {{ property.title }}
+                      </h3>
+                      <button
+                        class="p-1.5 hover:bg-gray-100 rounded-full transition-colors"
+                      >
+                        <ng-icon
+                          name="lucideShare2"
+                          size="16"
+                          class="text-gray-500"
+                        />
+                      </button>
+                    </div>
 
+                    <!-- Price -->
                     <div class="text-2xl font-bold text-primary-600 mb-3">
                       {{ formatPrice(property.price) }} تومان
                     </div>
@@ -411,42 +416,127 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
                     </div>
 
                     <!-- Location -->
-                    @if (property.district || property.city) {
                     <div class="flex items-center gap-1 text-sm text-gray-500">
                       <ng-icon name="lucideMapPin" size="14" />
-                      <span>{{ property.district || property.city }}</span>
+                      <span>{{
+                        property.district || property.city || 'تهران'
+                      }}</span>
                     </div>
-                    }
+
+                    <!-- Features -->
+                    <div class="flex gap-2 mt-3">
+                      @if (property.has_parking) {
+                      <span hlmBadge variant="outline">پارکینگ</span>
+                      } @if (property.has_elevator) {
+                      <span hlmBadge variant="outline">آسانسور</span>
+                      } @if (property.has_balcony) {
+                      <span hlmBadge variant="outline">بالکن</span>
+                      } @if (property.has_storage) {
+                      <span hlmBadge variant="outline">انباری</span>
+                      }
+                    </div>
                   </div>
                 </div>
               </div>
-              }
-            </div>
-            } @else {
-            <!-- Empty State -->
-            <div hlmCard class="p-12 text-center">
-              <ng-icon
-                name="lucideHouse"
-                size="48"
-                class="mx-auto text-gray-400 mb-4"
-              />
-              <h3 class="text-lg font-semibold text-gray-900 mb-2">
-                ملکی یافت نشد
-              </h3>
-              <p class="text-gray-600">معیارهای جستجو را تغییر دهید</p>
-            </div>
-            } } @else {
-            <!-- Map View -->
-            <div class="h-[600px] rounded-lg overflow-hidden">
-              <app-map
-                [properties]="mappedProperties()"
-                [highlightedPropertyId]="
-                  toNumberOrUndefined(mapService.highlightedPropertyId())
-                "
-                (onMapClick)="onMarkerClick($event)"
-              ></app-map>
-            </div>
+
+              <!-- Tooltip Content -->
+              <span *brnTooltipContent class="max-w-xs p-3">
+                <p class="font-semibold mb-2">اطلاعات بیشتر</p>
+                @if (property.year_built) {
+                <p class="text-sm">سال ساخت: {{ property.year_built }}</p>
+                } @if (property.price_per_meter) {
+                <p class="text-sm">
+                  قیمت هر متر: {{ formatPrice(property.price_per_meter) }} تومان
+                </p>
+                } @if (property.description) {
+                <p class="text-sm mt-2">
+                  {{ property.description | slice : 0 : 100 }}...
+                </p>
+                }
+              </span>
+            </hlm-tooltip>
             }
+          </div>
+
+          <!-- Pagination -->
+          <div class="mt-6 bg-white p-4 rounded-lg">
+            <div class="flex items-center justify-between">
+              <div class="text-sm text-gray-700">
+                نمایش
+                {{ (currentPage() - 1) * pageSize() + 1 }}
+                تا
+                {{ Math.min(currentPage() * pageSize(), totalResults()) }}
+                از {{ totalResults() }} نتیجه
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button
+                  hlmBtn
+                  variant="outline"
+                  size="default"
+                  [disabled]="currentPage() === 1"
+                  (click)="onPageChange(currentPage() - 1)"
+                >
+                  <ng-icon name="lucideChevronRight" size="16" />
+                  قبلی
+                </button>
+
+                <div class="flex items-center gap-1">
+                  @for (page of getPaginationPages(); track page) { @if (page
+                  === '...') {
+                  <span class="px-2">...</span>
+                  } @else {
+                  <button
+                    hlmBtn
+                    [variant]="page === currentPage() ? 'default' : 'outline'"
+                    size="default"
+                    (click)="onPageChange(page)"
+                    class="min-w-[2.5rem]"
+                  >
+                    {{ page }}
+                  </button>
+                  } }
+                </div>
+
+                <button
+                  hlmBtn
+                  variant="outline"
+                  size="default"
+                  [disabled]="currentPage() === getTotalPages()"
+                  (click)="onPageChange(currentPage() + 1)"
+                >
+                  بعدی
+                  <ng-icon name="lucideChevronLeft" size="16" />
+                </button>
+              </div>
+            </div>
+          </div>
+          } @else {
+          <!-- Empty State -->
+          <div hlmCard class="p-12 text-center">
+            <ng-icon
+              name="lucideHouse"
+              size="48"
+              class="mx-auto text-gray-400 mb-4"
+            />
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+              ملکی یافت نشد
+            </h3>
+            <p class="text-gray-600">معیارهای جستجو را تغییر دهید</p>
+          </div>
+          }
+        </div>
+
+        <!-- Map Panel - Right Side -->
+        <div class="w-1/2 bg-gray-100">
+          <div class="h-full">
+            <app-map
+              [properties]="mappedProperties()"
+              [highlightedPropertyId]="
+                toNumberOrUndefined(mapService.highlightedPropertyId())
+              "
+              (onMapClick)="onMarkerClick($event)"
+            ></app-map>
           </div>
         </div>
       </div>
@@ -454,6 +544,13 @@ type SortField = 'date' | 'price' | 'relevance' | 'area' | 'created_at';
   `,
   styles: [
     `
+      .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
       .highlight-property {
         @apply ring-2 ring-primary-500 bg-primary-50 transition-all duration-500;
       }
@@ -466,12 +563,12 @@ export default class PropertiesSearchPageComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private fb = inject(FormBuilder);
   public mapService = inject(MapService);
+  Math = Math;
+
   private _properties = signal<PropertyResult[]>([]);
 
-  // Form and search state
+  // Form and state
   searchForm!: FormGroup;
-
-  // Signals
   loading = signal(false);
   searchResults = signal<{ results: PropertyResult[]; total: number }>({
     results: [],
@@ -482,7 +579,6 @@ export default class PropertiesSearchPageComponent implements OnInit {
   pageSize = signal(20);
   sortBy = signal('relevance');
   sortOrder = signal<'asc' | 'desc'>('desc');
-  viewMode = signal<'list' | 'map'>('list');
   showFilters = signal(false);
 
   // Search parameters
@@ -509,10 +605,10 @@ export default class PropertiesSearchPageComponent implements OnInit {
   private initializeForm() {
     this.searchForm = this.fb.group({
       q: [''],
-      property_type: [''], // Changed from propertyTypes array to single property_type
+      property_type: [''],
       minPrice: [null],
       maxPrice: [null],
-      bedrooms: [null], // Single bedrooms field instead of min/max
+      bedrooms: [null],
       minBedrooms: [null],
       maxBedrooms: [null],
       minBathrooms: [null],
@@ -529,13 +625,12 @@ export default class PropertiesSearchPageComponent implements OnInit {
   }
 
   private setupRouteSubscription() {
-    // Handle route parameters and query parameters
     this.route.queryParams.subscribe((params) => {
       if (params['q']) {
-        this.searchForm.patchValue({ q: params['q'] }); // Changed from 'query' to 'q'
-        this.searchParams.q = params['q']; // Changed from 'query' to 'q'
+        this.searchForm.patchValue({ q: params['q'] });
+        this.searchParams.q = params['q'];
       }
-      // Handle other query parameters...
+      // Handle other query parameters if needed
     });
   }
 
@@ -547,7 +642,6 @@ export default class PropertiesSearchPageComponent implements OnInit {
     try {
       this.loading.set(true);
 
-      // Build search parameters that match the API schema exactly
       const searchParams: SearchParams = {
         q: this.searchForm.get('q')?.value || undefined,
         property_type: this.searchForm.get('property_type')?.value || undefined,
@@ -578,13 +672,14 @@ export default class PropertiesSearchPageComponent implements OnInit {
 
       // Update the properties signal with the results
       this._properties.set(this.normalizePropertyData(data.results));
-
       this.searchResults.set({
         results: data.results,
         total: data.total,
       });
-
       this.totalResults.set(data.total);
+
+      // Store properties in map service for quick lookup
+      this.mapService.setProperties(this._properties());
     } catch (error) {
       console.error('Search failed:', error);
       this._properties.set([]);
@@ -595,7 +690,51 @@ export default class PropertiesSearchPageComponent implements OnInit {
     }
   }
 
-  // Fix 3: Add proper null checking in formatPriceRange
+  // Helper function for pagination
+  getPaginationPages(): (number | string)[] {
+    const currentPage = this.currentPage();
+    const totalPages = this.getTotalPages();
+    const pages: (number | string)[] = [];
+
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        // First pages
+        pages.push(1, 2, 3, 4, '...', totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        // Last pages
+        pages.push(
+          1,
+          '...',
+          totalPages - 3,
+          totalPages - 2,
+          totalPages - 1,
+          totalPages
+        );
+      } else {
+        // Middle pages
+        pages.push(
+          1,
+          '...',
+          currentPage - 1,
+          currentPage,
+          currentPage + 1,
+          '...',
+          totalPages
+        );
+      }
+    }
+
+    return pages;
+  }
+
+  getTotalPages(): number {
+    return Math.ceil(this.totalResults() / this.pageSize());
+  }
+
   formatPriceRange(): string {
     const minPrice = this.searchForm.get('minPrice')?.value;
     const maxPrice = this.searchForm.get('maxPrice')?.value;
@@ -621,12 +760,10 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return 'همه قیمت‌ها';
   }
 
-  // Fixed: Properly handle string and number IDs
   scrollCardIntoView(propertyId: string | number) {
     const idStr = propertyId?.toString();
     if (!idStr) return;
 
-    // Use setTimeout to ensure DOM is updated
     setTimeout(() => {
       const cardElement = document.querySelector(
         `[data-property-id="${idStr}"]`
@@ -637,7 +774,6 @@ export default class PropertiesSearchPageComponent implements OnInit {
           block: 'center',
         });
 
-        // Add a highlight effect
         cardElement.classList.add('highlight-property');
         setTimeout(() => {
           cardElement.classList.remove('highlight-property');
@@ -646,7 +782,6 @@ export default class PropertiesSearchPageComponent implements OnInit {
     }, 100);
   }
 
-  // Make formatPrice public so it can be used in template
   formatPrice(price: number): string {
     if (price >= 1_000_000_000) {
       const billions = price / 1_000_000_000;
@@ -662,10 +797,16 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return price.toLocaleString('fa-IR');
   }
 
-  // Additional helper methods...
-  onPageChange(page: number) {
-    this.currentPage.set(page);
-    this.executeSearch();
+  onPageChange(page: number | string) {
+    if (typeof page === 'number') {
+      this.currentPage.set(page);
+      this.executeSearch();
+      // Scroll to top of results
+      const resultsContainer = document.querySelector('.overflow-y-auto');
+      if (resultsContainer) {
+        resultsContainer.scrollTop = 0;
+      }
+    }
   }
 
   onSortChange(sortValue: string) {
@@ -673,15 +814,10 @@ export default class PropertiesSearchPageComponent implements OnInit {
     this.executeSearch();
   }
 
-  toggleViewMode() {
-    this.viewMode.set(this.viewMode() === 'list' ? 'map' : 'list');
-  }
-
   toggleFilters() {
-    this.showFilters.set(!this.showFilters());
+    this.showFilters.update((value) => !value);
   }
 
-  // Checkbox event handlers for Spartan UI
   onFeatureChange(feature: string, checked: boolean | string) {
     // Ensure we have a proper boolean value
     const booleanValue = checked === true || checked === 'true';
@@ -765,6 +901,10 @@ export default class PropertiesSearchPageComponent implements OnInit {
 
         // Analytics
         investment_score: rawProperty.investment_score,
+
+        // Additional details for tooltips and info
+        price_per_meter: rawProperty.price_per_meter,
+        year_built: rawProperty.year_built,
       };
 
       // Add to normalized array
@@ -774,7 +914,11 @@ export default class PropertiesSearchPageComponent implements OnInit {
     return normalizedProperties;
   }
 
-  // Fixed: Properly handle navigation with string or number IDs
+  // Card and map interaction methods
+  onCardHover(property: PropertyResult) {
+    this.mapService.highlightProperty(property.id);
+  }
+
   onCardClick(property: PropertyResult) {
     // Validate property
     if (!property) {
@@ -794,7 +938,6 @@ export default class PropertiesSearchPageComponent implements OnInit {
     this.router.navigate(['/properties', property.id]);
   }
 
-  // Fixed: Properly handle marker click with string or number IDs
   onMarkerClick(marker: any) {
     // Add logging
     console.log(
@@ -811,16 +954,19 @@ export default class PropertiesSearchPageComponent implements OnInit {
       // Scroll the card into view
       this.scrollCardIntoView(marker.id);
 
-      // Navigate to property details page
-      this.router.navigate(['/properties', marker.id]);
+      // Center map on marker if needed
+      // This would be handled by the map component's onMarkerClick method
     }
   }
 
-  /**
-   * Finds a property by ID in the mapped properties array
-   * @param propertyId The ID of the property to find
-   * @returns The found property or undefined
-   */
+  // Navigate to property details
+  viewPropertyDetails(propertyId: string | number) {
+    if (propertyId) {
+      this.router.navigate(['/properties', propertyId]);
+    }
+  }
+
+  // Helper utilities
   findPropertyById(propertyId: string | number): PropertyResult | undefined {
     if (propertyId === null || propertyId === undefined) {
       return undefined;
@@ -835,6 +981,7 @@ export default class PropertiesSearchPageComponent implements OnInit {
     // Find and return the matching property
     return properties.find((p) => p.id?.toString() === idStr);
   }
+
   toNumberOrUndefined(value: string | number | null): number | undefined {
     if (value === null || value === undefined) {
       return undefined;

@@ -8,6 +8,7 @@ export interface PropertyBase {
   price: number;
   address?: string;
   price_per_meter?: number;
+  year_built?: number;
   bedrooms?: number;
   bathrooms?: number;
   area?: number;
@@ -39,7 +40,6 @@ export interface PropertyDetail extends PropertyBase {
   type?: string; // Alternative to property_type
 
   // Building details
-  year_built?: number;
   floor_info?: string; // From Elasticsearch: "۵"
   total_floors?: number;
   floor_number?: number;
