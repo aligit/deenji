@@ -1,4 +1,4 @@
-// Alternative: Observable-based version
+// src/app/core/services/review.service.ts
 import { Injectable, signal } from '@angular/core';
 import { map, catchError, of } from 'rxjs';
 import { injectTrpcClient } from '../../../trpc-client';
@@ -28,9 +28,12 @@ export class ReviewService {
       })
       .pipe(
         map((data) => {
-          this.reviews.set(data as Review[]);
+          // The data is already properly formatted by the server
+          // No need to cast, just ensure it's typed correctly
+          const reviews = data as unknown as Review[];
+          this.reviews.set(reviews);
           this.loading.set(false);
-          return data;
+          return reviews;
         }),
         catchError((err) => {
           console.error('Error loading reviews:', err);
@@ -49,8 +52,10 @@ export class ReviewService {
       })
       .pipe(
         map((data) => {
-          this.stats.set(data as ReviewStats);
-          return data;
+          // Ensure proper typing through unknown first
+          const stats = data as unknown as ReviewStats;
+          this.stats.set(stats);
+          return stats;
         }),
         catchError((err) => {
           console.error('Error loading review stats:', err);
@@ -66,7 +71,8 @@ export class ReviewService {
     return this.trpc.review.create.mutate(input).pipe(
       map((newReview) => {
         this.loading.set(false);
-        return newReview as Review;
+        // Ensure proper typing through unknown first
+        return newReview as unknown as Review;
       }),
       catchError((err) => {
         console.error('Error creating review:', err);

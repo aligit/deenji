@@ -62,6 +62,9 @@
       ],
       "@spartan-ng/ui-tooltip-helm": [
         "libs/ui/ui-tooltip-helm/src/index.ts"
+      ],
+      "@spartan-ng/ui-separator-helm": [
+        "libs/ui/ui-separator-helm/src/index.ts"
       ]
     }
   },
