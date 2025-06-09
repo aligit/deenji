@@ -11,6 +11,8 @@ import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
 import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
+import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { BrnSeparatorComponent } from '@spartan-ng/brain/separator';
 import {
   HlmTooltipComponent,
   HlmTooltipTriggerDirective,
@@ -53,6 +55,7 @@ import { LightboxModule } from 'ng-gallery/lightbox';
 import { SimilarPropertiesComponent } from '../../core/components/similar-properties.component';
 import { PropertyValueIndicatorComponent } from '../../core/components/property-value-indicator.component';
 import { PriceTrendChartComponent } from '../../core/components/price-trend-chart.component';
+import { PropertyReviewsComponent } from '../../core/components/property-reviews.component';
 import { PropertyDetail } from '../../core/types/property.types';
 import { MapComponent } from '../../core/components/map.component';
 
@@ -65,6 +68,8 @@ import { MapComponent } from '../../core/components/map.component';
     HlmButtonDirective,
     HlmSkeletonComponent,
     HlmBadgeDirective,
+    HlmSeparatorDirective,
+    BrnSeparatorComponent,
     HlmTooltipComponent,
     HlmTooltipTriggerDirective,
     BrnTooltipContentDirective,
@@ -74,6 +79,7 @@ import { MapComponent } from '../../core/components/map.component';
     RouterLink,
     PropertyValueIndicatorComponent,
     PriceTrendChartComponent,
+    PropertyReviewsComponent,
     MapComponent,
   ],
   providers: [
@@ -365,7 +371,6 @@ import { MapComponent } from '../../core/components/map.component';
 
               <!-- Property Value Indicator -->
               @if(estimatedValue()){
-
               <div hlmCard class="p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">
                   ارزش ملک
@@ -389,7 +394,6 @@ import { MapComponent } from '../../core/components/map.component';
                   [priceHistory]="priceHistory()"
                 ></app-price-trend-chart>
               </div>
-
               }
 
               <!-- Investment Score -->
@@ -475,6 +479,11 @@ import { MapComponent } from '../../core/components/map.component';
               </div>
             </div>
             } }
+
+            <!-- Reviews Section -->
+            <brn-separator hlmSeparator class="my-8" />
+
+            <app-property-reviews [propertyId]="getPropertyIdForReviews()" />
 
             <!-- Similar Properties Section -->
             <app-similar-properties
@@ -962,5 +971,13 @@ export default class PropertyDetailsPage implements OnInit {
       return 0; // or some default value
     }
     return typeof id === 'string' ? parseInt(id, 10) : id;
+  }
+
+  /**
+   * Get property ID for reviews component (can handle string or number)
+   */
+  getPropertyIdForReviews(): string | number {
+    const id = this.propertyId();
+    return id || '';
   }
 }
