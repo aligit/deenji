@@ -369,7 +369,10 @@ import { PropertyDetail } from '../../core/types/property.types';
                   ارزش ملک
                 </h3>
                 <app-property-value-indicator
-                  [data]="estimatedValue()"
+                  [estimatedValue]="estimatedValue()?.estimatedValue"
+                  [minPrice]="estimatedValue()?.priceRangeMin"
+                  [maxPrice]="estimatedValue()?.priceRangeMax"
+                  [rentEstimate]="estimatedValue()?.rentEstimate"
                 ></app-property-value-indicator>
               </div>
               }
