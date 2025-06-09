@@ -54,6 +54,7 @@ import { SimilarPropertiesComponent } from '../../core/components/similar-proper
 import { PropertyValueIndicatorComponent } from '../../core/components/property-value-indicator.component';
 import { PriceTrendChartComponent } from '../../core/components/price-trend-chart.component';
 import { PropertyDetail } from '../../core/types/property.types';
+import { MapComponent } from '../../core/components/map.component';
 
 @Component({
   standalone: true,
@@ -73,6 +74,7 @@ import { PropertyDetail } from '../../core/types/property.types';
     RouterLink,
     PropertyValueIndicatorComponent,
     PriceTrendChartComponent,
+    MapComponent,
   ],
   providers: [
     provideIcons({
@@ -442,26 +444,19 @@ import { PropertyDetail } from '../../core/types/property.types';
             property()!.location!.lat !== 0 && property()!.location!.lon !== 0)
             {
             <div hlmCard class="p-6">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">
-                موقعیت مکانی
-              </h3>
-              <div
-                class="h-64 bg-gray-100 rounded-lg flex items-center justify-center"
-              >
-                <div class="text-center">
-                  <ng-icon
-                    name="lucideMapPin"
-                    size="32"
-                    class="mx-auto text-gray-400 mb-2"
-                  />
-                  <p class="text-gray-600">نقشه در نسخه بعدی اضافه خواهد شد</p>
-                  @if (property()?.address) {
-                  <p class="text-sm text-gray-500 mt-2">
-                    {{ property()!.address }}
-                  </p>
-                  }
+              @if (property()?.location?.lat && property()!.location!.lon) {
+              <div hlmCard class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                  موقعیت مکانی
+                </h3>
+                <div class="h-64 rounded-lg overflow-hidden">
+                  <app-map
+                    [properties]="[property()!]"
+                    [highlightedPropertyId]="getNumericPropertyId()"
+                  ></app-map>
                 </div>
               </div>
+              }
             </div>
             } @else {
             <!-- Address without map -->
@@ -788,6 +783,13 @@ export default class PropertyDetailsPage implements OnInit {
       );
 
       console.log('Raw API property data:', apiProperty);
+      const coords = apiProperty.location?.coordinates;
+      const rawLat = coords?.lat ?? apiProperty.location?.lat;
+      const rawLon = coords?.lon ?? apiProperty.location?.lon;
+      const location =
+        rawLat != null && rawLon != null
+          ? { lat: rawLat, lon: rawLon, city: apiProperty.location?.city }
+          : undefined;
 
       // Convert values to proper types as needed
       const propertyDetail: PropertyDetail = {
@@ -814,7 +816,7 @@ export default class PropertyDetailsPage implements OnInit {
         area: apiProperty.area ? Number(apiProperty.area) : undefined,
 
         // Location
-        location: apiProperty.location,
+        location,
 
         // Fixed: Map image_urls from Elasticsearch to images for frontend
         images: apiProperty.image_urls || apiProperty.images || [],
