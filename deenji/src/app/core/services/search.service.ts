@@ -2,6 +2,7 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { Observable, from, firstValueFrom } from 'rxjs';
 import { injectTrpcClient } from '../../../trpc-client';
+import { PropertyResult } from '../types/property.types';
 
 export type SearchStage = 'property_type' | 'bedrooms' | 'price' | 'complete';
 
@@ -30,19 +31,7 @@ export interface SearchSuggestion {
 }
 
 export interface PropertySearchResult {
-  results: Array<{
-    id: number | string;
-    title: string;
-    price: number;
-    location?:
-      | string
-      | { city?: string; district?: string; [key: string]: any };
-    bedrooms?: number;
-    bathrooms?: number;
-    area?: number;
-    images?: string[];
-    [key: string]: any;
-  }>;
+  results: PropertyResult[];
   total: number;
   page: number;
   pageSize: number;
@@ -244,10 +233,10 @@ export class SearchService {
         query: s.query,
         filter: s.filter
           ? {
-              field: s.filter.field,
-              min: s.filter.min,
-              max: s.filter.max,
-            }
+            field: s.filter.field,
+            min: s.filter.min,
+            max: s.filter.max,
+          }
           : undefined,
       }));
     }
@@ -360,10 +349,10 @@ export class SearchService {
           query: sug.query,
           filter: sug.filter
             ? {
-                field: sug.filter.field,
-                min: sug.filter.min,
-                max: sug.filter.max,
-              }
+              field: sug.filter.field,
+              min: sug.filter.min,
+              max: sug.filter.max,
+            }
             : undefined,
         })),
         isLoading: false,

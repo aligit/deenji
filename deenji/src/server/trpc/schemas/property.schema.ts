@@ -18,35 +18,37 @@ export const propertyImageSchema = z.object({
   sort_order: z.number().optional(),
 });
 
-// Property details schema - matching the database structure
 export const propertySchema = z.object({
-  id: z.number(),
+  id: z.union([z.number(), z.string()]),
   external_id: z.string().optional(),
   title: z.string(),
   description: z.string().optional(),
   price: z.number(),
   price_per_meter: z.number().optional(),
   type: propertyTypeEnum.optional(),
+  property_type: propertyTypeEnum.optional(),
   bedrooms: z.number().int().optional(),
   bathrooms: z.number().int().optional(),
   area: z.number().optional(),
   year_built: z.number().int().optional(),
 
-  // Location data
   location: z
     .object({
       lat: z.number(),
       lon: z.number(),
+      city: z.string().optional(),
+      district: z.string().optional(),
     })
     .optional(),
   address: z.string().optional(),
   city: z.string().optional(),
   district: z.string().optional(),
 
-  // Additional information
+  // Additional building information
   floor_number: z.number().int().optional(),
   total_floors: z.number().int().optional(),
   units_per_floor: z.number().int().optional(),
+  floor_info: z.string().optional(), // From Elasticsearch: "۵"
 
   // Property features
   has_elevator: z.boolean().optional(),
@@ -62,9 +64,9 @@ export const propertySchema = z.object({
   hot_water_system: z.string().optional(),
 
   // Document information
-  title_deed_type: z.string().optional(),
+  title_deed_type: z.string().optional(), // From Elasticsearch: "تکبرگ"
   building_direction: z.string().optional(),
-  renovation_status: z.string().optional(),
+  renovation_status: z.string().optional(), // From Elasticsearch: "بازسازی نشده"
 
   // Real estate agency data
   agency_name: z.string().optional(),
@@ -81,9 +83,9 @@ export const propertySchema = z.object({
   attributes: z.record(z.any()).optional(),
   highlight_flags: z.array(z.string()).optional(),
 
-  // Images relation
+  // Images relation - support both field names
   images: z.array(z.string()).optional(),
-  // images: z.array(propertyImageSchema).optional(),
+  image_urls: z.array(z.string()).optional(), // From Elasticsearch
 
   // User tracking
   owner_id: z.string().uuid().optional(),

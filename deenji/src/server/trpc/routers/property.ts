@@ -46,9 +46,13 @@ export const propertyRouter = router({
       }
     }),
 
-  // Get a single property by ID
   getById: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(
+      z.object({
+        // Allow both string and number IDs
+        id: z.union([z.string(), z.number()]),
+      })
+    )
     .query(async ({ input }) => {
       try {
         const property = await elasticsearchService.getPropertyById(input.id);
@@ -56,20 +60,72 @@ export const propertyRouter = router({
         if (!property) {
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: `Property with ID ${input.id} not found`,
+            message: 'Property not found',
           });
         }
 
         return property;
       } catch (error) {
-        if (error instanceof TRPCError) throw error;
-
         console.error('Error fetching property by ID:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to fetch property',
-          cause: error,
+          message: 'Failed to fetch property details',
         });
+      }
+    }),
+
+  getSimilarProperties: publicProcedure
+    .input(
+      z.object({
+        propertyId: z.number(),
+        limit: z.number().optional().default(4),
+      })
+    )
+    .query(async ({ input }) => {
+      try {
+        // First get the current property to understand its characteristics
+        const currentProperty = await elasticsearchService.getPropertyById(
+          input.propertyId
+        );
+
+        if (!currentProperty) {
+          return { properties: [] };
+        }
+
+        // Build a search query for similar properties
+        const similarQuery = {
+          property_type: currentProperty.type,
+          minPrice: currentProperty.price
+            ? currentProperty.price * 0.7
+            : undefined,
+          maxPrice: currentProperty.price
+            ? currentProperty.price * 1.3
+            : undefined,
+          minBedrooms: currentProperty.bedrooms
+            ? Math.max(1, currentProperty.bedrooms - 1)
+            : undefined,
+          maxBedrooms: currentProperty.bedrooms
+            ? currentProperty.bedrooms + 1
+            : undefined,
+          page: 1,
+          pageSize: input.limit + 1,
+          sortBy: 'relevance' as const,
+          sortOrder: 'desc' as const,
+        };
+
+        const searchResult = await elasticsearchService.searchProperties(
+          similarQuery
+        );
+
+        // Filter out the current property from results
+        const similarProperties = searchResult.results
+          .filter((prop) => prop.id !== currentProperty.id)
+          .slice(0, input.limit);
+
+        return { properties: similarProperties };
+      } catch (error) {
+        console.error('Error fetching similar properties:', error);
+        return { properties: [] };
       }
     }),
 
@@ -206,5 +262,41 @@ export const propertyRouter = router({
         console.error('Error in elasticSearch:', error);
         return { suggestions: [] };
       }
+    }),
+
+  getEstimatedValue: publicProcedure
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      // Base value for randomization (in billions)
+      const baseValue = Math.floor(Math.random() * 20 + 5) * 1000000000; // 5B to 25B
+      const variance = baseValue * 0.1; // 10% variance for range
+
+      return {
+        estimatedValue: baseValue,
+        priceRangeMin: baseValue - variance,
+        priceRangeMax: baseValue + variance,
+        rentEstimate: Math.floor(baseValue * 0.005), // 0.5% of value as monthly rent
+      };
+    }),
+
+  // New endpoint: Get Price History
+  getPriceHistory: publicProcedure
+    .input(z.object({ id: z.union([z.string(), z.number()]) }))
+    .query(async ({ input }) => {
+      const currentYear = 1402; // Persian year for demo
+      const basePrice = Math.floor(Math.random() * 15 + 5) * 1000000000; // 5B to 20B starting point
+      const history = [];
+
+      for (let year = 1400; year <= currentYear; year++) {
+        for (let month = 1; month <= 12; month += 6) {
+          // Every 6 months
+          if (year === currentYear && month > 1) break; // Stop at 1402/01
+          const date = `${year}/${month.toString().padStart(2, '0')}`;
+          const growthFactor = (year - 1400 + month / 12) * 0.15; // 15% annual growth
+          const price = Math.floor(basePrice * (1 + growthFactor));
+          history.push({ date, price });
+        }
+      }
+      return history;
     }),
 });
