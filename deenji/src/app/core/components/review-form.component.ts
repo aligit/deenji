@@ -16,6 +16,7 @@ import {
 } from '@angular/forms';
 import { ReviewService } from '../services/review.service';
 import { SupabaseService } from '../services/supabase.service';
+import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 // UI Components
 import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
@@ -25,6 +26,7 @@ import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideStar, lucideX } from '@ng-icons/lucide';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-review-form',
@@ -36,6 +38,7 @@ import { lucideStar, lucideX } from '@ng-icons/lucide';
     HlmCardDirective,
     HlmButtonDirective,
     HlmInputDirective,
+    RouterModule,
   ],
   providers: [
     provideIcons({
@@ -54,7 +57,7 @@ import { lucideStar, lucideX } from '@ng-icons/lucide';
         <p class="text-gray-600 mb-4">
           برای ثبت نظر و امتیازدهی به این ملک، ابتدا وارد حساب کاربری خود شوید
         </p>
-        <button hlmBtn>ورود به حساب کاربری</button>
+        <button hlmBtn [routerLink]="['/login']">ورود به حساب کاربری</button>
       </div>
       } @else {
       <!-- Review form -->
@@ -172,28 +175,41 @@ import { lucideStar, lucideX } from '@ng-icons/lucide';
 })
 export class ReviewFormComponent implements OnInit {
   @Input({ required: true }) propertyId!: string | number;
-  @Input() parentId?: string; // For replies
+  @Input() parentId?: string;
   @Output() submitted = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
 
   private fb = inject(FormBuilder);
   private reviewService = inject(ReviewService);
-  private supabaseService = inject(SupabaseService);
+  private readonly supabase = inject(SupabaseService);
 
-  reviewForm: FormGroup;
+  reviewForm!: FormGroup;
   selectedRating = signal(0);
   submitting = signal(false);
   error = signal<string | null>(null);
+  public sessionSignal = signal<Session | null>(null);
 
-  constructor() {
+  ngOnInit() {
     this.reviewForm = this.fb.group({
       rating: [null],
       comment: ['', [Validators.maxLength(2000)]],
     });
+    this.loadSession();
+    this.updateValidators();
   }
 
-  ngOnInit() {
-    this.updateValidators();
+  async loadSession() {
+    // Get initial session
+    const { data } = await this.supabase.getSession();
+    this.sessionSignal.set(data.session);
+
+    // Set up auth state change listener
+    this.supabase.onAuthStateChange(
+      (event: AuthChangeEvent, session: Session | null) => {
+        console.log('Auth state changed:', event, session);
+        this.sessionSignal.set(session);
+      }
+    );
   }
 
   private updateValidators() {
@@ -218,7 +234,7 @@ export class ReviewFormComponent implements OnInit {
   }
 
   isAuthenticated(): boolean {
-    return !!this.supabaseService.session?.user;
+    return !!this.sessionSignal();
   }
 
   setRating(rating: number) {
