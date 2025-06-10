@@ -8,6 +8,8 @@ import {
   boolean,
   varchar,
   pgEnum,
+  bigint,
+  smallint,
 } from 'drizzle-orm/pg-core';
 import { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import postgres from 'postgres';
@@ -53,6 +55,28 @@ export const userSettings = pgTable('user_settings', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
 });
 
+export const properties = pgTable('properties', {
+  id: bigint('id', { mode: 'number' }).primaryKey().notNull(),
+  // Other fields
+  title: text('title').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+export const reviews = pgTable('reviews', {
+  id: uuid('id').primaryKey().notNull(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => profiles.id, { onDelete: 'cascade' }),
+  propertyId: bigint('property_id', { mode: 'number' })
+    .notNull()
+    .references(() => properties.id, { onDelete: 'cascade' }),
+  rating: smallint('rating'),
+  comment: text('comment'),
+  parentId: uuid('parent_id'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
 // Type definitions for profiles
 export type Profile = InferSelectModel<typeof profiles>;
 export type NewProfile = InferInsertModel<typeof profiles>;
@@ -60,6 +84,9 @@ export type NewProfile = InferInsertModel<typeof profiles>;
 // Type definitions for user settings
 export type UserSettings = InferSelectModel<typeof userSettings>;
 export type NewUserSettings = InferInsertModel<typeof userSettings>;
+
+export type Property = InferSelectModel<typeof properties>;
+export type NewProperty = InferInsertModel<typeof properties>;
 
 // Type definitions for notes (existing)
 export type Note = InferSelectModel<typeof notes>;
