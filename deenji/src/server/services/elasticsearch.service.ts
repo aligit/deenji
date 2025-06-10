@@ -90,23 +90,23 @@ const client = new Client({
 
   // Auth configuration - only applied in production if credentials are available
   ...(import.meta.env['VITE_ELASTICSEARCH_USERNAME'] &&
-  import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
+    import.meta.env['VITE_ELASTICSEARCH_PASSWORD']
     ? {
-        auth: {
-          username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
-          password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
-        },
-      }
+      auth: {
+        username: import.meta.env['VITE_ELASTICSEARCH_USERNAME'],
+        password: import.meta.env['VITE_ELASTICSEARCH_PASSWORD'],
+      },
+    }
     : {}),
 
   // TLS configuration for HTTPS connections
   ...(import.meta.env['VITE_ELASTICSEARCH_URL']?.startsWith('https://')
     ? {
-        tls: {
-          // In development, we might want to bypass certificate validation
-          rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
-        },
-      }
+      tls: {
+        // In development, we might want to bypass certificate validation
+        rejectUnauthorized: import.meta.env['NODE_ENV'] === 'production',
+      },
+    }
     : {}),
 
   // General client configuration
@@ -197,9 +197,9 @@ export class ElasticsearchService {
           description: source.description,
           location: source.location?.coordinates
             ? {
-                lat: source.location.coordinates.lat,
-                lon: source.location.coordinates.lon,
-              }
+              lat: source.location.coordinates.lat,
+              lon: source.location.coordinates.lon,
+            }
             : undefined,
           property_type: source.property_type,
           images: source.image_urls ?? [],
@@ -261,35 +261,37 @@ export class ElasticsearchService {
         `[ElasticsearchService] Searching for property with ID: "${idStr}" (${typeof id})`
       );
 
-      // Create a more flexible query that tries multiple ways to match the property
-      const searchQuery = {
+      // 1) Try fetching by ES document _id first
+      try {
+        console.log(
+          `[ElasticsearchService] Attempting direct get by _id: ${idStr}`
+        );
+        const { _source } = await client.get({
+          index: INDEX,
+          id: idStr,
+        });
+
+        console.log(
+          `[ElasticsearchService] Found property via direct _id lookup`
+        );
+        const source = _source as ElasticsearchSource;
+        return this.mapElasticsearchSourceToProperty(source, idStr);
+      } catch (error) {
+        console.log(
+          `[ElasticsearchService] Document not found by _id, falling back to external_id search`
+        );
+        // Continue to fallback method
+      }
+
+      // 2) Fallback: exact match on the external_id keyword field
+      const response = await client.search({
         index: INDEX,
-        query: {
-          bool: {
-            should: [
-              // Try to match on _id
-              { term: { _id: idStr } },
-              // Try to match on external_id
-              { term: { external_id: idStr } },
-              // Try to match on _id field in _source (if exists)
-              { term: { id: idStr } },
-            ],
-            minimum_should_match: 1,
-          },
-        },
         size: 1,
-      };
+        query: { term: { external_id: idStr } },
+      });
 
       console.log(
-        `[ElasticsearchService] Query:`,
-        JSON.stringify(searchQuery, null, 2)
-      );
-
-      const response = await client.search(searchQuery);
-
-      // Log response for debugging
-      console.log(
-        `[ElasticsearchService] Response hits:`,
+        `[ElasticsearchService] external_id search results:`,
         response.hits.total,
         'Found:',
         response.hits.hits.length > 0
@@ -297,55 +299,14 @@ export class ElasticsearchService {
 
       if (response.hits.hits.length === 0) {
         console.log(
-          `[ElasticsearchService] No property found with ID: "${idStr}"`
+          `[ElasticsearchService] No property found with external_id: "${idStr}"`
         );
-
-        // Fallback query - try a more lenient match (wildcard)
-        console.log(
-          `[ElasticsearchService] Trying fallback query with wildcard...`
-        );
-        const fallbackResponse = await client.search({
-          index: INDEX,
-          query: {
-            bool: {
-              should: [
-                // Try a prefix match on _id
-                { prefix: { _id: idStr } },
-                // Try a prefix match on external_id
-                { prefix: { external_id: idStr } },
-              ],
-              minimum_should_match: 1,
-            },
-          },
-          size: 1,
-        });
-
-        if (fallbackResponse.hits.hits.length === 0) {
-          console.log(
-            `[ElasticsearchService] No property found with fallback query`
-          );
-          return null;
-        }
-
-        console.log(
-          `[ElasticsearchService] Found property with fallback query!`
-        );
-        const hit = fallbackResponse.hits.hits[0];
-        console.log(
-          `[ElasticsearchService] Found property with _id: "${hit._id}"`
-        );
-
-        // Use the fallback hit for processing
-        const source = hit._source as ElasticsearchSource;
-        const propertyId = hit._id || source.external_id || '';
-
-        // Return properly mapped property
-        return this.mapElasticsearchSourceToProperty(source, propertyId);
+        return null;
       }
 
       const hit = response.hits.hits[0];
       console.log(
-        `[ElasticsearchService] Found property with _id: "${hit._id}"`
+        `[ElasticsearchService] Found property with external_id match: "${hit._id}"`
       );
 
       const source = hit._source as ElasticsearchSource;
@@ -387,9 +348,9 @@ export class ElasticsearchService {
       // Location mapping
       location: source.location?.coordinates
         ? {
-            lat: source.location.coordinates.lat,
-            lon: source.location.coordinates.lon,
-          }
+          lat: source.location.coordinates.lat,
+          lon: source.location.coordinates.lon,
+        }
         : undefined,
       address: source.address,
       city: source.city || source.location?.city,

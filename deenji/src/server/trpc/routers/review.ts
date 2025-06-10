@@ -36,6 +36,10 @@ export const reviewRouter = router({
       })
     )
     .query(async ({ input, ctx }) => {
+      const pid =
+        typeof input.property_id === 'string'
+          ? parseInt(input.property_id, 10)
+          : input.property_id;
       try {
         const { data, error } = await ctx.supabase
           .from('reviews')
@@ -54,8 +58,8 @@ export const reviewRouter = router({
             )
           `
           )
-          .eq('property_id', input.property_id)
-          .is('parent_id', null) // Only top-level reviews
+          .eq('property_id', pid)
+          .is('parent_id', null)
           .order('created_at', { ascending: false })
           .range(input.offset, input.offset + input.limit - 1);
 

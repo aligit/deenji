@@ -47,31 +47,29 @@ export const propertyRouter = router({
     }),
 
   getById: publicProcedure
-    .input(
-      z.object({
-        // Allow both string and number IDs
-        id: z.union([z.string(), z.number()]),
-      })
-    )
-    .query(async ({ input }) => {
-      try {
-        const property = await elasticsearchService.getPropertyById(input.id);
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input, ctx }) => {
+      // Always treat input.id as external_id
+      const { data, error } = await ctx.supabase
+        .from('properties')
+        .select(
+          `
+          *,
+          property_images (
+            id, url, is_featured, sort_order
+          )
+        `
+        )
+        .eq('external_id', input.id)
+        .single();
 
-        if (!property) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Property not found',
-          });
-        }
-
-        return property;
-      } catch (error) {
-        console.error('Error fetching property by ID:', error);
+      if (error) {
         throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to fetch property details',
+          code: 'NOT_FOUND',
+          message: `Property ${input.id} not found`,
         });
       }
+      return data;
     }),
 
   getSimilarProperties: publicProcedure

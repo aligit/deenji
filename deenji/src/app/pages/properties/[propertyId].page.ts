@@ -976,8 +976,8 @@ export default class PropertyDetailsPage implements OnInit {
   /**
    * Get property ID for reviews component (can handle string or number)
    */
-  getPropertyIdForReviews(): string | number {
-    const id = this.propertyId();
-    return id || '';
+  getPropertyIdForReviews(): number {
+    // Will coerce the DB’s real numeric PK
+    return this.getNumericPropertyId();
   }
 }
