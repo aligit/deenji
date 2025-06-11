@@ -115,7 +115,7 @@ import {
 
       <!-- Reviews List -->
       @if (reviewService.reviews(); as reviews) { @if (reviews.length > 0) {
-      @for (review of reviews; track review.id || $index) {
+      @for (review of reviews; track review.id ?? $index) {
       <div hlmCard class="p-4">
         <!-- Header -->
         <div class="flex items-start justify-between mb-3">
@@ -123,17 +123,17 @@ import {
             <div
               class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center"
             >
-              @if (review.user?.avatar_url) {
+              <!--              @if (review.user?.avatar_url) {
               <img
                 [src]="review.user.avatar_url"
                 [alt]="review.user?.username || 'کاربر'"
                 class="w-full h-full rounded-full object-cover"
               />
-              } @else {
+              } @else { -->
               <span class="text-sm font-medium text-primary-600">
                 {{ getInitials(review.user?.username) }}
               </span>
-              }
+              <!--              } -->
             </div>
             <div>
               <p class="font-medium">
@@ -195,9 +195,10 @@ import {
         </div>
 
         <!-- Replies -->
-        @if (review.replies && review.replies.length > 0) {
+
+        <!--        @if (review.replies && review.replies.length > 0) {
         <div class="mt-4 mr-6 space-y-3 border-r-2 border-gray-100 pr-4">
-          @for (reply of review.replies; track reply.id || $index) {
+          @for (reply of (review.replies ?? []); track reply.id) {
           <div class="bg-gray-50 rounded-lg p-3">
             <div class="flex items-start justify-between mb-2">
               <div class="flex items-center gap-2">
@@ -245,7 +246,7 @@ import {
           </div>
           }
         </div>
-        }
+        } -->
       </div>
       } } @else {
       <!-- No Reviews -->
