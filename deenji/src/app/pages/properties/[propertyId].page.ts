@@ -963,21 +963,61 @@ export default class PropertyDetailsPage implements OnInit {
   }
 
   /**
-   * Get property ID as a number for components that require a numeric ID
-   */
-  getNumericPropertyId(): number {
-    const id = this.property()?.id;
-    if (id === undefined || id === null) {
-      return 0; // or some default value
-    }
-    return typeof id === 'string' ? parseInt(id, 10) : id;
-  }
-
-  /**
    * Get property ID for reviews component (can handle string or number)
    */
   getPropertyIdForReviews(): number {
-    // Will coerce the DB’s real numeric PK
-    return this.getNumericPropertyId();
+    // Get the current property data safely
+    const property = this.property();
+
+    // If property exists and has an id field
+    if (property && property.id !== undefined) {
+      // Convert to number if it's a string, otherwise use directly
+      const numericId =
+        typeof property.id === 'string'
+          ? parseInt(property.id, 10)
+          : property.id;
+
+      // Ensure it's a valid number
+      if (!isNaN(numericId)) {
+        return numericId;
+      }
+    }
+
+    // If we can't extract an ID from the property, try to get from route param
+    const routeParamId = this.propertyId();
+    if (typeof routeParamId === 'number') {
+      return routeParamId;
+    } else if (
+      typeof routeParamId === 'string' &&
+      !isNaN(Number(routeParamId))
+    ) {
+      return Number(routeParamId);
+    }
+
+    // If all else fails, return 0 (invalid ID)
+    console.warn('Unable to determine numeric property ID for reviews');
+    return 0;
+  }
+
+  /**
+   * Convert route parameter to numeric ID if possible
+   * This is used in the template for various components
+   */
+  getNumericPropertyId(): number {
+    const id = this.propertyId();
+
+    // If it's already a number, return it
+    if (typeof id === 'number') {
+      return id;
+    }
+
+    // If it's a string that can be parsed as a number, convert it
+    if (typeof id === 'string' && !isNaN(Number(id))) {
+      return Number(id);
+    }
+
+    // Otherwise return 0 (invalid ID)
+    console.warn('Unable to determine numeric property ID from route param');
+    return 0;
   }
 }
