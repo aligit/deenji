@@ -3,24 +3,23 @@ import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient, User } from '@supabase/supabase-js';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { BehaviorSubject } from 'rxjs';
-
-export interface ProfileUpdateData {
-  id: string;
-  username?: string;
-  website?: string;
-  avatar_url?: string;
-  phone?: string;
-}
-
-export interface UserSettingsUpdateData {
-  id: string;
-  language: string;
-}
+import { Profile } from '../models/supabase.model';
+import { UserSettings } from '../models/user.model';
+import {
+  IAuthService,
+  ProfileUpdatePayload,
+  UserProfileUpdatePayload,
+  UserSettingsUpdatePayload,
+  UserUpdateAttributes,
+  AuthResponse,
+  SavedProperty,
+  DbResponse,
+} from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root',
 })
-export class SupabaseService {
+export class SupabaseService implements IAuthService {
   // Public access to the Supabase client for direct operations
   public client: SupabaseClient;
 
@@ -73,6 +72,8 @@ export class SupabaseService {
     this.sessionSubject.next(session);
   }
 
+  // ====== AUTHENTICATION METHODS ======
+
   /**
    * Get the current session
    */
@@ -87,6 +88,72 @@ export class SupabaseService {
     callback: (event: AuthChangeEvent, session: Session | null) => void
   ) {
     return this.client.auth.onAuthStateChange(callback);
+  }
+
+  /**
+   * Set session manually with tokens
+   * Used primarily with magic link authentication
+   */
+  async setSession(accessToken: string, refreshToken: string) {
+    const { data, error } = await this.client.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+
+    if (error) {
+      console.error('Error setting session:', error);
+      throw error;
+    }
+
+    this.updateSession(data.session);
+    return { data, error };
+  }
+
+  /**
+   * Sign in with email (send OTP)
+   */
+  async signIn(email: string) {
+    console.log('Sending OTP to email:', email);
+
+    const { data, error } = await this.client.auth.signInWithOtp({
+      email,
+      options: {
+        shouldCreateUser: true,
+      },
+    });
+
+    if (error) {
+      console.error('Error sending OTP:', error);
+    } else {
+      console.log('OTP sent successfully');
+    }
+
+    return { data, error };
+  }
+
+  /**
+   * Verify OTP code
+   */
+  async verifyOtp(email: string, token: string) {
+    console.log('Verifying OTP for email:', email);
+
+    const { data, error } = await this.client.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+
+    if (error) {
+      console.error('Error verifying OTP:', error);
+    } else {
+      console.log('OTP verified successfully');
+      // Update session if verification is successful
+      if (data.session) {
+        this.updateSession(data.session);
+      }
+    }
+
+    return { data, error };
   }
 
   /**
@@ -124,24 +191,33 @@ export class SupabaseService {
   }
 
   /**
-   * Reset password for email
-   */
-  async resetPasswordForEmail(email: string) {
-    return this.client.auth.resetPasswordForEmail(email);
-  }
-
-  /**
    * Update user data
    */
-  async updateUser(updates: any) {
+  async updateUser(updates: UserUpdateAttributes): Promise<AuthResponse> {
     const result = await this.client.auth.updateUser(updates);
+
+    // Create the structure that matches AuthResponse
+    const authResponse: AuthResponse = {
+      data: {
+        user: result.data.user,
+        session: null,
+      },
+      error: result.error,
+    };
+
     if (result.data.user) {
-      // If session was updated, update our local copy
+      // If user was updated, update our local session copy
       const { data } = await this.client.auth.getSession();
       this.updateSession(data.session);
+
+      // Update the session in the response
+      authResponse.data.session = data.session;
     }
-    return result;
+
+    return authResponse;
   }
+
+  // ====== PROFILE METHODS ======
 
   /**
    * Get user profile
@@ -161,13 +237,13 @@ export class SupabaseService {
       console.log('Profile loaded:', data);
     }
 
-    return { data, error };
+    return { data, error } as DbResponse<Profile>;
   }
 
   /**
    * Update user profile
    */
-  async updateProfile(updates: ProfileUpdateData) {
+  async updateProfile(updates: ProfileUpdatePayload) {
     console.log('Updating profile:', updates);
 
     const { id, ...profileData } = updates;
@@ -185,30 +261,30 @@ export class SupabaseService {
       console.log('Profile updated:', data);
     }
 
-    return { data, error };
+    return { data, error } as DbResponse<Profile>;
   }
 
   /**
    * Update full user profile (including phone)
    */
-  async updateFullProfile(updates: ProfileUpdateData) {
+  async updateFullProfile(updates: UserProfileUpdatePayload) {
     console.log('Updating full profile:', updates);
-    return this.updateProfile(updates);
+    return this.updateProfile(updates as any);
   }
 
   /**
    * Update user settings
    */
-  async updateUserSettings(updates: UserSettingsUpdateData) {
+  async updateUserSettings(updates: UserSettingsUpdatePayload) {
     console.log('Updating user settings:', updates);
 
-    const { id, language } = updates;
+    const { id, ...settings } = updates;
 
     const { data, error } = await this.client
       .from('user_settings')
       .upsert({
         user_id: id,
-        language,
+        ...settings,
       })
       .select()
       .single();
@@ -219,13 +295,17 @@ export class SupabaseService {
       console.log('User settings updated:', data);
     }
 
-    return { data, error };
+    return { data, error } as DbResponse<UserSettings>;
   }
+
+  // ====== PROPERTY METHODS ======
 
   /**
    * Get user saved properties
    */
-  async getSavedProperties(userId: string) {
+  async getSavedProperties(
+    userId: string
+  ): Promise<DbResponse<SavedProperty[]>> {
     console.log('Loading saved properties for user:', userId);
 
     const { data, error } = await this.client
@@ -233,6 +313,7 @@ export class SupabaseService {
       .select(
         `
         property_id,
+        user_id,
         properties (*)
       `
       )
@@ -244,13 +325,16 @@ export class SupabaseService {
       console.log('Saved properties loaded:', data);
     }
 
-    return { data, error };
+    return { data, error } as DbResponse<SavedProperty[]>;
   }
 
   /**
    * Remove saved property
    */
-  async removeSavedProperty(userId: string, propertyId: number) {
+  async removeSavedProperty(
+    userId: string,
+    propertyId: number
+  ): Promise<DbResponse<null>> {
     console.log(`Removing saved property ${propertyId} for user ${userId}`);
 
     const { data, error } = await this.client
@@ -265,6 +349,6 @@ export class SupabaseService {
       console.log('Saved property removed');
     }
 
-    return { data, error };
+    return { data: null, error } as DbResponse<null>;
   }
 }
