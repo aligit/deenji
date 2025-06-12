@@ -47,29 +47,92 @@ export const propertyRouter = router({
     }),
 
   getById: publicProcedure
-    .input(
-      z.object({
-        // Allow both string and number IDs
-        id: z.union([z.string(), z.number()]),
-      })
-    )
-    .query(async ({ input }) => {
+    .input(z.object({ id: z.string() }))
+    .query(async ({ input, ctx }) => {
       try {
-        const property = await elasticsearchService.getPropertyById(input.id);
+        console.log(`🔍 Looking up property with external_id: "${input.id}"`);
 
-        if (!property) {
+        // Get property from database using external_id
+        const { data, error } = await ctx.supabase
+          .from('properties')
+          .select(
+            `
+          *,
+          property_images (
+            id, url, is_featured, sort_order
+          )
+        `
+          )
+          .eq('external_id', input.id)
+          .single();
+
+        if (error) {
+          console.error(
+            `❌ Supabase error getting property ${input.id}:`,
+            error
+          );
           throw new TRPCError({
             code: 'NOT_FOUND',
-            message: 'Property not found',
+            message: `Property ${input.id} not found`,
           });
         }
 
-        return property;
+        // Define type for property_images
+        interface PropertyImage {
+          id: number;
+          url: string;
+          is_featured?: boolean;
+          sort_order?: number;
+        }
+
+        // Map to compatible format
+        const mappedProperty = {
+          id: data.id, // Numeric ID for reviews
+          external_id: data.external_id, // String ID from crawler
+          title: data.title,
+          price: data.price || 0,
+          bedrooms: data.bedrooms,
+          bathrooms: data.bathrooms,
+          area: data.area,
+          description: data.description,
+          location: data.location?.coordinates
+            ? {
+                lat: data.location.coordinates.lat,
+                lon: data.location.coordinates.lon,
+              }
+            : data.latitude && data.longitude
+            ? {
+                lat: data.latitude,
+                lon: data.longitude,
+              }
+            : undefined,
+          property_type: data.type, // Field name difference
+          // Fix the 'any' type in the map function
+          images: data.property_images
+            ? data.property_images.map((img: PropertyImage) => img.url)
+            : [],
+          district: data.district || data.location?.district,
+          city: data.city || data.location?.city,
+          address: data.address,
+          has_elevator: data.has_elevator,
+          has_parking: data.has_parking,
+          has_storage: data.has_storage,
+          has_balcony: data.has_balcony,
+          investment_score: data.investment_score,
+          year_built: data.year_built,
+        };
+
+        console.log(
+          `✅ Found property ${input.id} with database ID ${data.id}`
+        );
+        return mappedProperty;
       } catch (error) {
+        if (error instanceof TRPCError) throw error;
         console.error('Error fetching property by ID:', error);
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'Failed to fetch property details',
+          message: 'Failed to fetch property',
+          cause: error,
         });
       }
     }),

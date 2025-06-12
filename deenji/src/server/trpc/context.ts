@@ -1,6 +1,6 @@
 // src/server/trpc/context.ts
 import { H3Event } from 'h3';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Create a helper to safely get authorization header from H3Event
 const getAuthorizationHeader = (event: H3Event): string | undefined | null => {
@@ -27,9 +27,9 @@ export async function createContext(event: H3Event) {
   // Get the authorization header
   const authorization = getAuthorizationHeader(event);
 
-  // If there's no authorization header, return a context with no user
+  // If there's no authorization header, return a context with no user but with supabase
   if (!authorization) {
-    return { user: null };
+    return { user: null, supabase };
   }
 
   try {
@@ -40,15 +40,19 @@ export async function createContext(event: H3Event) {
     const { data, error } = await supabase.auth.getUser(token);
 
     if (error || !data.user) {
-      return { user: null };
+      return { user: null, supabase };
     }
 
     // Return the user in the context
-    return { user: data.user };
+    return { user: data.user, supabase };
   } catch (error) {
     console.error('Error verifying authentication token:', error);
-    return { user: null };
+    return { user: null, supabase };
   }
 }
 
-export type Context = Awaited<ReturnType<typeof createContext>>;
+// Update the context type to guarantee supabase is always present
+export type Context = {
+  user: any | null;
+  supabase: SupabaseClient;
+};

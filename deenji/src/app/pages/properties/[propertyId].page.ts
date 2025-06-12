@@ -11,6 +11,8 @@ import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
 import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
 import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
 import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
+import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { BrnSeparatorComponent } from '@spartan-ng/brain/separator';
 import {
   HlmTooltipComponent,
   HlmTooltipTriggerDirective,
@@ -53,6 +55,7 @@ import { LightboxModule } from 'ng-gallery/lightbox';
 import { SimilarPropertiesComponent } from '../../core/components/similar-properties.component';
 import { PropertyValueIndicatorComponent } from '../../core/components/property-value-indicator.component';
 import { PriceTrendChartComponent } from '../../core/components/price-trend-chart.component';
+import { PropertyReviewsComponent } from '../../core/components/property-reviews.component';
 import { PropertyDetail } from '../../core/types/property.types';
 import { MapComponent } from '../../core/components/map.component';
 
@@ -65,6 +68,8 @@ import { MapComponent } from '../../core/components/map.component';
     HlmButtonDirective,
     HlmSkeletonComponent,
     HlmBadgeDirective,
+    HlmSeparatorDirective,
+    BrnSeparatorComponent,
     HlmTooltipComponent,
     HlmTooltipTriggerDirective,
     BrnTooltipContentDirective,
@@ -74,6 +79,7 @@ import { MapComponent } from '../../core/components/map.component';
     RouterLink,
     PropertyValueIndicatorComponent,
     PriceTrendChartComponent,
+    PropertyReviewsComponent,
     MapComponent,
   ],
   providers: [
@@ -365,7 +371,6 @@ import { MapComponent } from '../../core/components/map.component';
 
               <!-- Property Value Indicator -->
               @if(estimatedValue()){
-
               <div hlmCard class="p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">
                   ارزش ملک
@@ -389,7 +394,6 @@ import { MapComponent } from '../../core/components/map.component';
                   [priceHistory]="priceHistory()"
                 ></app-price-trend-chart>
               </div>
-
               }
 
               <!-- Investment Score -->
@@ -475,6 +479,11 @@ import { MapComponent } from '../../core/components/map.component';
               </div>
             </div>
             } }
+
+            <!-- Reviews Section -->
+            <brn-separator hlmSeparator class="my-8" />
+
+            <app-property-reviews [propertyId]="getPropertyIdForReviews()" />
 
             <!-- Similar Properties Section -->
             <app-similar-properties
@@ -954,13 +963,51 @@ export default class PropertyDetailsPage implements OnInit {
   }
 
   /**
-   * Get property ID as a number for components that require a numeric ID
+   * Get property ID for reviews component (numeric database ID)
+   */
+  getPropertyIdForReviews(): number {
+    // Use the numeric property ID from the loaded property data
+    const property = this.property();
+
+    if (property && typeof property.id === 'number') {
+      console.log(`Using numeric ID for reviews: ${property.id}`);
+      return property.id;
+    } else if (
+      property &&
+      typeof property.id === 'string' &&
+      !isNaN(Number(property.id))
+    ) {
+      // If property.id is a string that can be converted to a number
+      const numericId = Number(property.id);
+      console.log(
+        `Converting string ID to numeric ID for reviews: ${numericId}`
+      );
+      return numericId;
+    }
+
+    console.warn('Could not determine a valid numeric property ID for reviews');
+    return 0; // Invalid ID
+  }
+
+  /**
+   * Convert route parameter to numeric ID if possible
+   * This is used in the template for various components
    */
   getNumericPropertyId(): number {
-    const id = this.property()?.id;
-    if (id === undefined || id === null) {
-      return 0; // or some default value
+    const id = this.propertyId();
+
+    // If it's already a number, return it
+    if (typeof id === 'number') {
+      return id;
     }
-    return typeof id === 'string' ? parseInt(id, 10) : id;
+
+    // If it's a string that can be parsed as a number, convert it
+    if (typeof id === 'string' && !isNaN(Number(id))) {
+      return Number(id);
+    }
+
+    // Otherwise return 0 (invalid ID)
+    console.warn('Unable to determine numeric property ID from route param');
+    return 0;
   }
 }

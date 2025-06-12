@@ -52,21 +52,22 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
           </div>
           <div class="flex flex-1 justify-end items-center">
             <div class="hidden md:flex items-center space-x-6">
+              @if (!sessionSignal()) {
               <button
-                *ngIf="!sessionSignal()"
                 [routerLink]="['/login']"
                 hlmBtn
                 class="bg-primary-600 text-white px-4 py-2 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
               >
                 ورود / ثبت نام
               </button>
+              } @else {
               <a
-                *ngIf="sessionSignal()"
                 [routerLink]="['/account']"
                 class="text-primary-100 hover:text-primary-300 text-sm font-medium"
               >
                 حساب کاربری
               </a>
+              }
             </div>
           </div>
         </div>
