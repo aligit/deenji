@@ -963,40 +963,30 @@ export default class PropertyDetailsPage implements OnInit {
   }
 
   /**
-   * Get property ID for reviews component (can handle string or number)
+   * Get property ID for reviews component (numeric database ID)
    */
   getPropertyIdForReviews(): number {
-    // Get the current property data safely
+    // Use the numeric property ID from the loaded property data
     const property = this.property();
 
-    // If property exists and has an id field
-    if (property && property.id !== undefined) {
-      // Convert to number if it's a string, otherwise use directly
-      const numericId =
-        typeof property.id === 'string'
-          ? parseInt(property.id, 10)
-          : property.id;
-
-      // Ensure it's a valid number
-      if (!isNaN(numericId)) {
-        return numericId;
-      }
-    }
-
-    // If we can't extract an ID from the property, try to get from route param
-    const routeParamId = this.propertyId();
-    if (typeof routeParamId === 'number') {
-      return routeParamId;
+    if (property && typeof property.id === 'number') {
+      console.log(`Using numeric ID for reviews: ${property.id}`);
+      return property.id;
     } else if (
-      typeof routeParamId === 'string' &&
-      !isNaN(Number(routeParamId))
+      property &&
+      typeof property.id === 'string' &&
+      !isNaN(Number(property.id))
     ) {
-      return Number(routeParamId);
+      // If property.id is a string that can be converted to a number
+      const numericId = Number(property.id);
+      console.log(
+        `Converting string ID to numeric ID for reviews: ${numericId}`
+      );
+      return numericId;
     }
 
-    // If all else fails, return 0 (invalid ID)
-    console.warn('Unable to determine numeric property ID for reviews');
-    return 0;
+    console.warn('Could not determine a valid numeric property ID for reviews');
+    return 0; // Invalid ID
   }
 
   /**

@@ -21,7 +21,7 @@ import {
   HlmTabsTriggerDirective,
 } from '@spartan-ng/ui-tabs-helm';
 
-// Import your components - make sure these paths match your actual component locations
+// Import your components
 import { ProfileInfoComponent } from './components/profile-info.component';
 import { AccountSettingsComponent } from './components/account-settings.component';
 import { PropertiesComponent } from './components/properties.component';
@@ -242,22 +242,33 @@ export default class AccountPageComponent implements OnInit {
 
   async loadSession() {
     try {
+      // First check if we already have a session in the service
       if (this.supabase.session) {
+        console.log('Using existing session from SupabaseService');
         this.session = this.supabase.session;
-        if (this.session) this.loadProfile();
+        if (this.session) {
+          await this.loadProfile();
+        }
         return;
       }
 
+      console.log('Fetching session from Supabase');
       const { data } = await this.supabase.getSession();
       this.session = data.session;
 
-      if (this.session) this.loadProfile();
+      if (this.session) {
+        await this.loadProfile();
+      } else {
+        console.log('No active session found');
+      }
 
       // Set up auth state change listener
       this.supabase.onAuthStateChange((event, session) => {
-        console.log('Auth state changed:', event, session);
+        console.log('Auth state changed in account page:', event, session ? 'Authenticated' : 'Not authenticated');
         this.session = session;
-        if (session) this.loadProfile();
+        if (session) {
+          this.loadProfile();
+        }
       });
     } catch (error) {
       console.error('Error loading session:', error);
@@ -265,23 +276,39 @@ export default class AccountPageComponent implements OnInit {
   }
 
   async loadProfile() {
-    if (!this.session) return;
+    if (!this.session?.user) {
+      console.log('Cannot load profile: No authenticated user');
+      return;
+    }
 
     try {
+      this.loading = true;
+      console.log('Loading profile for user:', this.session.user.id);
+
       const { data, error } = await this.supabase.profile(this.session.user);
-      if (error) throw error;
+
+      if (error) {
+        console.error('Error loading profile:', error);
+        throw error;
+      }
 
       if (data) {
+        console.log('Profile data loaded:', data);
         this.username = data.username || '';
         this.website = data.website || '';
 
         // Load avatar if available
         if (data.avatar_url) {
-          // Avatar loading logic would go here
+          // In a real app, would construct proper URL or fetch the image
+          this.profileImage = data.avatar_url;
         }
+      } else {
+        console.log('No profile data found');
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+    } finally {
+      this.loading = false;
     }
   }
 
@@ -303,18 +330,48 @@ export default class AccountPageComponent implements OnInit {
     this.fileInput.nativeElement.click();
   }
 
-  uploadAvatar(event: any) {
-    // Would implement file upload logic here
-    console.log('File selected:', event.target.files[0]);
+  async uploadAvatar(event: any) {
+    if (!this.session?.user) return;
+
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      this.loading = true;
+
+      // In a real app, would upload to storage and get URL
+      console.log('Would upload file:', file.name);
+
+      // For now, just log that we would upload
+      console.log('File selected for upload:', file);
+
+      // Update profile with new avatar URL (would be actual URL in real app)
+      /*
+      await this.supabase.updateProfile({
+        id: this.session.user.id,
+        avatar_url: 'https://example.com/avatar.jpg' // placeholder
+      });
+      */
+
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+    } finally {
+      this.loading = false;
+    }
   }
 
   handleProfileUpdated(profileData: any) {
+    console.log('Profile updated:', profileData);
     this.username = profileData.username || '';
     this.website = profileData.website || '';
   }
 
   async signOut() {
-    await this.supabase.signOut();
-    this.router.navigate(['/login']);
+    try {
+      await this.supabase.signOut();
+      this.router.navigate(['/login']);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
   }
 }

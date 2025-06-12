@@ -199,17 +199,29 @@ export class ReviewFormComponent implements OnInit {
   }
 
   async loadSession() {
-    // Get initial session
-    const { data } = await this.supabase.getSession();
-    this.sessionSignal.set(data.session);
+    try {
+      // Get initial session
+      const { data } = await this.supabase.getSession();
+      this.sessionSignal.set(data.session);
+      console.log(
+        'Initial session loaded:',
+        data.session ? 'Authenticated' : 'Not authenticated'
+      );
 
-    // Set up auth state change listener
-    this.supabase.onAuthStateChange(
-      (event: AuthChangeEvent, session: Session | null) => {
-        console.log('Auth state changed:', event, session);
-        this.sessionSignal.set(session);
-      }
-    );
+      // Set up auth state change listener
+      this.supabase.onAuthStateChange(
+        (event: AuthChangeEvent, session: Session | null) => {
+          console.log(
+            'Auth state changed:',
+            event,
+            session ? 'Authenticated' : 'Not authenticated'
+          );
+          this.sessionSignal.set(session);
+        }
+      );
+    } catch (error) {
+      console.error('Error loading session:', error);
+    }
   }
 
   private updateValidators() {
@@ -234,7 +246,12 @@ export class ReviewFormComponent implements OnInit {
   }
 
   isAuthenticated(): boolean {
-    return !!this.sessionSignal();
+    const hasSession = !!this.sessionSignal();
+    console.log(
+      'Checking authentication state:',
+      hasSession ? 'Authenticated' : 'Not authenticated'
+    );
+    return hasSession;
   }
 
   setRating(rating: number) {
@@ -244,6 +261,9 @@ export class ReviewFormComponent implements OnInit {
     this.reviewForm.patchValue({ rating });
   }
 
+  /**
+   * Submit the review form
+   */
   onSubmit() {
     if (this.reviewForm.invalid) return;
 
@@ -252,22 +272,42 @@ export class ReviewFormComponent implements OnInit {
 
     const formValue = this.reviewForm.value;
 
+    // Ensure property_id is a number
+    const numericPropertyId =
+      typeof this.propertyId === 'string'
+        ? Number(this.propertyId)
+        : this.propertyId;
+
+    console.log(
+      `Submitting review for property ID: ${numericPropertyId} (${typeof numericPropertyId})`
+    );
+
+    // Check if user is authenticated directly
+    if (!this.supabase.session) {
+      this.error.set('You must be logged in to create a review');
+      this.submitting.set(false);
+      return;
+    }
+
+    console.log('Authenticated as user:', this.supabase.session.user.id);
+
     this.reviewService
       .createReview({
-        property_id: this.propertyId,
+        property_id: numericPropertyId,
         rating: this.parentId ? undefined : formValue.rating,
         comment: formValue.comment || undefined,
         parent_id: this.parentId,
       })
       .subscribe({
         next: () => {
+          console.log('Review submitted successfully');
           // Reset form
           this.reviewForm.reset();
           this.selectedRating.set(0);
 
           // Reload stats if it's a new review (not a reply)
           if (!this.parentId) {
-            this.reviewService.loadStats(this.propertyId).subscribe();
+            this.reviewService.loadStats(numericPropertyId).subscribe();
           }
 
           this.submitted.emit();
@@ -276,7 +316,20 @@ export class ReviewFormComponent implements OnInit {
         error: (err: Error | unknown) => {
           const errorMessage =
             err instanceof Error ? err.message : 'An unknown error occurred';
-          this.error.set(errorMessage);
+
+          // Check for duplicate review error
+          if (
+            typeof err === 'object' &&
+            err !== null &&
+            'code' in err &&
+            err.code === '23505'
+          ) {
+            this.error.set('You have already reviewed this property');
+          } else {
+            console.error('Error submitting review:', errorMessage);
+            this.error.set(errorMessage);
+          }
+
           this.submitting.set(false);
         },
       });
