@@ -1,24 +1,25 @@
 # Dockerfile
-FROM node:20-alpine AS builder
+FROM oven/bun:1-alpine AS builder
 
 WORKDIR /app
 
 # Copy workspace configuration files
 COPY package*.json ./
+COPY bun.lockb ./
 COPY nx.json ./
 COPY tsconfig.base.json ./
 
-# Install dependencies (cached layer)
-RUN npm ci
+# Install dependencies with bun
+RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY . .
 
 # Build the deenji app
-RUN npx nx build deenji --configuration=production
+RUN bunx nx build deenji --configuration=production
 
 # Production stage
-FROM node:20-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
@@ -41,5 +42,5 @@ EXPOSE 8081
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
 
-# Start the server
-CMD ["node", "dist/deenji/analog/server/index.mjs"]
+# Start the server with bun
+CMD ["bun", "run", "dist/deenji/analog/server/index.mjs"]
