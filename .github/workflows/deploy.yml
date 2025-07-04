@@ -3,13 +3,12 @@ name: Deploy Deenji
 on:
   push:
     branches:
-      - main # Deploys to staging
-      - production # Deploys to production
+      - main
+      - production
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    # Automatically select environment based on branch
+    runs-on: ubuntu-24.04
     environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
 
     steps:
@@ -36,6 +35,8 @@ jobs:
           host: ${{ env.DEPLOY_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          # Pass secrets as environment variables to the SSH session
+          envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,DEPLOY_ENV,APP_URL,SUPABASE_URL
           script: |
             # Navigate to project directory
             cd ~/deenji-project
@@ -44,25 +45,28 @@ jobs:
             sudo systemctl stop caddy || true
 
             # Pull latest code from appropriate branch
-            git pull origin ${{ github.ref_name }}
+            git pull origin main
 
-            # Create .env file with environment-specific values
-            cat > .env << 'EOF'
+            # Create .env file with actual secret values
+            cat > .env << EOF
             # Environment configuration
-            VITE_production=${{ env.DEPLOY_ENV == 'production' && 'true' || 'false' }}
-            VITE_supabaseUrl=${{ env.SUPABASE_URL }}
-            baseUrl=${{ env.APP_URL }}
+            VITE_production=$([[ "$DEPLOY_ENV" == "production" ]] && echo "true" || echo "false")
+            VITE_supabaseUrl=$SUPABASE_URL
+            baseUrl=$APP_URL
 
             # Elasticsearch URL (will be overridden by docker-compose for internal network)
             VITE_ELASTICSEARCH_URL=http://localhost:9200
 
             # Secrets from GitHub Environment
-            VITE_supabaseKey=${{ secrets.SUPABASE_ANON_KEY }}
-            DATABASE_URL=${{ secrets.DATABASE_URL }}
-            VITE_GOOGLE_API_KEY=${{ secrets.GOOGLE_API_KEY }}
-            VITE_googleMapsApiKey=${{ secrets.GOOGLE_API_KEY }}
-            VITE_GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_API_KEY }}
+            VITE_supabaseKey=$SUPABASE_ANON_KEY
+            DATABASE_URL=$DATABASE_URL
+            VITE_GOOGLE_API_KEY=$GOOGLE_API_KEY
+            VITE_googleMapsApiKey=$GOOGLE_API_KEY
+            VITE_GOOGLE_MAPS_API_KEY=$GOOGLE_API_KEY
             EOF
+
+            # Show that env file was created (without showing secrets)
+            echo "Created .env file with $(wc -l < .env) lines"
 
             # Stop existing containers
             docker compose down
@@ -85,3 +89,8 @@ jobs:
             # Show logs for debugging
             echo "=== Recent logs ==="
             docker compose logs --tail=50 deenji-app
+        env:
+          # These environment variables will be available in the SSH session
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
