@@ -1,47 +1,21 @@
-name: Deploy Deenji
+name: Test SSH
 
 on:
-  push:
-    branches:
-      - main
-      - production
+  workflow_dispatch: # Manual trigger
 
 jobs:
-  deploy:
-    runs-on: ubuntu-24.04
-    environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+  test:
+    runs-on: ubuntu-latest
+    environment: staging
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set environment variables
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/production" ]]; then
-            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
-            echo "DEPLOY_HOST=${{ secrets.PROD_VPS_HOST || secrets.VPS_HOST }}" >> $GITHUB_ENV
-            echo "APP_URL=https://yourdomain.com" >> $GITHUB_ENV
-            echo "SUPABASE_URL=https://api.yourdomain.com" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
-            echo "DEPLOY_HOST=${{ secrets.VPS_HOST }}" >> $GITHUB_ENV
-            echo "APP_URL=https://demo.dunup.ch" >> $GITHUB_ENV
-            echo "SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
-          fi
-
-      - name: Deploy to VPS
+      - name: Test SSH Connection
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ env.DEPLOY_HOST }}
+          host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,DEPLOY_ENV,APP_URL,SUPABASE_URL
           script: |
-            cd ~/deenji-project
-            git pull origin main
-            chmod +x scripts/deploy.sh
-            ./scripts/deploy.sh
-        env:
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+            echo "Connected successfully!"
+            whoami
+            pwd
