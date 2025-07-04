@@ -1,8 +1,10 @@
+# .github/workflows/deploy.yml
 name: Build and Deploy
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
 env:
   REGISTRY: ghcr.io
@@ -32,8 +34,8 @@ jobs:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          # cache-from: type=gha
+          # cache-to:   type=gha,mode=max
 
   deploy:
     needs: build
