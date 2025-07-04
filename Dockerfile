@@ -19,7 +19,7 @@ COPY . .
 RUN bunx nx build deenji --configuration=production
 
 # Production stage
-FROM oven/bun:1-alpine
+FROM oven/bun:1.2-alpine
 
 WORKDIR /app
 
