@@ -40,7 +40,6 @@ Thumbs.db
 
 .nx/cache
 .nx/workspace-data
-bun.lockb
 
 # Environment files
 .env
