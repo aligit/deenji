@@ -40,8 +40,11 @@ Thumbs.db
 
 .nx/cache
 .nx/workspace-data
-.env
 bun.lockb
+
+# Environment files
+.env
+.env.local
 
 .angular
 migrations/.env.development
