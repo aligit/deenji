@@ -1,0 +1,37 @@
+name: Debug Secret Values
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Show VPS_USER value
+        run: |
+          echo "VPS_USER is: '${{ secrets.VPS_USER }}'"
+          echo "Length of VPS_USER: $(echo -n '${{ secrets.VPS_USER }}' | wc -c)"
+
+      - name: Test SSH with explicit username
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: github-deploy # Hardcoded
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Connected with hardcoded username!"
+            whoami
+
+      - name: Test SSH with secret username
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "Connected with secret username!"
+            whoami
