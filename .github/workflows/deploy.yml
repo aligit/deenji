@@ -1,46 +1,73 @@
-name: Deploy Deenji
+name: Build and Deploy
 
 on:
   push:
-    branches:
-      - main
-      - production
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/deenji-app
 
 jobs:
-  deploy:
-    runs-on: ubuntu-24.04
-    environment: ${{ github.ref == 'refs/heads/production' && 'production' || 'staging' }}
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set environment variables
-        run: |
-          if [[ "${{ github.ref }}" == "refs/heads/production" ]]; then
-            echo "DEPLOY_ENV=production" >> $GITHUB_ENV
-            echo "DEPLOY_HOST=${{ secrets.PROD_VPS_HOST || secrets.VPS_HOST }}" >> $GITHUB_ENV
-            echo "APP_URL=https://yourdomain.com" >> $GITHUB_ENV
-            echo "SUPABASE_URL=https://api.yourdomain.com" >> $GITHUB_ENV
-          else
-            echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
-            echo "DEPLOY_HOST=${{ secrets.VPS_HOST }}" >> $GITHUB_ENV
-            echo "APP_URL=https://demo.deenji.com" >> $GITHUB_ENV
-            echo "SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
-          fi
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ env.DEPLOY_HOST }}
+          host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,DEPLOY_ENV,APP_URL,SUPABASE_URL
+          envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,REGISTRY,IMAGE_NAME
           script: |
             cd ~/deenji-project
-            git pull origin main
-            chmod +x scripts/deploy.sh
-            ./scripts/deploy.sh
+
+            # Create .env file
+            cat > .env << EOF
+            VITE_production=false
+            VITE_supabaseUrl=http://localhost:54321
+            baseUrl=https://demo.dunup.ch
+            VITE_ELASTICSEARCH_URL=http://localhost:9200
+            VITE_supabaseKey=$SUPABASE_ANON_KEY
+            DATABASE_URL=$DATABASE_URL
+            VITE_GOOGLE_API_KEY=$GOOGLE_API_KEY
+            VITE_googleMapsApiKey=$GOOGLE_API_KEY
+            VITE_GOOGLE_MAPS_API_KEY=$GOOGLE_API_KEY
+            EOF
+
+            # Update docker-compose to use the built image
+            docker compose down
+            docker pull $REGISTRY/$IMAGE_NAME:latest
+            docker compose up -d
         env:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

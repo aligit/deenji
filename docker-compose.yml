@@ -23,9 +23,7 @@ services:
 
   # Deenji AnalogJS application
   deenji-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/${{ github.repository }}/deenji-app:latest # Use pre-built image
     container_name: deenji_app
     ports:
       - '8081:8081'
