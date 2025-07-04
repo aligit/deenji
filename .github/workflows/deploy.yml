@@ -25,7 +25,7 @@ jobs:
           else
             echo "DEPLOY_ENV=staging" >> $GITHUB_ENV
             echo "DEPLOY_HOST=${{ secrets.VPS_HOST }}" >> $GITHUB_ENV
-            echo "APP_URL=https://demo.dunup.ch" >> $GITHUB_ENV
+            echo "APP_URL=https://demo.deenji.com" >> $GITHUB_ENV
             echo "SUPABASE_URL=http://localhost:54321" >> $GITHUB_ENV
           fi
 
