@@ -21,8 +21,8 @@
   },
   "private": true,
   "dependencies": {
-    "@analogjs/content": "1.17.1",
-    "@analogjs/router": "1.17.1",
+    "@analogjs/content": "1.19.0",
+    "@analogjs/router": "1.19.0",
     "@analogjs/trpc": "~0.3.0",
     "@angular/animations": "19.2.0",
     "@angular/cdk": "^19.1.5",
@@ -68,12 +68,13 @@
     "zone.js": "~0.15.0"
   },
   "devDependencies": {
-    "@analogjs/platform": "1.17.1",
-    "@analogjs/vite-plugin-angular": "1.17.1",
-    "@analogjs/vitest-angular": "1.17.1",
+    "@analogjs/platform": "1.19.0",
+    "@analogjs/vite-plugin-angular": "1.19.0",
+    "@analogjs/vitest-angular": "1.19.0",
     "@angular-devkit/build-angular": "^19.0.0",
     "@angular-devkit/core": "^19.0.0",
     "@angular-devkit/schematics": "^19.0.0",
+    "@angular/build": "^19.2.15",
     "@angular/compiler-cli": "19.2.0",
     "@angular/google-maps": "19.2.0",
     "@eslint/js": "^9.8.0",

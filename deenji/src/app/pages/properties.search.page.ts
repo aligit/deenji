@@ -28,7 +28,7 @@ import {
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideSearch,
-  lucideFilter,
+  lucideFunnel,
   lucideMapPin,
   lucideHouse,
   lucideBath,
@@ -100,7 +100,7 @@ interface SearchParams {
   providers: [
     provideIcons({
       lucideSearch,
-      lucideFilter,
+      lucideFunnel,
       lucideMapPin,
       lucideHouse,
       lucideBath,
@@ -138,7 +138,7 @@ interface SearchParams {
                 />
               </div>
               <button hlmBtn variant="outline" (click)="toggleFilters()">
-                <ng-icon name="lucideFilter" size="16" class="ml-2" />
+                <ng-icon name="lucideFunnel" size="16" class="ml-2" />
                 فیلترها
               </button>
             </div>
@@ -876,17 +876,17 @@ export default class PropertiesSearchPageComponent implements OnInit {
         location:
           rawProperty.location?.lat && rawProperty.location?.lon
             ? {
-              lat: rawProperty.location.lat,
-              lon: rawProperty.location.lon,
-            }
+                lat: rawProperty.location.lat,
+                lon: rawProperty.location.lon,
+              }
             : undefined,
 
         // Handle images array
         images: Array.isArray(rawProperty.images)
           ? rawProperty.images
           : rawProperty.images
-            ? [rawProperty.images]
-            : [],
+          ? [rawProperty.images]
+          : [],
 
         // Location details
         district: rawProperty.district,
