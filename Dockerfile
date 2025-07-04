@@ -1,5 +1,7 @@
 # Dockerfile
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
+ENV NG_CLI_ANALYTICS=false
+ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 WORKDIR /app
 
@@ -18,7 +20,7 @@ COPY . .
 RUN npx nx build deenji --configuration=production
 
 # Production stage
-FROM node:20-alpine
+FROM node:22-alpine
 
 WORKDIR /app
 

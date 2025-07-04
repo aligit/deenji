@@ -13,6 +13,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
@@ -30,12 +31,13 @@ jobs:
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
+        timeout-minutes: 20
         with:
           context: .
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
-          # cache-from: type=gha
-          # cache-to:   type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: build
@@ -57,7 +59,7 @@ jobs:
             cat > .env << EOF
             VITE_production=false
             VITE_supabaseUrl=http://localhost:54321
-            baseUrl=https://demo.dunup.ch
+            baseUrl=https://demo.deenji.com
             VITE_ELASTICSEARCH_URL=http://localhost:9200
             VITE_supabaseKey=$SUPABASE_ANON_KEY
             DATABASE_URL=$DATABASE_URL
