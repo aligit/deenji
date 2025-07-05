@@ -61,7 +61,7 @@ jobs:
 
             # Create .env file
             cat > .env << EOF
-            VITE_production=false
+            VITE_production=true
             VITE_supabaseUrl=http://localhost:54321
             baseUrl=https://demo.deenji.com
             VITE_ELASTICSEARCH_URL=http://localhost:9200
