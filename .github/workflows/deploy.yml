@@ -56,6 +56,11 @@ jobs:
           token: ${{ secrets.DEPLOYMENT_PAT }}
           path: deploy
 
+      - name: Debug directory contents
+        run: |
+          ls -la
+          ls -la deploy
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -66,6 +71,10 @@ jobs:
           script: |
             # Create deployment directory if it doesn't exist
             mkdir -p ~/deployment
+
+            # Debug - check if files exist in the current working directory
+            echo "Current directory: $(pwd)"
+            ls -la
 
             # Copy deployment files
             scp -r deploy/* ~/deployment/
