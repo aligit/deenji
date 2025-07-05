@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY nx.json ./
 COPY tsconfig.base.json ./
+COPY deenji/vite.config.ts ./vite.config.ts
 
 # Install dependencies with npm
 RUN npm ci
@@ -17,7 +18,8 @@ RUN npm ci
 COPY . .
 
 # Build the deenji app
-RUN npx nx build deenji --configuration=production
+#RUN npx nx build deenji --configuration=production
+RUN NODE_ENV=production npx nx build deenji --configuration=production --skip-nx-cache
 
 # Production stage
 FROM node:22-alpine

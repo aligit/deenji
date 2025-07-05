@@ -17,9 +17,18 @@ export default defineConfig(({ mode }) => {
 
     build: {
       outDir: '../dist/./deenji/client',
-      reportCompressedSize: true,
       target: ['es2020'],
-      sourcemap: mode !== 'production',
+      ...(mode === 'production'
+        ? {
+            sourcemap: false,
+            reportCompressedSize: false,
+            chunkSizeWarningLimit: 1000,
+            minify: 'esbuild',
+          }
+        : {
+            sourcemap: true,
+            reportCompressedSize: false,
+          }),
     },
     server: {
       fs: {
