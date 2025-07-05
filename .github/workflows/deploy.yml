@@ -49,6 +49,13 @@ jobs:
     environment: staging
 
     steps:
+      - name: Checkout deployment repository
+        uses: actions/checkout@v4
+        with:
+          repository: aligit/deenji-deployment
+          token: ${{ secrets.DEPLOYMENT_PAT }}
+          path: deploy
+
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -57,27 +64,13 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,REGISTRY,IMAGE_NAME
           script: |
-            # Ensure directory exists
-            mkdir -p ~/deenji-project
-            cd ~/deenji-project
+            # Create deployment directory if it doesn't exist
+            mkdir -p ~/deployment
 
-            # Create .env file
-            cat > .env << EOF
-            VITE_production=true
-            VITE_supabaseUrl=http://localhost:54321
-            baseUrl=https://demo.dunup.ch
-            VITE_ELASTICSEARCH_URL=http://localhost:9200
-            VITE_supabaseKey=$SUPABASE_ANON_KEY
-            DATABASE_URL=$DATABASE_URL
-            VITE_GOOGLE_API_KEY=$GOOGLE_API_KEY
-            VITE_googleMapsApiKey=$GOOGLE_API_KEY
-            VITE_GOOGLE_MAPS_API_KEY=$GOOGLE_API_KEY
-            EOF
+            # Copy deployment files
+            scp -r deploy/* ~/deployment/
 
-            # Ensure no Dockerfile exists that could trigger builds
-            rm -f Dockerfile
-
-            # Deploy
-            docker compose down
-            docker pull $REGISTRY/$IMAGE_NAME:latest
-            docker compose up -d
+            # Execute deployment script
+            cd ~/deployment
+            chmod +x deploy.sh
+            ./deploy.sh "$REGISTRY" "$IMAGE_NAME" "$SUPABASE_ANON_KEY" "$DATABASE_URL" "$GOOGLE_API_KEY"
