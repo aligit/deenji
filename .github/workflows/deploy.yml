@@ -61,61 +61,6 @@ jobs:
             mkdir -p ~/deenji-project
             cd ~/deenji-project
 
-            # Create or update docker-compose.yml
-            cat > docker-compose.yml << 'EOF'
-            services:
-              elasticsearch:
-                image: elasticsearch:8.17.4
-                container_name: deenji_elasticsearch
-                environment:
-                  - discovery.type=single-node
-                  - xpack.security.enabled=false
-                  - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-                ulimits:
-                  memlock:
-                    soft: -1
-                    hard: -1
-                volumes:
-                  - es_data:/usr/share/elasticsearch/data
-                ports:
-                  - '9200:9200'
-                  - '9300:9300'
-                mem_limit: 1g
-                networks:
-                  - external_supabase_network
-                  - deenji_network
-
-              deenji-app:
-                image: ${REGISTRY}/${IMAGE_NAME}:latest
-                container_name: deenji_app
-                ports:
-                  - '8081:8081'
-                env_file:
-                  - .env
-                environment:
-                  - NODE_ENV=production
-                  - NITRO_PORT=8081
-                  - NITRO_HOST=0.0.0.0
-                  - VITE_ELASTICSEARCH_URL=http://elasticsearch:9200
-                depends_on:
-                  - elasticsearch
-                restart: unless-stopped
-                networks:
-                  - external_supabase_network
-                  - deenji_network
-
-            volumes:
-              es_data:
-                name: deenji_elasticsearch_data
-
-            networks:
-              external_supabase_network:
-                external: true
-                name: supabase_network_deenji-supabase
-              deenji_network:
-                name: deenji_internal_network
-            EOF
-
             # Create .env file
             cat > .env << EOF
             VITE_production=true
@@ -129,10 +74,10 @@ jobs:
             VITE_GOOGLE_MAPS_API_KEY=$GOOGLE_API_KEY
             EOF
 
-            # Clean up any previous deployments
-            docker compose down || true
-            docker container prune -f || true
+            # Ensure no Dockerfile exists that could trigger builds
+            rm -f Dockerfile
 
-            # Deploy the application
+            # Deploy
+            docker compose down
             docker pull $REGISTRY/$IMAGE_NAME:latest
-            docker compose up -d --no-build
+            docker compose up -d
