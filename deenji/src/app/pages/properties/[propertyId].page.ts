@@ -7,16 +7,16 @@ import { firstValueFrom } from 'rxjs';
 import { injectTrpcClient } from '../../../trpc-client';
 
 // UI Components
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
-import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
-import { HlmSeparatorDirective } from '@spartan-ng/ui-separator-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmBadgeDirective } from '@spartan-ng/helm/badge';
+import { HlmSkeletonComponent } from '@spartan-ng/helm/skeleton';
+import { HlmSeparatorDirective } from '@spartan-ng/helm/separator';
 import { BrnSeparatorComponent } from '@spartan-ng/brain/separator';
 import {
   HlmTooltipComponent,
   HlmTooltipTriggerDirective,
-} from '@spartan-ng/ui-tooltip-helm';
+} from '@spartan-ng/helm/tooltip';
 import { BrnTooltipContentDirective } from '@spartan-ng/brain/tooltip';
 
 // Icons

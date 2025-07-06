@@ -9,26 +9,26 @@ import { injectTrpcClient } from '../../trpc-client';
 import { PropertyResult } from '../core/types/property.types';
 
 // UI Components
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { HlmLabelDirective } from '@spartan-ng/ui-label-helm';
-import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
-import { HlmCheckboxComponent } from '@spartan-ng/ui-checkbox-helm';
-import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
-import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
-import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmInputDirective } from '@spartan-ng/helm/input';
+import { HlmLabelDirective } from '@spartan-ng/helm/label';
+import { HlmBadgeDirective } from '@spartan-ng/helm/badge';
+import { HlmCheckboxComponent } from '@spartan-ng/helm/checkbox';
+import { HlmSkeletonComponent } from '@spartan-ng/helm/skeleton';
+import { HlmSpinnerComponent } from '@spartan-ng/helm/spinner';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { BrnTooltipContentDirective } from '@spartan-ng/brain/tooltip';
 import {
   HlmTooltipComponent,
   HlmTooltipTriggerDirective,
-} from '@spartan-ng/ui-tooltip-helm';
+} from '@spartan-ng/helm/tooltip';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideSearch,
-  lucideFilter,
+  lucideFuel,
   lucideMapPin,
   lucideHouse,
   lucideBath,
@@ -100,7 +100,7 @@ interface SearchParams {
   providers: [
     provideIcons({
       lucideSearch,
-      lucideFilter,
+      lucideFuel,
       lucideMapPin,
       lucideHouse,
       lucideBath,
@@ -876,17 +876,17 @@ export default class PropertiesSearchPageComponent implements OnInit {
         location:
           rawProperty.location?.lat && rawProperty.location?.lon
             ? {
-              lat: rawProperty.location.lat,
-              lon: rawProperty.location.lon,
-            }
+                lat: rawProperty.location.lat,
+                lon: rawProperty.location.lon,
+              }
             : undefined,
 
         // Handle images array
         images: Array.isArray(rawProperty.images)
           ? rawProperty.images
           : rawProperty.images
-            ? [rawProperty.images]
-            : [],
+          ? [rawProperty.images]
+          : [],
 
         // Location details
         district: rawProperty.district,

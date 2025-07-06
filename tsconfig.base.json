@@ -10,10 +10,7 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": [
-      "es2020",
-      "dom"
-    ],
+    "lib": ["es2020", "dom"],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
@@ -24,52 +21,21 @@
       "@deenji/shared-elasticsearch": [
         "libs/shared-elasticsearch/src/index.ts"
       ],
-      "@spartan-ng/ui-badge-helm": [
-        "libs/ui/ui-badge-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-button-helm": [
-        "libs/ui/ui-button-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-card-helm": [
-        "libs/ui/ui-card-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-checkbox-helm": [
-        "libs/ui/ui-checkbox-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-formfield-helm": [
-        "libs/ui/ui-formfield-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-icon-helm": [
-        "libs/ui/ui-icon-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-input-helm": [
-        "libs/ui/ui-input-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-label-helm": [
-        "libs/ui/ui-label-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-select-helm": [
-        "libs/ui/ui-select-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-skeleton-helm": [
-        "libs/ui/ui-skeleton-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-spinner-helm": [
-        "libs/ui/ui-spinner-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-tabs-helm": [
-        "libs/ui/ui-tabs-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-tooltip-helm": [
-        "libs/ui/ui-tooltip-helm/src/index.ts"
-      ],
-      "@spartan-ng/ui-separator-helm": [
-        "libs/ui/ui-separator-helm/src/index.ts"
-      ]
+      "@spartan-ng/helm/badge": ["libs/ui/ui-badge-helm/src/index.ts"],
+      "@spartan-ng/helm/button": ["libs/ui/ui-button-helm/src/index.ts"],
+      "@spartan-ng/helm/card": ["libs/ui/ui-card-helm/src/index.ts"],
+      "@spartan-ng/helm/checkbox": ["libs/ui/ui-checkbox-helm/src/index.ts"],
+      "@spartan-ng/helm/form-field": ["libs/ui/ui-formfield-helm/src/index.ts"],
+      "@spartan-ng/helm/icon": ["libs/ui/ui-icon-helm/src/index.ts"],
+      "@spartan-ng/helm/input": ["libs/ui/ui-input-helm/src/index.ts"],
+      "@spartan-ng/helm/label": ["libs/ui/ui-label-helm/src/index.ts"],
+      "@spartan-ng/helm/select": ["libs/ui/ui-select-helm/src/index.ts"],
+      "@spartan-ng/helm/separator": ["libs/ui/ui-separator-helm/src/index.ts"],
+      "@spartan-ng/helm/skeleton": ["libs/ui/ui-skeleton-helm/src/index.ts"],
+      "@spartan-ng/helm/spinner": ["libs/ui/ui-spinner-helm/src/index.ts"],
+      "@spartan-ng/helm/tabs": ["libs/ui/ui-tabs-helm/src/index.ts"],
+      "@spartan-ng/helm/tooltip": ["libs/ui/ui-tooltip-helm/src/index.ts"]
     }
   },
-  "exclude": [
-    "node_modules",
-    "tmp"
-  ]
+  "exclude": ["node_modules", "tmp"]
 }

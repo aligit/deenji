@@ -19,9 +19,9 @@ import { SupabaseService } from '../services/supabase.service';
 import { AuthChangeEvent, Session } from '@supabase/supabase-js';
 
 // UI Components
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmInputDirective } from '@spartan-ng/helm/input';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';

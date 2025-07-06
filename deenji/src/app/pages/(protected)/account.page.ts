@@ -19,7 +19,7 @@ import {
   HlmTabsContentDirective,
   HlmTabsListComponent,
   HlmTabsTriggerDirective,
-} from '@spartan-ng/ui-tabs-helm';
+} from '@spartan-ng/helm/tabs';
 
 // Import your components
 import { ProfileInfoComponent } from './components/profile-info.component';
@@ -264,7 +264,11 @@ export default class AccountPageComponent implements OnInit {
 
       // Set up auth state change listener
       this.supabase.onAuthStateChange((event, session) => {
-        console.log('Auth state changed in account page:', event, session ? 'Authenticated' : 'Not authenticated');
+        console.log(
+          'Auth state changed in account page:',
+          event,
+          session ? 'Authenticated' : 'Not authenticated'
+        );
         this.session = session;
         if (session) {
           this.loadProfile();
@@ -352,7 +356,6 @@ export default class AccountPageComponent implements OnInit {
         avatar_url: 'https://example.com/avatar.jpg' // placeholder
       });
       */
-
     } catch (error) {
       console.error('Error uploading avatar:', error);
     } finally {

@@ -6,9 +6,9 @@ import { injectTrpcClient } from '../../../trpc-client';
 import { firstValueFrom } from 'rxjs';
 
 // UI Components
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmSkeletonComponent } from '@spartan-ng/helm/skeleton';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';

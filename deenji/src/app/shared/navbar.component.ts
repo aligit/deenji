@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 import { Router, RouterModule, NavigationEnd } from '@angular/router';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
 import { filter } from 'rxjs/operators';
 import { Subscription } from 'rxjs';
 import { SupabaseService } from '../core/services/supabase.service';
