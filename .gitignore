@@ -41,7 +41,6 @@ Thumbs.db
 .nx/cache
 .nx/workspace-data
 .env
-bun.lockb
 
 .angular
 migrations/.env.development
