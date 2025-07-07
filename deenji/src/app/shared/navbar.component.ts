@@ -52,6 +52,8 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js';
           </div>
           <div class="flex flex-1 justify-end items-center">
             <div class="hidden md:flex items-center space-x-6">
+              <button (click)="clickare()" hlmBtn>دکمه</button>
+
               @if (!sessionSignal()) {
               <button
                 [routerLink]="['/login']"
@@ -112,5 +114,10 @@ export class NavbarComponent implements OnInit {
 
   private checkIfHomePage(url: string): void {
     this.isHomePage.set(url === '/' || url === '/home');
+  }
+
+  clickare() {
+    console.log(`suck my dick`);
+    return 'toto';
   }
 }
