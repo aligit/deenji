@@ -6,7 +6,7 @@ ENV NODE_OPTIONS="--max-old-space-size=6144"
 WORKDIR /app
 
 # Copy workspace configuration files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 COPY nx.json ./
 COPY tsconfig.base.json ./
 COPY deenji/vite.config.ts ./vite.config.ts
