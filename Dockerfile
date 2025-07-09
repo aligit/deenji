@@ -1,25 +1,25 @@
 # Dockerfile
-FROM oven/bun:latest AS builder
+FROM node:20-alpine AS builder
 ENV NG_CLI_ANALYTICS=false
 ENV NODE_OPTIONS="--max-old-space-size=6144"
 
 WORKDIR /app
 
 # Copy workspace configuration files
-COPY package.json bun.lock ./
+COPY package.json package-lock.json ./
 COPY nx.json ./
 COPY tsconfig.base.json ./
 COPY deenji/vite.config.ts ./vite.config.ts
 
 # Install dependencies with npm
-RUN bun install
+RUN npm ci
 
 # Copy source code
 COPY . .
 
 # Build the deenji app
 #RUN npx nx build deenji --configuration=production
-RUN NODE_ENV=production bunx nx build deenji --configuration=production --skip-nx-cache
+RUN NODE_ENV=production npx nx build deenji --configuration=production --skip-nx-cache
 
 # Production stage
 FROM node:20-alpine
