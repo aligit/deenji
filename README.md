@@ -298,6 +298,21 @@ This file (located in the project root) provides structured, high-level context 
 bunx nx build deenji
 ```
 
+## Re-Installing a Spartan UI Primitive with Brain & Helm
+
+If you ever delete a primitive (e.g. `ui-select-helm`) and then get a “Skipping … already installed” error, follow these steps to remove any lingering imports/config and then re-generate the primitive with both the “brain” and “helm” libraries.
+
+---
+
+### 1. Find & Remove Old Imports
+
+Anywhere your app still references the old Helm package will block regeneration. In your workspace root run:
+
+```bash
+# adjust the path to your app(s) as needed
+grep -R "ui-select-helm\|@spartan-ng/helm/select" -n apps/
+```
+
 ## License
 
 [MIT](LICENSE)

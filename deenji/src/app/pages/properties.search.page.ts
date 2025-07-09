@@ -9,20 +9,21 @@ import { injectTrpcClient } from '../../trpc-client';
 import { PropertyResult } from '../core/types/property.types';
 
 // UI Components
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { HlmLabelDirective } from '@spartan-ng/ui-label-helm';
-import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
-import { HlmCheckboxComponent } from '@spartan-ng/ui-checkbox-helm';
-import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
-import { HlmSpinnerComponent } from '@spartan-ng/ui-spinner-helm';
-import { HlmSelectImports } from '@spartan-ng/ui-select-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmInputDirective } from '@spartan-ng/helm/input';
+import { HlmLabelDirective } from '@spartan-ng/helm/label';
+import { HlmBadgeDirective } from '@spartan-ng/helm/badge';
+import { HlmCheckboxComponent } from '@spartan-ng/helm/checkbox';
+import { HlmSkeletonComponent } from '@spartan-ng/helm/skeleton';
+import { HlmSpinnerComponent } from '@spartan-ng/helm/spinner';
+import { BrnSelectImports } from '@spartan-ng/brain/select';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { BrnTooltipContentDirective } from '@spartan-ng/brain/tooltip';
 import {
   HlmTooltipComponent,
   HlmTooltipTriggerDirective,
-} from '@spartan-ng/ui-tooltip-helm';
+} from '@spartan-ng/helm/tooltip';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -91,6 +92,7 @@ interface SearchParams {
     HlmCheckboxComponent,
     HlmSkeletonComponent,
     HlmSpinnerComponent,
+    BrnSelectImports,
     HlmSelectImports,
     HlmTooltipComponent,
     HlmTooltipTriggerDirective,
@@ -150,17 +152,22 @@ interface SearchParams {
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-600">مرتب‌سازی:</span>
-                <select
-                  class="border border-gray-300 rounded px-2 py-1 text-sm"
+                <brn-select
+                  class="inline-block"
                   [value]="sortBy()"
-                  (change)="onSortChange($any($event.target).value)"
+                  (valueChange)="onSortChange($event)"
                 >
-                  <option value="relevance">مرتبط‌ترین</option>
-                  <option value="price">قیمت</option>
-                  <option value="date">تاریخ</option>
-                  <option value="area">متراژ</option>
-                  <option value="created_at">جدیدترین</option>
-                </select>
+                  <hlm-select-trigger class="w-40">
+                    <hlm-select-value />
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-option value="relevance">مرتبط‌ترین</hlm-option>
+                    <hlm-option value="price">قیمت</hlm-option>
+                    <hlm-option value="date">تاریخ</hlm-option>
+                    <hlm-option value="area">متراژ</hlm-option>
+                    <hlm-option value="created_at">جدیدترین</hlm-option>
+                  </hlm-select-content>
+                </brn-select>
               </div>
             </div>
           </div>
@@ -235,16 +242,21 @@ interface SearchParams {
               <!-- Property Type Select -->
               <div class="space-y-4 mb-6">
                 <h4 class="font-medium text-gray-800">نوع ملک</h4>
-                <select
-                  class="w-full border border-gray-300 rounded px-3 py-2"
+                <brn-select
+                  class="w-full"
                   [formControl]="$any(searchForm.get('property_type'))"
                 >
-                  <option value="">همه انواع</option>
-                  <option value="آپارتمان">آپارتمان</option>
-                  <option value="خانه">خانه</option>
-                  <option value="ویلا">ویلا</option>
-                  <option value="زمین">زمین</option>
-                </select>
+                  <hlm-select-trigger class="w-full">
+                    <hlm-select-value />
+                  </hlm-select-trigger>
+                  <hlm-select-content>
+                    <hlm-option value="">همه انواع</hlm-option>
+                    <hlm-option value="آپارتمان">آپارتمان</hlm-option>
+                    <hlm-option value="خانه">خانه</hlm-option>
+                    <hlm-option value="ویلا">ویلا</hlm-option>
+                    <hlm-option value="زمین">زمین</hlm-option>
+                  </hlm-select-content>
+                </brn-select>
               </div>
 
               <!-- Property Features -->
@@ -577,7 +589,7 @@ export default class PropertiesSearchPageComponent implements OnInit {
   totalResults = signal(0);
   currentPage = signal(1);
   pageSize = signal(20);
-  sortBy = signal('relevance');
+  sortBy = signal<string>('relevance');
   sortOrder = signal<'asc' | 'desc'>('desc');
   showFilters = signal(false);
 
@@ -809,9 +821,14 @@ export default class PropertiesSearchPageComponent implements OnInit {
     }
   }
 
-  onSortChange(sortValue: string) {
-    this.sortBy.set(sortValue);
-    this.executeSearch();
+  onSortChange(value: string | string[] | undefined) {
+    // Handle undefined, single string, and array of strings
+    if (!value) return;
+    const sortValue = Array.isArray(value) ? value[0] : value;
+    if (sortValue) {
+      this.sortBy.set(sortValue);
+      this.executeSearch();
+    }
   }
 
   toggleFilters() {

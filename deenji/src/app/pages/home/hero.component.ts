@@ -2,8 +2,8 @@
 import { Component, inject, signal, effect, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { HlmInputDirective } from '@spartan-ng/ui-input-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
+import { HlmInputDirective } from '@spartan-ng/helm/input';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
 import {
   SearchService,
   SearchSuggestion,

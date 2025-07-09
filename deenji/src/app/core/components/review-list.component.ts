@@ -13,10 +13,10 @@ import { SupabaseService } from '../services/supabase.service';
 import { ReviewStats } from '../types/review.types';
 
 // UI
-import { HlmCardDirective } from '@spartan-ng/ui-card-helm';
-import { HlmButtonDirective } from '@spartan-ng/ui-button-helm';
-import { HlmBadgeDirective } from '@spartan-ng/ui-badge-helm';
-import { HlmSkeletonComponent } from '@spartan-ng/ui-skeleton-helm';
+import { HlmCardDirective } from '@spartan-ng/helm/card';
+import { HlmButtonDirective } from '@spartan-ng/helm/button';
+import { HlmBadgeDirective } from '@spartan-ng/helm/badge';
+import { HlmSkeletonComponent } from '@spartan-ng/helm/skeleton';
 
 // Icons
 import { NgIcon, provideIcons } from '@ng-icons/core';

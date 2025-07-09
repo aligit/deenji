@@ -1,14 +1,14 @@
-import { Component, computed, contentChild, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, contentChild, inject, input } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideChevronDown } from '@ng-icons/lucide';
 import { hlm } from '@spartan-ng/brain/core';
 import { BrnSelectComponent, BrnSelectTriggerDirective } from '@spartan-ng/brain/select';
-import { HlmIconDirective } from '@spartan-ng/ui-icon-helm';
+import { HlmIconDirective } from '@spartan-ng/helm/icon';
 import { type VariantProps, cva } from 'class-variance-authority';
 import type { ClassValue } from 'clsx';
 
 export const selectTriggerVariants = cva(
-	'flex items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+	'flex items-center justify-between rounded-md border border-input bg-background text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
 	{
 		variants: {
 			size: {
@@ -31,10 +31,8 @@ type SelectTriggerVariants = VariantProps<typeof selectTriggerVariants>;
 
 @Component({
 	selector: 'hlm-select-trigger',
-	standalone: true,
 	imports: [BrnSelectTriggerDirective, NgIcon, HlmIconDirective],
 	providers: [provideIcons({ lucideChevronDown })],
-
 	template: `
 		<button [class]="_computedClass()" #button hlmInput brnSelectTrigger type="button">
 			<ng-content />
@@ -45,6 +43,7 @@ type SelectTriggerVariants = VariantProps<typeof selectTriggerVariants>;
 			}
 		</button>
 	`,
+	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HlmSelectTriggerComponent {
 	protected readonly icon = contentChild(HlmIconDirective);
