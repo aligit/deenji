@@ -12,7 +12,7 @@ COPY tsconfig.base.json ./
 COPY deenji/vite.config.ts ./vite.config.ts
 
 # Install dependencies with npm
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
