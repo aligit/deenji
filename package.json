@@ -99,7 +99,7 @@
     "@types/mongodb": "^4.0.7",
     "@types/node": "18.16.9",
     "@typescript-eslint/utils": "^8.29.0",
-    "@vitest/browser": "^1.0.0",
+    "@vitest/browser": "^3.0.5",
     "angular-eslint": "20.1.1",
     "autoprefixer": "^10.4.0",
     "drizzle-kit": "^0.30.5",
