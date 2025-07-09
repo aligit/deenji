@@ -7,9 +7,8 @@ import { HeroComponent } from './home/hero.component';
 import { NavbarComponent } from '../shared/navbar.component';
 import { CommonModule } from '@angular/common';
 
-import { waitFor } from '@analogjs/trpc';
 import { injectTrpcClient } from '../../trpc-client';
-import { Subject, switchMap, shareReplay } from 'rxjs';
+import { Subject } from 'rxjs';
 import { AngularSvgIconModule } from 'angular-svg-icon';
 
 @Component({
@@ -41,27 +40,9 @@ import { AngularSvgIconModule } from 'angular-svg-icon';
   `,
 })
 export default class HomeComponent {
-  private _trpc = injectTrpcClient();
-
   public triggerRefresh$ = new Subject<void>();
-  public notes$ = this.triggerRefresh$.pipe(
-    switchMap(() => {
-      console.log('HomeComponent: Attempting to fetch notes...');
-      return this._trpc.note.list.query();
-    }),
-    shareReplay(1)
-  );
-  public newNote = '';
 
   constructor() {
-    this.notes$.subscribe({
-      next: (notes) => console.log('HomeComponent: Notes received:', notes),
-      error: (error) =>
-        console.error('HomeComponent: Error fetching notes:', error),
-      complete: () => console.log('HomeComponent: Notes stream completed'),
-    });
-
-    void waitFor(this.notes$);
     this.triggerRefresh$.next();
   }
 }
