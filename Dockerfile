@@ -1,5 +1,5 @@
 # Dockerfile
-FROM oven/bun:latest-alpine AS builder
+FROM oven/bun:latest AS builder
 ENV NG_CLI_ANALYTICS=false
 ENV NODE_OPTIONS="--max-old-space-size=6144"
 
