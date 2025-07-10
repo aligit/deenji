@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "supabase:start": "cd $HOME/work-public/deenji-supabase && bunx supabase start -x edge-runtime,vector,logflare",
+    "supabase:start": "cd $HOME/work-public/deenji-supabase && bunx supabase start -x edge-runtime,vector,logflare,imgproxy,supavisor,realtime",
     "supabase:stop": "cd $HOME/work-public/deenji-supabase && bunx supabase stop  --all",
     "supabase:status": "cd $HOME/work-public/deenji-supabase && bunx supabase status",
     "es:start": "docker compose -f elasticsearch-compose.yml up -d",
