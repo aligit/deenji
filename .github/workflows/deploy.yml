@@ -1,209 +1,367 @@
-name: deenji-app
-services:
-  # Elasticsearch service
-  elasticsearch:
-    image: elasticsearch:8.17.4
-    container_name: deenji_elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - es_data:/usr/share/elasticsearch/data
-    ports:
-      - '9200:9200'
-      - '9300:9300'
-    mem_limit: 1g
-    networks:
-      - deenji_network
+name: Build and Deploy
 
-  # Supabase PostgreSQL - updated with proper command based on documentation
-  supabase_db:
-    image: public.ecr.aws/supabase/postgres:15.8.1.040
-    container_name: deenji_supabase_db
-    command: postgres -c config_file=/etc/postgresql/postgresql.conf
-    restart: unless-stopped
-    volumes:
-      - supabase_db_data:/var/lib/postgresql/data
-      - ./db-init:/docker-entrypoint-initdb.d
-    environment:
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
-    ports:
-      - '54322:5432'
-    networks:
-      - deenji_network
-    healthcheck:
-      test: ['CMD', 'pg_isready', '-U', 'postgres']
-      interval: 5s
-      timeout: 5s
-      retries: 5
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Allows manual triggering from GitHub UI
 
-  # Supabase Auth
-  supabase_auth:
-    image: public.ecr.aws/supabase/gotrue:v2.169.0
-    container_name: deenji_supabase_auth
-    depends_on:
-      supabase_db:
-        condition: service_healthy
-    restart: unless-stopped
-    environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}?sslmode=disable
-      GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:8081}
-      GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      GOTRUE_JWT_EXP: 3600
-      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP:-false}
-      GOTRUE_EXTERNAL_EMAIL_ENABLED: ${EXTERNAL_EMAIL:-false}
-    networks:
-      - deenji_network
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/deenji-app
 
-  # REST API
-  supabase_rest:
-    image: public.ecr.aws/supabase/postgrest:v12.2.3
-    container_name: deenji_supabase_rest
-    depends_on:
-      supabase_db:
-        condition: service_healthy
-    restart: unless-stopped
-    environment:
-      PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}
-      PGRST_DB_SCHEMA: public,storage
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      PGRST_DB_USE_LEGACY_GUCS: 'false'
-    networks:
-      - deenji_network
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
 
-  # Postgres Meta
-  supabase_pg_meta:
-    image: public.ecr.aws/supabase/postgres-meta:v0.89.3
-    container_name: deenji_supabase_pg_meta
-    depends_on:
-      supabase_db:
-        condition: service_healthy
-    restart: unless-stopped
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: supabase_db
-      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: ${POSTGRES_DB:-postgres}
-      PG_META_DB_USER: ${POSTGRES_USER:-postgres}
-    networks:
-      - deenji_network
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  # Supabase Storage
-  supabase_storage:
-    image: public.ecr.aws/supabase/storage-api:v1.23.0
-    container_name: deenji_supabase_storage
-    depends_on:
-      supabase_db:
-        condition: service_healthy
-      supabase_rest:
-        condition: service_started
-    restart: unless-stopped
-    environment:
-      ANON_KEY: ${SUPABASE_ANON_KEY:-abC4321}
-      SERVICE_KEY: ${SERVICE_ROLE_KEY:-abC1234}
-      POSTGREST_URL: http://supabase_rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}?sslmode=disable
-      FILE_SIZE_LIMIT: 52428800
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: stub
-      REGION: stub
-      GLOBAL_S3_BUCKET: stub
-    volumes:
-      - supabase_storage_data:/var/lib/storage
-    networks:
-      - deenji_network
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-  # Mail server (for auth emails)
-  supabase_inbucket:
-    image: public.ecr.aws/supabase/mailpit:v1.22.3
-    container_name: deenji_supabase_inbucket
-    restart: unless-stopped
-    ports:
-      - '54324:8025'
-    networks:
-      - deenji_network
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-  # Kong API Gateway
-  supabase_kong:
-    image: public.ecr.aws/supabase/kong:2.8.1
-    container_name: deenji_supabase_kong
-    depends_on:
-      - supabase_rest
-      - supabase_auth
-      - supabase_storage
-      - supabase_pg_meta
-    restart: unless-stopped
-    ports:
-      - '54321:8000'
-    environment:
-      KONG_DATABASE: 'off'
-      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl
-    volumes:
-      - ./kong.yml:/var/lib/kong/kong.yml
-    networks:
-      - deenji_network
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        timeout-minutes: 20
+        with:
+          context: .
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-  # Supabase Studio (Admin UI)
-  supabase_studio:
-    image: public.ecr.aws/supabase/studio:2025.06.02-sha-8f2993d
-    container_name: deenji_supabase_studio
-    depends_on:
-      - supabase_kong
-    restart: unless-stopped
-    ports:
-      - '54323:3000'
-    environment:
-      SUPABASE_URL: http://supabase_kong:8000
-      STUDIO_PG_META_URL: http://supabase_kong:8000
-      DEFAULT_API_KEY: ${SUPABASE_ANON_KEY:-abC4321}
-    networks:
-      - deenji_network
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: staging
 
-  # deenji AnalogJS application
-  deenji-app:
-    image: ${REGISTRY}/${IMAGE_NAME}:latest
-    container_name: deenji_app
-    ports:
-      - '8081:8081'
-    env_file:
-      - .env
-    environment:
-      - NODE_ENV=production
-      - NITRO_PORT=8081
-      - NITRO_HOST=0.0.0.0
-      - VITE_ELASTICSEARCH_URL=http://elasticsearch:9200
-      - VITE_supabaseUrl=http://supabase_kong:8000
-    depends_on:
-      - elasticsearch
-      - supabase_kong
-    restart: unless-stopped
-    networks:
-      - deenji_network
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: SUPABASE_ANON_KEY,DATABASE_URL,GOOGLE_API_KEY,REGISTRY,IMAGE_NAME,POSTGRES_PASSWORD,JWT_SECRET
+          script: |
+            # Create deployment directory if it doesn't exist
+            mkdir -p ~/deployment
+            cd ~/deployment
 
-volumes:
-  es_data:
-    name: deenji_elasticsearch_data
-  supabase_db_data:
-    name: deenji_supabase_db_data
-  supabase_storage_data:
-    name: deenji_supabase_storage_data
+            # Create Kong config
+            cat > kong.yml << 'EOFKONG'
+            _format_version: "2.1"
+            _transform: true
 
-networks:
-  deenji_network:
-    name: deenji_internal_network
+            services:
+              - name: auth-v1
+                url: http://supabase_auth:9999/verify
+                routes:
+                  - name: auth-v1-route
+                    paths:
+                      - /auth/v1/verify
+                plugins:
+                  - name: cors
+              - name: auth-v1-admin
+                url: http://supabase_auth:9999/admin
+                routes:
+                  - name: auth-v1-admin-route
+                    paths:
+                      - /auth/v1/admin
+              - name: auth-v1-root
+                url: http://supabase_auth:9999/
+                routes:
+                  - name: auth-v1-root-route
+                    paths:
+                      - /auth/v1/
+              - name: rest
+                url: http://supabase_rest:3000/
+                routes:
+                  - name: rest-route
+                    paths:
+                      - /rest/v1
+              - name: storage
+                url: http://supabase_storage:5000/
+                routes:
+                  - name: storage-route
+                    paths:
+                      - /storage/v1
+              - name: meta
+                url: http://supabase_pg_meta:8080/
+                routes:
+                  - name: meta-route
+                    paths:
+                      - /pg
+            EOFKONG
+
+            # Create db-init directory for database initialization (optional)
+            mkdir -p db-init
+
+            # Create .env file with Supabase configuration
+            cat > .env << EOFENV
+            VITE_production=true
+            VITE_supabaseUrl=http://supabase_kong:8000
+            baseUrl=https://demo.deenji.com
+            VITE_ELASTICSEARCH_URL=http://elasticsearch:9200
+            VITE_supabaseKey=${SUPABASE_ANON_KEY:-abC4321}
+            DATABASE_URL=${DATABASE_URL}
+            VITE_GOOGLE_API_KEY=${GOOGLE_API_KEY}
+            VITE_googleMapsApiKey=${GOOGLE_API_KEY}
+            VITE_GOOGLE_MAPS_API_KEY=${GOOGLE_API_KEY}
+            EOFENV
+
+            # Create docker-compose.yml
+            cat > docker-compose.yml << 'EOF'
+            name: deenji-app
+            services:
+              # Elasticsearch service
+              elasticsearch:
+                image: elasticsearch:8.17.4
+                container_name: deenji_elasticsearch
+                environment:
+                  - discovery.type=single-node
+                  - xpack.security.enabled=false
+                  - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
+                ulimits:
+                  memlock:
+                    soft: -1
+                    hard: -1
+                volumes:
+                  - es_data:/usr/share/elasticsearch/data
+                ports:
+                  - '9200:9200'
+                  - '9300:9300'
+                mem_limit: 1g
+                networks:
+                  - deenji_network
+
+              # Supabase PostgreSQL
+              supabase_db:
+                image: public.ecr.aws/supabase/postgres:15.8.1.040
+                container_name: deenji_supabase_db
+                command: postgres -c config_file=/etc/postgresql/postgresql.conf
+                restart: unless-stopped
+                volumes:
+                  - supabase_db_data:/var/lib/postgresql/data
+                  - ./db-init:/docker-entrypoint-initdb.d
+                environment:
+                  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+                  POSTGRES_USER: ${POSTGRES_USER:-postgres}
+                  POSTGRES_DB: ${POSTGRES_DB:-postgres}
+                ports:
+                  - '54322:5432'
+                networks:
+                  - deenji_network
+                healthcheck:
+                  test: ["CMD", "pg_isready", "-U", "postgres"]
+                  interval: 5s
+                  timeout: 5s
+                  retries: 5
+
+              # Supabase Auth
+              supabase_auth:
+                image: public.ecr.aws/supabase/gotrue:v2.169.0
+                container_name: deenji_supabase_auth
+                depends_on:
+                  supabase_db:
+                    condition: service_healthy
+                restart: unless-stopped
+                environment:
+                  GOTRUE_API_HOST: 0.0.0.0
+                  GOTRUE_API_PORT: 9999
+                  GOTRUE_DB_DRIVER: postgres
+                  GOTRUE_DB_DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}?sslmode=disable
+                  GOTRUE_SITE_URL: ${SITE_URL:-http://localhost:8081}
+                  GOTRUE_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+                  GOTRUE_JWT_EXP: 3600
+                  GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+                  GOTRUE_DISABLE_SIGNUP: "false"
+                  GOTRUE_EXTERNAL_EMAIL_ENABLED: "false"
+                networks:
+                  - deenji_network
+
+              # REST API
+              supabase_rest:
+                image: public.ecr.aws/supabase/postgrest:v12.2.3
+                container_name: deenji_supabase_rest
+                depends_on:
+                  supabase_db:
+                    condition: service_healthy
+                restart: unless-stopped
+                environment:
+                  PGRST_DB_URI: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}
+                  PGRST_DB_SCHEMA: public,storage
+                  PGRST_DB_ANON_ROLE: anon
+                  PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+                  PGRST_DB_USE_LEGACY_GUCS: "false"
+                networks:
+                  - deenji_network
+
+              # Postgres Meta
+              supabase_pg_meta:
+                image: public.ecr.aws/supabase/postgres-meta:v0.89.3
+                container_name: deenji_supabase_pg_meta
+                depends_on:
+                  supabase_db:
+                    condition: service_healthy
+                restart: unless-stopped
+                environment:
+                  PG_META_PORT: 8080
+                  PG_META_DB_HOST: supabase_db
+                  PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+                  PG_META_DB_PORT: 5432
+                  PG_META_DB_NAME: ${POSTGRES_DB:-postgres}
+                  PG_META_DB_USER: ${POSTGRES_USER:-postgres}
+                networks:
+                  - deenji_network
+
+              # Supabase Storage
+              supabase_storage:
+                image: public.ecr.aws/supabase/storage-api:v1.23.0
+                container_name: deenji_supabase_storage
+                depends_on:
+                  supabase_db:
+                    condition: service_healthy
+                  supabase_rest:
+                    condition: service_started
+                restart: unless-stopped
+                environment:
+                  ANON_KEY: ${SUPABASE_ANON_KEY:-abC4321}
+                  SERVICE_KEY: ${SERVICE_ROLE_KEY:-abC1234}
+                  POSTGREST_URL: http://supabase_rest:3000
+                  PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
+                  DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@supabase_db:5432/${POSTGRES_DB:-postgres}?sslmode=disable
+                  FILE_SIZE_LIMIT: 52428800
+                  STORAGE_BACKEND: file
+                  FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+                  TENANT_ID: stub
+                  REGION: stub
+                  GLOBAL_S3_BUCKET: stub
+                volumes:
+                  - supabase_storage_data:/var/lib/storage
+                networks:
+                  - deenji_network
+
+              # Mail server (for auth emails)
+              supabase_inbucket:
+                image: public.ecr.aws/supabase/mailpit:v1.22.3
+                container_name: deenji_supabase_inbucket
+                restart: unless-stopped
+                ports:
+                  - "54324:8025"
+                networks:
+                  - deenji_network
+
+              # Kong API Gateway
+              supabase_kong:
+                image: public.ecr.aws/supabase/kong:2.8.1
+                container_name: deenji_supabase_kong
+                depends_on:
+                  - supabase_rest
+                  - supabase_auth
+                  - supabase_storage
+                  - supabase_pg_meta
+                restart: unless-stopped
+                ports:
+                  - "54321:8000"
+                environment:
+                  KONG_DATABASE: "off"
+                  KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+                  KONG_PLUGINS: request-transformer,cors,key-auth,acl
+                volumes:
+                  - ./kong.yml:/var/lib/kong/kong.yml
+                networks:
+                  - deenji_network
+
+              # Supabase Studio (Admin UI)
+              supabase_studio:
+                image: public.ecr.aws/supabase/studio:2025.06.02-sha-8f2993d
+                container_name: deenji_supabase_studio
+                depends_on:
+                  - supabase_kong
+                restart: unless-stopped
+                ports:
+                  - "54323:3000"
+                environment:
+                  SUPABASE_URL: http://supabase_kong:8000
+                  STUDIO_PG_META_URL: http://supabase_kong:8000
+                  DEFAULT_API_KEY: ${SUPABASE_ANON_KEY:-abC4321}
+                networks:
+                  - deenji_network
+
+              # deenji AnalogJS application
+              deenji-app:
+                image: ${REGISTRY}/${IMAGE_NAME}:latest
+                container_name: deenji_app
+                ports:
+                  - '8081:8081'
+                env_file:
+                  - .env
+                environment:
+                  - NODE_ENV=production
+                  - NITRO_PORT=8081
+                  - NITRO_HOST=0.0.0.0
+                  - VITE_ELASTICSEARCH_URL=http://elasticsearch:9200
+                  - VITE_supabaseUrl=http://supabase_kong:8000
+                depends_on:
+                  - elasticsearch
+                  - supabase_kong
+                restart: unless-stopped
+                networks:
+                  - deenji_network
+
+            volumes:
+              es_data:
+                name: deenji_elasticsearch_data
+              supabase_db_data:
+                name: deenji_supabase_db_data
+              supabase_storage_data:
+                name: deenji_supabase_storage_data
+
+            networks:
+              deenji_network:
+                name: deenji_internal_network
+            EOF
+
+            # Create deploy.sh script
+            cat > deploy.sh << 'EOF'
+            #!/bin/bash
+            set -e
+
+            # Pull the latest image
+            docker pull ${REGISTRY}/${IMAGE_NAME}:latest
+
+            # Stop and remove existing containers
+            docker compose -p deenji-app down || true
+
+            # Start the application
+            docker compose -p deenji-app up -d
+
+            # Show running containers
+            docker compose ps
+            EOF
+
+            # Make deploy script executable
+            chmod +x deploy.sh
+
+            # Execute deployment script
+            ./deploy.sh
+        env:
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'postgres' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'super-secret-jwt-token-with-at-least-32-characters-long' }}
+          SERVICE_ROLE_KEY: ${{ secrets.SERVICE_ROLE_KEY || secrets.SUPABASE_ANON_KEY }}
