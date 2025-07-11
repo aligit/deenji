@@ -39,7 +39,7 @@ services:
     networks:
       - deenji_network
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres"]
+      test: ['CMD', 'pg_isready', '-U', 'postgres']
       interval: 5s
       timeout: 5s
       retries: 5
@@ -79,7 +79,7 @@ services:
       PGRST_DB_SCHEMA: public,storage
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET:-super-secret-jwt-token-with-at-least-32-characters-long}
-      PGRST_DB_USE_LEGACY_GUCS: "false"
+      PGRST_DB_USE_LEGACY_GUCS: 'false'
     networks:
       - deenji_network
 
@@ -106,9 +106,10 @@ services:
     image: public.ecr.aws/supabase/storage-api:v1.23.0
     container_name: deenji_supabase_storage
     depends_on:
-      - supabase_rest
       supabase_db:
         condition: service_healthy
+      supabase_rest:
+        condition: service_started
     restart: unless-stopped
     environment:
       ANON_KEY: ${SUPABASE_ANON_KEY:-abC4321}
@@ -133,7 +134,7 @@ services:
     container_name: deenji_supabase_inbucket
     restart: unless-stopped
     ports:
-      - "54324:8025"
+      - '54324:8025'
     networks:
       - deenji_network
 
@@ -148,9 +149,9 @@ services:
       - supabase_pg_meta
     restart: unless-stopped
     ports:
-      - "54321:8000"
+      - '54321:8000'
     environment:
-      KONG_DATABASE: "off"
+      KONG_DATABASE: 'off'
       KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
       KONG_PLUGINS: request-transformer,cors,key-auth,acl
     volumes:
@@ -166,7 +167,7 @@ services:
       - supabase_kong
     restart: unless-stopped
     ports:
-      - "54323:3000"
+      - '54323:3000'
     environment:
       SUPABASE_URL: http://supabase_kong:8000
       STUDIO_PG_META_URL: http://supabase_kong:8000
