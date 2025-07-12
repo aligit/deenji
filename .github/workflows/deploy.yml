@@ -346,28 +346,43 @@ jobs:
             #!/bin/bash
             set -e
 
-            # Set proxy environment variables for Docker
-            export HTTP_PROXY=http://127.0.0.1:10808
-            export HTTPS_PROXY=http://127.0.0.1:10808
-            export http_proxy=http://127.0.0.1:10808
-            export https_proxy=http://127.0.0.1:10808
+            echo "=== Configuring Docker Daemon Proxy ==="
 
-            # Pull the latest image
-            # Pull the latest image using proxy
-            echo "Pulling Docker image through proxy..."
-            docker pull ${REGISTRY}/${IMAGE_NAME}:latest
+            # Configure Docker daemon to use proxy (permanent fix)
+            sudo mkdir -p /etc/systemd/system/docker.service.d
+            sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null <<PROXY_EOF
+            [Service]
+            Environment="HTTP_PROXY=http://127.0.0.1:10808"
+            Environment="HTTPS_PROXY=http://127.0.0.1:10808"
+            Environment="NO_PROXY=localhost,127.0.0.1,registry.ge.manko.yoga"
+            PROXY_EOF
 
-            # Unset proxy for local connections (Docker Compose might need this)
-            unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
+            echo "Restarting Docker daemon..."
+            sudo systemctl daemon-reload
+            sudo systemctl restart docker
 
-            # Stop and remove existing containers
+            # Wait for Docker to fully restart
+            sleep 15
+
+            echo "Testing Docker connectivity..."
+            docker version
+
+            echo "=== Pulling Application Image ==="
+            echo "Pulling Docker image: ${REGISTRY}/${IMAGE_NAME}:latest"
+            timeout 300 docker pull ${REGISTRY}/${IMAGE_NAME}:latest
+
+            echo "=== Deployment ==="
+            echo "Stopping existing containers..."
             docker compose -p deenji-app down || true
 
-            # Start the application
+            echo "Starting application..."
             docker compose -p deenji-app up -d
 
-            # Show running containers
-            docker compose ps
+            echo "Showing running containers..."
+            docker compose -p deenji-app ps
+
+            echo "=== Checking container logs ==="
+            docker compose -p deenji-app logs --tail=10 deenji-app || true
             EOF
 
             # Make deploy script executable
