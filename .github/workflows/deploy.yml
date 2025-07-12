@@ -60,6 +60,12 @@ jobs:
             mkdir -p ~/deployment
             cd ~/deployment
 
+            # Start xray proxy in the background (if not already running)
+            pgrep xray || xray run -c config-saeed-ss.json &
+
+            # Wait for proxy to be ready
+            sleep 3
+
             # Create Kong config
             cat > kong.yml << 'EOFKONG'
             _format_version: "2.1"
@@ -340,8 +346,19 @@ jobs:
             #!/bin/bash
             set -e
 
+            # Set proxy environment variables for Docker
+            export HTTP_PROXY=http://127.0.0.1:10808
+            export HTTPS_PROXY=http://127.0.0.1:10808
+            export http_proxy=http://127.0.0.1:10808
+            export https_proxy=http://127.0.0.1:10808
+
             # Pull the latest image
+            # Pull the latest image using proxy
+            echo "Pulling Docker image through proxy..."
             docker pull ${REGISTRY}/${IMAGE_NAME}:latest
+
+            # Unset proxy for local connections (Docker Compose might need this)
+            unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy
 
             # Stop and remove existing containers
             docker compose -p deenji-app down || true
