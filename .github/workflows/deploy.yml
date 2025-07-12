@@ -347,6 +347,8 @@ jobs:
             set -e
 
             echo "=== Configuring Docker Daemon Proxy ==="
+            echo "Setting up passwordless sudo for Docker commands..."
+            echo "${USER} ALL=(ALL) NOPASSWD: /usr/bin/systemctl restart docker, /usr/bin/systemctl daemon-reload, /usr/bin/mkdir -p /etc/systemd/system/docker.service.d, /usr/bin/tee /etc/systemd/system/docker.service.d/http-proxy.conf" | sudo tee /etc/sudoers.d/docker-proxy
 
             # Configure Docker daemon to use proxy (permanent fix)
             sudo mkdir -p /etc/systemd/system/docker.service.d
