@@ -60,9 +60,6 @@ jobs:
             mkdir -p ~/deployment
             cd ~/deployment
 
-            # Start xray proxy in the background (if not already running)
-            pgrep xray || xray run -c config-saeed-ss.json &
-
             # Create Kong config
             cat > kong.yml << 'EOFKONG'
             _format_version: "2.1"
@@ -152,7 +149,7 @@ jobs:
 
               # Supabase PostgreSQL
               supabase_db:
-                image: public.ecr.aws/supabase/postgres:15.8.1.040
+                image: registry.ge.manko.yoga/supabase/postgres:15.8.1.040
                 container_name: deenji_supabase_db
                 command: postgres -c config_file=/etc/postgresql/postgresql.conf
                 restart: unless-stopped
@@ -175,7 +172,7 @@ jobs:
 
               # Supabase Auth
               supabase_auth:
-                image: public.ecr.aws/supabase/gotrue:v2.169.0
+                image: registry.ge.manko.yoga/supabase/gotrue:v2.169.0
                 container_name: deenji_supabase_auth
                 depends_on:
                   supabase_db:
@@ -197,7 +194,7 @@ jobs:
 
               # REST API
               supabase_rest:
-                image: public.ecr.aws/supabase/postgrest:v12.2.3
+                image: registry.ge.manko.yoga/supabase/postgrest:v12.2.3
                 container_name: deenji_supabase_rest
                 depends_on:
                   supabase_db:
@@ -214,7 +211,7 @@ jobs:
 
               # Postgres Meta
               supabase_pg_meta:
-                image: public.ecr.aws/supabase/postgres-meta:v0.89.3
+                image: registry.ge.manko.yoga/supabase/postgres-meta:v0.89.3
                 container_name: deenji_supabase_pg_meta
                 depends_on:
                   supabase_db:
@@ -232,7 +229,7 @@ jobs:
 
               # Supabase Storage
               supabase_storage:
-                image: public.ecr.aws/supabase/storage-api:v1.23.0
+                image: registry.ge.manko.yoga/supabase/storage-api:v1.23.0
                 container_name: deenji_supabase_storage
                 depends_on:
                   supabase_db:
@@ -259,7 +256,7 @@ jobs:
 
               # Mail server (for auth emails)
               supabase_inbucket:
-                image: public.ecr.aws/supabase/mailpit:v1.22.3
+                image: registry.ge.manko.yoga/supabase/mailpit:v1.22.3
                 container_name: deenji_supabase_inbucket
                 restart: unless-stopped
                 ports:
@@ -269,7 +266,7 @@ jobs:
 
               # Kong API Gateway
               supabase_kong:
-                image: public.ecr.aws/supabase/kong:2.8.1
+                image: registry.ge.manko.yoga/supabase/kong:2.8.1
                 container_name: deenji_supabase_kong
                 depends_on:
                   - supabase_rest
@@ -290,7 +287,7 @@ jobs:
 
               # Supabase Studio (Admin UI)
               supabase_studio:
-                image: public.ecr.aws/supabase/studio:2025.06.02-sha-8f2993d
+                image: registry.ge.manko.yoga/supabase/studio:2025.06.02-sha-8f2993d
                 container_name: deenji_supabase_studio
                 depends_on:
                   - supabase_kong
@@ -342,14 +339,6 @@ jobs:
             cat > deploy.sh << 'EOF'
             #!/bin/bash
             set -e
-
-            # Pull the latest image using proxy
-            echo "Pulling Docker image through proxy..."            # Set proxy environment variables for Docker
-
-            export HTTP_PROXY=http://127.0.0.1:10808
-            export HTTPS_PROXY=http://127.0.0.1:10808
-            export http_proxy=http://127.0.0.1:10808
-            export https_proxy=http://127.0.0.1:10808
 
             # Pull the latest image
             docker pull ${REGISTRY}/${IMAGE_NAME}:latest
