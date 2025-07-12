@@ -60,6 +60,9 @@ jobs:
             mkdir -p ~/deployment
             cd ~/deployment
 
+            # Start xray proxy in the background (if not already running)
+            pgrep xray || xray run -c config-saeed-ss.json &
+
             # Create Kong config
             cat > kong.yml << 'EOFKONG'
             _format_version: "2.1"
@@ -339,6 +342,14 @@ jobs:
             cat > deploy.sh << 'EOF'
             #!/bin/bash
             set -e
+
+            # Pull the latest image using proxy
+            echo "Pulling Docker image through proxy..."            # Set proxy environment variables for Docker
+
+            export HTTP_PROXY=http://127.0.0.1:10808
+            export HTTPS_PROXY=http://127.0.0.1:10808
+            export http_proxy=http://127.0.0.1:10808
+            export https_proxy=http://127.0.0.1:10808
 
             # Pull the latest image
             docker pull ${REGISTRY}/${IMAGE_NAME}:latest
